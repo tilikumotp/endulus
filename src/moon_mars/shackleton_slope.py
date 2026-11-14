@@ -32,7 +32,8 @@ MOON_STEREO_PROJ4 = (
 )
 MOON_GEOD_PROJ4 = "+proj=longlat +R=1737400 +no_defs"
 
-ALBEDO_SRC = "LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0"
+ALBEDO_SRC = "LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0_broadband_eq"
+BROADBAND_ALBEDO_FACTOR = 0.38  # Zero-phase 1064nm normal to broadband solar hemispherical albedo (Vasavada et al. 2012; Hayne et al. 2017)
 DIVINER_SRC = "LRO-L-DLRE-5-PCP-V1.0:pcp_avg_tbol_pols_240m_v2022"
 LITHOLOGY_SRC = "LRO_LOLA_Diviner_SouthPole_Regolith_Zuber2012_Spudis2008"
 
@@ -336,7 +337,7 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
 
 
 def extract_albedo_metrics(ldam_lbl_path: Path, x0_m: float, y0_m: float, radius_m: float) -> tuple[float, float]:
-    """Extract LOLA 1064 nm normal albedo and 1-sigma std inside radius_m around (x0_m, y0_m)."""
+    """Extract broadband solar hemispherical albedo (0.38 * LOLA 1064 nm normal albedo) and 1-sigma std inside radius_m."""
     with rasterio.open(ldam_lbl_path) as src:
         alb = src.read(1).astype(np.float64)
         t = src.transform
@@ -349,7 +350,7 @@ def extract_albedo_metrics(ldam_lbl_path: Path, x0_m: float, y0_m: float, radius
         mask = (dist <= radius_m) & (alb > 0.0) & (alb < 1.0)
         if int(np.sum(mask)) < 2:
             mask = (dist <= max(radius_m, 1500.0)) & (alb > 0.0) & (alb < 1.0)
-        vals = alb[mask]
+        vals = alb[mask] * BROADBAND_ALBEDO_FACTOR
         return float(np.mean(vals)), float(np.std(vals, ddof=1))
 
 
