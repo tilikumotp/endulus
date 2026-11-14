@@ -1,4 +1,4 @@
-"""Generate 5 m/px LRO LOLA hillshade, slope-hazard, and cross-section visual atlas cards for Lunar South Pole sites."""
+"""Generate 5 m/px LRO LOLA hillshade, slope-bin, and cross-section visual atlas cards for Lunar South Pole sites."""
 from __future__ import annotations
 
 import io
@@ -163,11 +163,11 @@ def _draw_contours(
 
 
 def _add_hazard_legend(ax: plt.Axes) -> None:
-    """Add compact Turkish slope hazard legend in upper-left corner."""
+    """Add compact neutral slope-bin legend in upper-left corner."""
     patches = [
-        mpatches.Patch(color="#2ecc71", label="Güvenli (<10°)"),
-        mpatches.Patch(color="#f39c12", label="Rover (10–20°)"),
-        mpatches.Patch(color="#e74c3c", label="Dik (>20°)"),
+        mpatches.Patch(color="#2ecc71", label="<10° eğim"),
+        mpatches.Patch(color="#f39c12", label="10–20° eğim"),
+        mpatches.Patch(color="#e74c3c", label=">20° eğim"),
     ]
     leg = ax.legend(
         handles=patches,
@@ -179,6 +179,23 @@ def _add_hazard_legend(ax: plt.Axes) -> None:
         labelcolor=TEXT_COLOR,
     )
     leg.set_zorder(10)
+
+
+DISCLAIMER_NOTE = "Illustrative slope bins; not a landing-safety assessment."
+
+
+def _add_disclaimer_footer(fig: plt.Figure) -> None:
+    """Add the required single-line disclaimer footer to a figure."""
+    fig.text(
+        0.5,
+        0.005,
+        DISCLAIMER_NOTE,
+        ha="center",
+        va="bottom",
+        color="#8b949e",
+        fontsize=6.8,
+        style="italic",
+    )
 
 
 def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
@@ -212,7 +229,7 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
     hazard_rgb = _blend_hazard_rgb(hs, slope_deg)
 
     # 1. Output A: <site_id>_hillshade.png
-    fig_a, ax_a = plt.subplots(figsize=(4.6, 4.6), dpi=95, facecolor=BG_COLOR)
+    fig_a, ax_a = plt.subplots(figsize=(4.6, 4.7), dpi=95, facecolor=BG_COLOR)
     ax_a.imshow(hs, extent=extent_rel, origin="upper", cmap="gray", vmin=0.0, vmax=1.0)
     _draw_contours(ax_a, xs_rel, ys_rel, elev)
     _style_map_axis(
@@ -223,11 +240,12 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
         f"{name_tr}\nLRO LOLA 5 m/px Rölyef & r=1 km Analiz Çemberi",
         title_size=8.6,
     )
+    _add_disclaimer_footer(fig_a)
     hillshade_path = ATLAS_DIR / f"{site_id}_hillshade.png"
     hs_bytes = _save_compact_png(fig_a, hillshade_path)
 
     # 2. Output B: <site_id>_hazard.png
-    fig_b, ax_b = plt.subplots(figsize=(4.6, 4.6), dpi=95, facecolor=BG_COLOR)
+    fig_b, ax_b = plt.subplots(figsize=(4.6, 4.7), dpi=95, facecolor=BG_COLOR)
     ax_b.imshow(hazard_rgb, extent=extent_rel, origin="upper")
     _draw_contours(ax_b, xs_rel, ys_rel, elev)
     _style_map_axis(
@@ -235,16 +253,17 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
         xs_rel,
         ys_rel,
         radius_m,
-        f"{name_tr} — Eğim Tehlike Haritası (5 m/px)\n"
-        f"Güvenli (<10°): %{safe_pct:.1f} | Rover (10-20°): %{caution_pct:.1f} | Dik (>20°): %{hazard_pct:.1f}",
+        f"{name_tr} — Eğim Sınıfları Haritası (5 m/px)\n"
+        f"<10° eğim: %{safe_pct:.1f} | 10–20° eğim: %{caution_pct:.1f} | >20° eğim: %{hazard_pct:.1f}",
         title_size=8.0,
     )
     _add_hazard_legend(ax_b)
+    _add_disclaimer_footer(fig_b)
     hazard_path = ATLAS_DIR / f"{site_id}_hazard.png"
     haz_bytes = _save_compact_png(fig_b, hazard_path)
 
     # 3. Output C: <site_id>_atlas.png (3-panel card)
-    fig_c, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11.6, 3.6), dpi=90, facecolor=BG_COLOR)
+    fig_c, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(11.6, 3.75), dpi=90, facecolor=BG_COLOR)
 
     ax1.imshow(hs, extent=extent_rel, origin="upper", cmap="gray", vmin=0.0, vmax=1.0)
     _draw_contours(ax1, xs_rel, ys_rel, elev)
@@ -264,9 +283,9 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
         xs_rel,
         ys_rel,
         radius_m,
-        f"Artemis / Rover Eğim Tehlike Haritası\n"
-        f"<10°: %{safe_pct:.1f} | 10-20°: %{caution_pct:.1f} | >20°: %{hazard_pct:.1f}",
-        title_size=8.2,
+        f"Eğim Sınıfları Haritası (5 m/px)\n"
+        f"<10° eğim: %{safe_pct:.1f} | 10–20° eğim: %{caution_pct:.1f} | >20° eğim: %{hazard_pct:.1f}",
+        title_size=8.0,
     )
     _add_hazard_legend(ax2)
 
@@ -308,12 +327,13 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
         labelcolor=TEXT_COLOR,
     )
 
-    fig_c.tight_layout(pad=0.9)
+    fig_c.tight_layout(pad=0.9, rect=(0.0, 0.03, 1.0, 1.0))
+    _add_disclaimer_footer(fig_c)
     atlas_path = ATLAS_DIR / f"{site_id}_atlas.png"
     atl_bytes = _save_compact_png(fig_c, atlas_path)
 
     print(
-        f"[ATLAS] {site_id}: <10°=%{safe_pct:.1f}, 10-20°=%{caution_pct:.1f}, >20°=%{hazard_pct:.1f} | "
+        f"[ATLAS] {site_id}: <10°=%{safe_pct:.1f}, 10–20°=%{caution_pct:.1f}, >20°=%{hazard_pct:.1f} | "
         f"hillshade={hs_bytes / 1024:.1f}KB, hazard={haz_bytes / 1024:.1f}KB, atlas={atl_bytes / 1024:.1f}KB"
     )
 
@@ -322,9 +342,10 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
         "name_tr": name_tr,
         "window_km": 2.2,
         "resolution_m": 5.0,
-        "safe_landing_pct_lt10deg": round(safe_pct, 2),
-        "rover_traversable_pct_10_20deg": round(caution_pct, 2),
-        "steep_hazard_pct_gt20deg": round(hazard_pct, 2),
+        "pct_lt10deg": round(safe_pct, 2),
+        "pct_10_20deg": round(caution_pct, 2),
+        "pct_gt20deg": round(hazard_pct, 2),
+        "note": DISCLAIMER_NOTE,
         "elev_min_m": round(float(stats["elev_min_m"]), 2),
         "elev_max_m": round(float(stats["elev_max_m"]), 2),
         "relief_m": round(float(stats["relief"]), 2),

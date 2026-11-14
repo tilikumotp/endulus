@@ -97,11 +97,11 @@ LRO LOLA `LDAM_50S_1000M_FLOAT.IMG` aktif lazer reflektometresi sıfır faz aç�
 1. **Yakın Belirsizlik Bandında ($c \in [0.34, 0.42]$, $\pm 10.5\%$):** Tüm 5 Ay Güney Kutbu referans sahasında genel sıralama Spearman korelasyonu **$\rho = 0.854 - 0.944$** aralığında kalmakta ve ortalama genel skor değişimi yalnızca **$\pm 0.034 - 0.042$** düzeyindedir.
 2. **Aday Havuzu Kararlılığı:** `c = 0.34`'te daha koyu bazaltik kalkanlar (`earth_karacadag_summit`, `earth_deccan_mahabaleshwar`, `earth_kula_divlit`), `c = 0.42`'de ise biraz daha açık tonlu volkanik/piroklastik yüzeyler (`earth_hasandagi_kecekalecik`, `earth_erciyes_kojugedigi`, `earth_puna_campo_piedra_pomez`) üst sıraları paylaşmakta; Anadolu aday sahaları (`Karacadağ`, `Kula Divlit`, `Hasandağ`, `Erciyes`, `Salda`) tüm çarpan aralığında Top-3 portföy çekirdeğini korumaktadır.
 
-### 5.2. 5 m/piksel LRO LOLA Görsel, Eğim Tehlike ve Kesit Atlası (`data/processed/moon_atlas/`)
+### 5.2. 5 m/piksel LRO LOLA Görsel, Eğim Sınıfları ve Kesit Atlası (`data/processed/moon_atlas/`)
 
-`src/moon_mars/moon_visual_atlas.py` modülü, 5 Ay Güney Kutbu referans sahasının her biri için `2.2 × 2.2 km` yerel pencerede (`5 m/px` çözünürlük, `r = 1000 m` analiz çemberi) kutupsal rölyef (`<site_id>_hillshade.png`), Artemis/rover eğim tehlike haritası (`<site_id>_hazard.png`), 3 panelli kesit özeti (`<site_id>_atlas.png`) ve `atlas_metadata.json` dosyalarını üretir:
+`src/moon_mars/moon_visual_atlas.py` modülü, 5 Ay Güney Kutbu referans sahasının her biri için `2.2 × 2.2 km` yerel pencerede (`5 m/px` çözünürlük, `r = 1000 m` analiz çemberi) kutupsal rölyef (`<site_id>_hillshade.png`), eğim sınıfları haritası (`<site_id>_hazard.png`), 3 panelli kesit özeti (`<site_id>_atlas.png`) ve `atlas_metadata.json` dosyalarını üretir (*Not: "Illustrative slope bins; not a landing-safety assessment."*):
 
-| `site_id` | Türkçe Saha Adı (`name_tr`) | Güvenli İniş (`<10°`) | Dikkatli Rover (`10°–20°`) | Dik Yamaç / Tehlike (`>20°`) | Görsel Atlas Dosyaları (`data/processed/moon_atlas/`) |
+| `site_id` | Türkçe Saha Adı (`name_tr`) | `<10° eğim` (`pct_lt10deg`) | `10–20° eğim` (`pct_10_20deg`) | `>20° eğim` (`pct_gt20deg`) | Görsel Atlas Dosyaları (`data/processed/moon_atlas/`) |
 |---|---|---|---|---|---|
 | **`moon_shackleton_rim`** | `Shackleton Krateri Kenarı (Saha 04 ROI)` | **`%17.94`** | `%40.74` | `%41.33` | `moon_shackleton_rim_{hillshade,hazard,atlas}.png` |
 | **`moon_connecting_ridge`** | `Bağlantı Sırtı (Shackleton–de Gerlache, Saha 01 ROI)` | **`%54.49`** | `%44.18` | `%1.33` | `moon_connecting_ridge_{hillshade,hazard,atlas}.png` |

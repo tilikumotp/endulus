@@ -85,12 +85,13 @@ def test_moon_visual_atlas_files_and_sizes() -> None:
     total_bytes = METADATA_PATH.stat().st_size
     for item in meta_list:
         sid = item["site_id"]
+        assert item.get("note") == "Illustrative slope bins; not a landing-safety assessment."
         pct_sum = (
-            float(item["safe_landing_pct_lt10deg"])
-            + float(item["rover_traversable_pct_10_20deg"])
-            + float(item["steep_hazard_pct_gt20deg"])
+            float(item["pct_lt10deg"])
+            + float(item["pct_10_20deg"])
+            + float(item["pct_gt20deg"])
         )
-        assert np.isclose(pct_sum, 100.0, atol=0.15), f"{sid} hazard pct sum={pct_sum}"
+        assert np.isclose(pct_sum, 100.0, atol=0.15), f"{sid} slope bin pct sum={pct_sum}"
         for suffix in ("hillshade", "hazard", "atlas"):
             png_path = ATLAS_DIR / f"{sid}_{suffix}.png"
             assert png_path.exists(), f"Missing {png_path}"
