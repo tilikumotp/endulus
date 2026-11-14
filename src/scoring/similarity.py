@@ -20,13 +20,16 @@ def _axis_scores(
     """Score one axis: standardized Euclidean distance, exp(-d), bootstrapped CI.
 
     Standardization (mean/std) uses the pool of candidates PLUS the reference:
-    when the reference sits far outside the candidate distribution (e.g. lunar
-    temp_amplitude vs Earth sites), a candidates-only sigma turns that into a
-    huge z and collapses every score to ~exp(-22). Pooling the reference in
-    saturates z at ~sqrt((k+1)/k), keeping scores in a meaningful range while
-    preserving candidate ordering. Bootstrap noise perturbs candidates with
-    THEIR own *_sd and the reference with its *_sd (NaN sd -> 0, honest fallback).
+    a candidates-only sigma turns a far-out reference (lunar temp_amplitude vs
+    Earth sites) into a huge z. With the reference pooled in, its z grows like
+    sqrt(k+1) as the candidate pool grows — measured: k=4 -> z 2.3, k=28 ->
+    z 5.4 (scores re-collapsed to ~0.004) — so z values are CLIPPED to +-
+    Z_CAP before the distance. The cap keeps scores in [exp(-Z_CAP), 1] and
+    preserves candidate ordering (clipping is per value, not per difference).
+    Bootstrap noise perturbs candidates with THEIR own *_sd and the reference
+    with its *_sd (NaN sd -> 0, honest fallback).
     """
+    Z_CAP = 3.0
     mean: dict[str, float] = {}
     std: dict[str, float] = {}
     for f in features:
@@ -68,12 +71,14 @@ def _axis_scores(
         r_sd = np.where(np.isfinite(r_sd), r_sd, 0.0)
         mu = np.array([mean[f] for f in used])
         sigma = np.array([std[f] for f in used])
-        zc, zr = (cvals - mu) / sigma, (rvals - mu) / sigma
+        zc = np.clip((cvals - mu) / sigma, -Z_CAP, Z_CAP)
+        zr = np.clip((rvals - mu) / sigma, -Z_CAP, Z_CAP)
         point = float(np.exp(-float(np.sqrt(np.mean((zc - zr) ** 2)))))
         eps_c = rng.normal(0.0, c_sd, size=(n_boot, len(used)))
         eps_r = rng.normal(0.0, r_sd, size=(n_boot, len(used)))
         d_boot = np.sqrt(np.mean(
-            (((cvals + eps_c) - mu) / sigma - ((rvals + eps_r) - mu) / sigma) ** 2, axis=1))
+            (np.clip(((cvals + eps_c) - mu) / sigma, -Z_CAP, Z_CAP)
+             - np.clip(((rvals + eps_r) - mu) / sigma, -Z_CAP, Z_CAP)) ** 2, axis=1))
         ci_low, ci_high = np.percentile(np.exp(-d_boot), [5.0, 95.0])
         # The unperturbed point estimate can sit outside the perturbed percentile
         # band; clip so the contract invariant ci_low <= score <= ci_high always holds.
@@ -156,8 +161,8 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
 
     One row per (site, feature) where both values are finite; diff is in the
     feature's native unit, z_diff is diff normalized by the same reference-
-    inclusive pool std used in axis_scores (keeps the card consistent with the
-    scores).
+    inclusive pool std used in axis_scores and clipped to +-3 (same cap), so
+    the breakdown card stays consistent with the scores.
     """
     axis_of = {f: a for a, feats in AXES.items() for f in feats}
     feats = list(axis_of)
@@ -184,6 +189,7 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
             if not (np.isfinite(rv) and np.isfinite(cv)):
                 continue
             mu, sigma = stats[f]
+            z = (cv - rv) / sigma if sigma > 0.0 else np.nan
             rows.append({
                 "site_id": candidates_df["site_id"].iat[i],
                 "axis": axis_of[f],
@@ -191,7 +197,7 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
                 "ref_value": rv,
                 "cand_value": cv,
                 "diff": cv - rv,
-                "z_diff": (cv - rv) / sigma if sigma > 0.0 else np.nan,
+                "z_diff": float(np.clip(z, -3.0, 3.0)) if np.isfinite(z) else np.nan,
             })
     return pd.DataFrame(rows)[["site_id", "axis", "feature", "ref_value",
                                "cand_value", "diff", "z_diff"]]
