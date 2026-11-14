@@ -1,22 +1,22 @@
-"""app/main.py — Moon/Mars ↔ Earth Analog Finder (UI only).
+"""app/main.py — Moon South Pole ↔ Earth Multi-Axis Analog Finder (UI only).
 
 Scores come from src/scoring (axis_scores_with_draws, axis_pivot,
-combine_axes_with_uncertainty, axis_gaps) — this app does NOT compute
-its own scores. Data is loaded directly from verified orbital parquets
-in data/processed/. All user-visible strings come from app/i18n.py
-(Turkish default + English) — no hardcoded copy in this file.
+combine_axes_with_uncertainty, axis_gaps, select_portfolio,
+run_blind_validation, expanded_interval) — this app does NOT compute its
+own scores. Data is loaded directly from verified orbital parquets and
+local visual/3D assets in data/processed/. All user-visible strings come
+from app/i18n.py (Turkish default + English) — no hardcoded copy here.
 """
 
 from __future__ import annotations
 
-import logging
+import json
 import pathlib
 import sys
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import requests
 import streamlit as st
 
 # ── make src/scoring and app/ importable ─────────────────────────────────────
@@ -28,6 +28,8 @@ if str(ROOT / "app") not in sys.path:
     sys.path.insert(0, str(ROOT / "app"))
 
 from scoring.config import AXES, MISSION_PRESETS  # noqa: E402
+from scoring.display import expanded_interval  # noqa: E402
+from scoring.portfolio import select_portfolio  # noqa: E402
 from scoring.similarity import (  # noqa: E402
     axis_gaps,
     axis_pivot,
@@ -38,8 +40,6 @@ from scoring.validation import run_blind_validation  # noqa: E402
 
 import i18n  # noqa: E402
 import terrain  # noqa: E402
-
-LOGGER = logging.getLogger(__name__)
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -73,19 +73,31 @@ st.markdown(
 
 # ── constants ────────────────────────────────────────────────────────────────
 PROC_DIR = ROOT / "data" / "processed"
+MOON_ATLAS_DIR = PROC_DIR / "moon_atlas"
+EARTH_ATLAS_DIR = PROC_DIR / "earth_atlas"
+
+PORTFOLIO_THRESHOLD = 0.70
 
 FEATURE_UNITS = {
-    "slope_mean": "deg", "slope_p90": "deg", "roughness": "m",
-    "relief": "m", "temp_amplitude": "K",
-    "thermal_inertia": "J m^-2 K^-1 s^-1/2", "albedo": "0-1",
+    "slope_mean": "deg",
+    "slope_p90": "deg",
+    "roughness": "m",
+    "relief": "m",
+    "temp_amplitude": "K",
+    "thermal_inertia": "J m^-2 K^-1 s^-1/2",
+    "albedo": "0-1",
 }
-
-VALIDATION_TOP_K = 5  # descriptive rank threshold, not a pass/fail criterion
 
 # Continent buckets for the table filter, resolved from site coordinates.
 REGION_OPTIONS = [
-    "all", "europe", "asia", "africa", "north_america",
-    "south_america", "oceania", "antarctica",
+    "all",
+    "europe",
+    "asia",
+    "africa",
+    "north_america",
+    "south_america",
+    "oceania",
+    "antarctica",
 ]
 
 # Active language + shorthand resolver (updated in the sidebar).
@@ -97,8 +109,9 @@ def T(key: str, **kwargs: object) -> str:
     return i18n.t(key, LANG, **kwargs)
 
 
-AXIS_LABELS = {a: i18n.t(f"axis_{a}", LANG)
-               for a in ("mobility", "thermal", "surface")}
+AXIS_LABELS = {
+    a: i18n.t(f"axis_{a}", LANG) for a in ("mobility", "thermal", "surface")
+}
 
 
 # ── data loading ─────────────────────────────────────────────────────────────
@@ -128,13 +141,35 @@ def load_data(m_moon: float, m_earth: float) -> tuple[pd.DataFrame, pd.DataFrame
     return moon_df, earth_df
 
 
+@st.cache_data(show_spinner=False)
+def load_atlas_metadata() -> tuple[dict[str, dict], dict[str, dict]]:
+    """Load committed Moon and Earth visual atlas metadata JSONs."""
+    moon_meta: dict[str, dict] = {}
+    moon_json = MOON_ATLAS_DIR / "atlas_metadata.json"
+    if moon_json.exists():
+        with open(moon_json, encoding="utf-8") as fh:
+            for item in json.load(fh):
+                moon_meta[str(item.get("site_id", ""))] = item
+
+    earth_meta: dict[str, dict] = {}
+    earth_json = EARTH_ATLAS_DIR / "metadata.json"
+    if earth_json.exists():
+        with open(earth_json, encoding="utf-8") as fh:
+            payload = json.load(fh)
+            for item in payload.get("sites", []):
+                earth_meta[str(item.get("site_id", ""))] = item
+
+    return moon_meta, earth_meta
+
+
 # ── scoring (scoring module, called as-is) ───────────────────────────────────
 def score_earth(
     ref_row: pd.Series, earth_df: pd.DataFrame, mission: str
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run per-axis scoring and weighted combination with uncertainty draws.
 
-    Returns the ranked result and per-axis scores used by validation/portfolio.
+    Returns the ranked result table and long-format per-axis scores used by
+    the compact portfolio card and the descriptive rank diagnostic.
     """
     long_scores, score_draws = axis_scores_with_draws(ref_row, earth_df)
     wide = axis_pivot(long_scores)
@@ -142,8 +177,20 @@ def score_earth(
         long_scores, score_draws, MISSION_PRESETS[mission]
     ).rename(columns={"q05": "q05_overall", "q95": "q95_overall"})
 
+    keep_cols = [
+        "site_id",
+        "name",
+        "role",
+        "lat",
+        "lon",
+        "lithology_class",
+        "slope_mean",
+        "roughness",
+        "relief",
+        "albedo",
+    ]
     result = (
-        earth_df[["site_id", "name", "role", "lat", "lon", "lithology_class"]]
+        earth_df[keep_cols]
         .merge(overall, on="site_id", how="left")
         .merge(wide, on="site_id", how="left")
         .sort_values("score", ascending=False, na_position="last")
@@ -172,44 +219,75 @@ def _role_text(role: str) -> str:
     return T("role_validation" if role == "validation" else "role_candidate")
 
 
+def _format_score_interval(
+    score: float, q05: float, q95: float, precision: int = 2
+) -> tuple[str, bool]:
+    """Format point score and expanded display interval (lo, hi, widened)."""
+    if not np.isfinite(score):
+        return "", False
+    lo, hi, widened = expanded_interval(score, q05, q95)
+    if not (np.isfinite(lo) and np.isfinite(hi)):
+        return f"{score:.{precision}f}", False
+    mark = "*" if widened else ""
+    return f"{score:.{precision}f} [{lo:.{precision}f}–{hi:.{precision}f}]{mark}", widened
+
+
+# ── charts ───────────────────────────────────────────────────────────────────
 def _terrain_figure(row: pd.Series, exag: int, orbit: float) -> go.Figure:
     """Plotly 3D surface with hillshade colouring for one site."""
-    z, _ = terrain.get_tile(row)
+    z, is_stub = terrain.get_tile(row)
     radius = float(row.get("radius_m", 1000.0) or 1000.0)
     shade = terrain.hillshade(z, radius)
-    z_disp = z * exag
-    xs = np.linspace(-1.0, 1.0, z.shape[1])  # km across the 2r window
-    ys = np.linspace(-1.0, 1.0, z.shape[0])
+    z_min = float(np.nanmin(z))
+    z_disp = z_min + (z - z_min) * exag
+    half_km = 1.0 if is_stub else 1.1
+    xs = np.linspace(-half_km, half_km, z.shape[1])
+    ys = np.linspace(-half_km, half_km, z.shape[0])
 
     fig = go.Figure()
-    fig.add_trace(go.Surface(
-        x=xs, y=ys, z=z_disp, surfacecolor=shade,
-        colorscale="gray", showscale=False,
-        hovertemplate=T("terrain_hover"),
-    ))
-    # r = 1 km measurement-ring outline, drawn above the surface so the
-    # measured area stays visible at every camera angle (2D-card parity).
+    fig.add_trace(
+        go.Surface(
+            x=xs,
+            y=ys,
+            z=z_disp,
+            surfacecolor=shade,
+            customdata=z,
+            colorscale="gray",
+            showscale=False,
+            hovertemplate=T("terrain_hover"),
+        )
+    )
+    # r = 1 km measurement-ring outline, drawn slightly above peak elevation
     t = np.linspace(0.0, 2.0 * np.pi, 121)
-    ring_z = float(np.nanmax(z_disp)) * 1.04
-    fig.add_trace(go.Scatter3d(
-        x=np.cos(t), y=np.sin(t), z=[ring_z] * len(t),
-        mode="lines", line=dict(color="#2C2923", width=3),
-        hoverinfo="skip",
-    ))
-
     z_span = float(np.nanmax(z_disp) - np.nanmin(z_disp))
-    aspect_z = float(np.clip((z_span / 1000.0) / 2.0, 0.05, 1.2))
+    ring_z = float(np.nanmax(z_disp)) + max(z_span * 0.04, 2.0)
+    fig.add_trace(
+        go.Scatter3d(
+            x=np.cos(t),
+            y=np.sin(t),
+            z=[ring_z] * len(t),
+            mode="lines",
+            line=dict(color="#2C2923", width=3),
+            hoverinfo="skip",
+        )
+    )
+
+    aspect_z = float(np.clip((z_span / 1000.0) / 2.0, 0.08, 1.2))
     ang = np.radians(orbit)
     fig.update_layout(
         scene=dict(
-            xaxis_visible=False, yaxis_visible=False, zaxis_visible=False,
+            xaxis_visible=False,
+            yaxis_visible=False,
+            zaxis_visible=False,
             aspectmode="manual",
             aspectratio=dict(x=1, y=1, z=aspect_z),
-            camera=dict(eye=dict(
-                x=float(np.cos(ang) * 1.7),
-                y=float(np.sin(ang) * 1.7),
-                z=1.0,
-            )),
+            camera=dict(
+                eye=dict(
+                    x=float(np.cos(ang) * 1.7),
+                    y=float(np.sin(ang) * 1.7),
+                    z=1.0,
+                )
+            ),
         ),
         margin=dict(l=0, r=0, t=10, b=0),
         height=380,
@@ -223,73 +301,231 @@ def _terrain_caption(row: pd.Series, is_stub: bool) -> str:
     """One-line source + resolution + window label under a 3D card."""
     src = str(row.get("relief_src", "—")).replace("_", " ")
     res = f"{float(row.get('relief_res_m', np.nan)):g}"
-    km = f"{2.0 * float(row.get('radius_m', 1000.0) or 1000.0) / 1000.0:g}"
+    km = "2.0" if is_stub else "2.2"
     key = "terrain_card_stub" if is_stub else "terrain_card_source"
     return T(key, src=src, res=res, km=km)
 
 
-# ── charts ───────────────────────────────────────────────────────────────────
-def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
-    """Plotly radar of per-axis scores with 5th/95th percentile lines."""
-    labels = [AXIS_LABELS[a] for a in axes]
-    vals = [float(row.get(f"score_{a}", np.nan)) for a in axes]
-    lo = [float(row.get(f"q05_{a}", np.nan)) for a in axes]
-    hi = [float(row.get(f"q95_{a}", np.nan)) for a in axes]
-
-    def _closed(xs: list[float]) -> list[float]:
-        return xs + [xs[0]]
-
-    labels_c = labels + [labels[0]]
+def _physical_scatter_chart(
+    result: pd.DataFrame, ref_row: pd.Series, ref_disp_name: str
+) -> go.Figure:
+    """2D physical feature-space scatter (slope_mean vs albedo) for 40 Earth sites + Moon ref."""
     fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=_closed(vals), theta=labels_c, fill="toself",
-        fillcolor="rgba(138,90,24,0.12)",
-        line=dict(color="#8A5A18", width=2),
-        name=row["name"],
-        hovertemplate="%{theta}: %{r:.2f}<extra></extra>",
-    ))
-    fig.add_trace(go.Scatterpolar(
-        r=_closed(hi), theta=labels_c,
-        line=dict(color="#8A847A", width=1, dash="dash"),
-        name=T("q95_label"), hoverinfo="skip",
-    ))
-    fig.add_trace(go.Scatterpolar(
-        r=_closed(lo), theta=labels_c,
-        line=dict(color="#8A847A", width=1, dash="dot"),
-        name=T("q05_label"), hoverinfo="skip",
-    ))
-    fig.update_layout(
-        polar=dict(
-            bgcolor="rgba(0,0,0,0)",
-            radialaxis=dict(
-                visible=True,
-                range=[0, 1],
-                gridcolor="rgba(55,48,38,0.14)",
-                color="#6E685D",
-                tickfont=dict(size=10),
+
+    rough_vals = result["roughness"].fillna(5.0).to_numpy(dtype=float)
+    sizes = np.clip(9.0 + np.sqrt(np.maximum(rough_vals, 0.5)) * 2.2, 9.0, 24.0)
+
+    hover_texts = []
+    for _, r in result.iterrows():
+        s_ov, _ = _format_score_interval(
+            float(r.get("score", np.nan)),
+            float(r.get("q05_overall", np.nan)),
+            float(r.get("q95_overall", np.nan)),
+        )
+        s_mob, _ = _format_score_interval(
+            float(r.get("score_mobility", np.nan)),
+            float(r.get("q05_mobility", np.nan)),
+            float(r.get("q95_mobility", np.nan)),
+        )
+        s_surf, _ = _format_score_interval(
+            float(r.get("score_surface", np.nan)),
+            float(r.get("q05_surface", np.nan)),
+            float(r.get("q95_surface", np.nan)),
+        )
+        hover_texts.append(
+            f"<b>{r['name']}</b> ({_role_text(str(r['role']))})<br/>"
+            f"{T('col_lith')}: {i18n.lith_label(str(r.get('lithology_class', '')), LANG)}<br/>"
+            f"{T('col_overall')}: {s_ov}<br/>"
+            f"{AXIS_LABELS['mobility']}: {s_mob} · {AXIS_LABELS['surface']}: {s_surf}"
+        )
+
+    fig.add_trace(
+        go.Scatter(
+            x=result["slope_mean"],
+            y=result["albedo"],
+            mode="markers",
+            marker=dict(
+                size=sizes,
+                color=result["score"],
+                colorscale="YlGnBu",
+                cmin=0.0,
+                cmax=1.0,
+                colorbar=dict(title=T("scatter_colorbar"), thickness=14),
+                line=dict(
+                    color=[
+                        "#2B6CB0" if role == "validation" else "#3A352F"
+                        for role in result["role"]
+                    ],
+                    width=[2.0 if role == "validation" else 1.0 for role in result["role"]],
+                ),
+                opacity=0.88,
             ),
-            angularaxis=dict(gridcolor="rgba(55,48,38,0.14)"),
+            text=hover_texts,
+            hovertemplate="%{text}<br/>slope_mean: %{x:.2f}° · albedo: %{y:.3f}<extra></extra>",
+            name=T("body_earth"),
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=[float(ref_row.get("slope_mean", np.nan))],
+            y=[float(ref_row.get("albedo", np.nan))],
+            mode="markers+text",
+            marker=dict(
+                symbol="star",
+                size=20,
+                color="#D4AF37",
+                line=dict(color="#2C2923", width=2),
+            ),
+            text=[f"⭐ {ref_disp_name}"],
+            textposition="top center",
+            hovertemplate=(
+                f"<b>⭐ {ref_disp_name} ({T('body_moon')})</b><br/>"
+                "slope_mean: %{x:.2f}° · albedo: %{y:.3f}<extra></extra>"
+            ),
+            name=ref_disp_name,
+        )
+    )
+
+    max_slope = float(
+        np.nanmax(
+            np.append(
+                result["slope_mean"].to_numpy(dtype=float),
+                float(ref_row.get("slope_mean", 25.0)),
+            )
+        )
+    )
+    fig.update_layout(
+        template="plotly_white",
+        xaxis=dict(
+            title=T("scatter_x"),
+            range=[0, max(30.0, max_slope * 1.12)],
+            gridcolor="rgba(55,48,38,0.14)",
+        ),
+        yaxis=dict(
+            title=T("scatter_y"),
+            range=[0, 0.75],
+            gridcolor="rgba(55,48,38,0.14)",
         ),
         showlegend=False,
-        margin=dict(l=32, r=32, t=40, b=24),
-        title=dict(text=str(row["name"]), font=dict(size=13, color="#2C2923")),
-        height=320,
+        margin=dict(l=20, r=20, t=20, b=20),
+        height=390,
         paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#2C2923"),
     )
     return fig
 
 
+def _axis_bar_card(row: pd.Series) -> tuple[go.Figure, bool]:
+    """Horizontal bar chart of Overall + 2 active axes (Mobility, Surface) with expanded_interval."""
+    items = [
+        (
+            AXIS_LABELS["surface"],
+            float(row.get("score_surface", np.nan)),
+            float(row.get("q05_surface", np.nan)),
+            float(row.get("q95_surface", np.nan)),
+            "#66838A",
+        ),
+        (
+            AXIS_LABELS["mobility"],
+            float(row.get("score_mobility", np.nan)),
+            float(row.get("q05_mobility", np.nan)),
+            float(row.get("q95_mobility", np.nan)),
+            "#8A5A18",
+        ),
+        (
+            T("col_overall"),
+            float(row.get("score", np.nan)),
+            float(row.get("q05_overall", np.nan)),
+            float(row.get("q95_overall", np.nan)),
+            "#2E6B4E",
+        ),
+    ]
+
+    labels = [it[0] for it in items]
+    vals = [float(np.nan_to_num(it[1], nan=0.0)) for it in items]
+    colors = [it[4] for it in items]
+    err_plus = []
+    err_minus = []
+    texts = []
+    any_widened = False
+
+    for _, sc, q05, q95, _ in items:
+        lo, hi, wid = expanded_interval(sc, q05, q95)
+        any_widened = any_widened or wid
+        if np.isfinite(sc) and np.isfinite(lo) and np.isfinite(hi):
+            err_minus.append(max(0.0, sc - lo))
+            err_plus.append(max(0.0, hi - sc))
+            mark = "*" if wid else ""
+            texts.append(f"{sc:.2f} [{lo:.2f}–{hi:.2f}]{mark}")
+        elif np.isfinite(sc):
+            err_minus.append(0.0)
+            err_plus.append(0.0)
+            texts.append(f"{sc:.2f}")
+        else:
+            err_minus.append(0.0)
+            err_plus.append(0.0)
+            texts.append("—")
+
+    fig = go.Figure(
+        go.Bar(
+            y=labels,
+            x=vals,
+            orientation="h",
+            marker_color=colors,
+            error_x=dict(
+                type="data",
+                symmetric=False,
+                array=err_plus,
+                arrayminus=err_minus,
+                color="#2C2923",
+                thickness=1.6,
+                width=5,
+            ),
+            text=texts,
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate="%{y}: %{text}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        template="plotly_white",
+        xaxis=dict(
+            range=[0, 1.18],
+            gridcolor="rgba(55,48,38,0.14)",
+            zeroline=False,
+        ),
+        yaxis=dict(gridcolor="rgba(0,0,0,0)"),
+        showlegend=False,
+        margin=dict(l=16, r=48, t=36, b=16),
+        title=dict(text=str(row["name"]), font=dict(size=13, color="#2C2923")),
+        height=240,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#2C2923"),
+    )
+    return fig, any_widened
+
+
 def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     """pydeck scatter map of the top-N scored Earth sites.
 
-    Known validation analogues are outlined in blue; candidate size and
-    colour encode the mission-weighted score.
+    Known validation analogues are outlined in blue; both validation and
+    candidate dot fill colours (`color_val` / `color`) and radii encode the
+    selected reference/mission similarity score.
     """
     map_df = result.head(top_n)[
         [
-            "site_id", "name", "role", "lat", "lon", "score",
-            "q05_overall", "q95_overall", "lithology_class",
+            "site_id",
+            "name",
+            "role",
+            "lat",
+            "lon",
+            "score",
+            "q05_overall",
+            "q95_overall",
+            "lithology_class",
         ]
     ].copy()
 
@@ -300,31 +536,44 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
         return [r, g, 60, 200]
 
     map_df["color"] = map_df["score"].apply(_color)
+    map_df["color_val"] = map_df["score"].apply(_color)
     map_df["radius"] = (map_df["score"].fillna(0.3) * 150_000 + 40_000).astype(int)
     map_df["score_txt"] = map_df["score"].map(
         lambda value: f"{value:.3f}" if np.isfinite(value) else "—"
     )
-    map_df["interval_txt"] = map_df.apply(
-        lambda row: (
-            f"[{row['q05_overall']:.3f}, {row['q95_overall']:.3f}]"
-            if np.isfinite(row["q05_overall"])
-            and np.isfinite(row["q95_overall"])
-            else T("uncertainty_unavailable")
-        ),
-        axis=1,
-    )
+
+    def _fmt_map_interval(row: pd.Series) -> str:
+        lo, hi, wid = expanded_interval(
+            float(row.get("score", np.nan)),
+            float(row.get("q05_overall", np.nan)),
+            float(row.get("q95_overall", np.nan)),
+        )
+        if np.isfinite(lo) and np.isfinite(hi):
+            mark = "*" if wid else ""
+            return f"[{lo:.3f}, {hi:.3f}]{mark}"
+        return T("uncertainty_unavailable")
+
+    map_df["interval_txt"] = map_df.apply(_fmt_map_interval, axis=1)
     map_df["role_disp"] = map_df["role"].map(_role_text)
     map_df["lith_disp"] = map_df["lithology_class"].map(
-        lambda c: i18n.lith_label(str(c), LANG))
+        lambda c: i18n.lith_label(str(c), LANG)
+    )
 
     tooltip = {
         "html": T(
             "map_tooltip",
-            name="{name}", role="{role_disp}", score="{score_txt}",
-            interval="{interval_txt}", lith="{lith_disp}",
+            name="{name}",
+            role="{role_disp}",
+            score="{score_txt}",
+            interval="{interval_txt}",
+            lith="{lith_disp}",
         ),
-        "style": {"background": "#2C2923", "color": "white",
-                  "font-size": "13px", "padding": "6px"},
+        "style": {
+            "background": "#2C2923",
+            "color": "white",
+            "font-size": "13px",
+            "padding": "6px",
+        },
     }
     try:
         import pydeck as pdk
@@ -334,32 +583,36 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
         val_df = map_df[map_df["role"] == "validation"]
         cand_df = map_df[map_df["role"] != "validation"]
         if len(val_df):
-            layers.append(pdk.Layer(
-                "ScatterplotLayer",
-                data=val_df,
-                get_position="[lon, lat]",
-                get_fill_color="color_val",
-                get_radius=110_000,
-                stroked=True,
-                get_line_color=[230, 230, 230],
-                line_width_min_pixels=1,
-                radius_min_pixels=6,
-                radius_max_pixels=18,
-                pickable=True,
-                auto_highlight=True,
-            ))
+            layers.append(
+                pdk.Layer(
+                    "ScatterplotLayer",
+                    data=val_df,
+                    get_position="[lon, lat]",
+                    get_fill_color="color_val",
+                    get_radius="radius",
+                    stroked=True,
+                    get_line_color=[56, 132, 255, 240],
+                    line_width_min_pixels=2,
+                    radius_min_pixels=6,
+                    radius_max_pixels=18,
+                    pickable=True,
+                    auto_highlight=True,
+                )
+            )
         if len(cand_df):
-            layers.append(pdk.Layer(
-                "ScatterplotLayer",
-                data=cand_df,
-                get_position="[lon, lat]",
-                get_fill_color="color",
-                get_radius="radius",
-                radius_min_pixels=6,
-                radius_max_pixels=18,
-                pickable=True,
-                auto_highlight=True,
-            ))
+            layers.append(
+                pdk.Layer(
+                    "ScatterplotLayer",
+                    data=cand_df,
+                    get_position="[lon, lat]",
+                    get_fill_color="color",
+                    get_radius="radius",
+                    radius_min_pixels=6,
+                    radius_max_pixels=18,
+                    pickable=True,
+                    auto_highlight=True,
+                )
+            )
         st.pydeck_chart(
             pdk.Deck(layers=layers, initial_view_state=view, tooltip=tooltip),
             width="stretch",
@@ -370,32 +623,6 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
         st.map(map_df, size=200_000)
 
 
-# ── Remote imagery helpers (visual evidence panel) ──────────────────────────
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def _fetch_preview_png(url: str) -> bytes:
-    """Fetch remote satellite/WMS preview PNG; raises on error so failures are not cached."""
-    resp = requests.get(
-        url,
-        timeout=8,
-        headers={"User-Agent": "SpaceApps2026-Endulus-AnalogFinder/1.0"},
-    )
-    resp.raise_for_status()
-    ctype = resp.headers.get("Content-Type", "").lower()
-    if not ctype.startswith("image/"):
-        raise ValueError(f"Unexpected content type ({ctype or 'unknown'})")
-    return resp.content
-
-
-def _safe_fetch_preview_png(url: str) -> tuple[bytes | None, str]:
-    """Non-cached wrapper around _fetch_preview_png so transient errors can retry immediately."""
-    try:
-        return _fetch_preview_png(url), ""
-    except (requests.RequestException, ValueError) as exc:
-        LOGGER.warning("Preview fetch failed for %s: %s", url, exc)
-        return None, str(exc)
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN UI
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -404,6 +631,7 @@ moon_df, earth_df = load_data(
     _source_mtime("features_moon"),
     _source_mtime("features_earth"),
 )
+moon_atlas_meta, earth_atlas_meta = load_atlas_metadata()
 
 # ── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -411,8 +639,9 @@ with st.sidebar:
         i18n.LANGUAGE_LABEL, ["Türkçe", "English"], horizontal=True, key="lang"
     )
     LANG = "tr" if lang_display == "Türkçe" else "en"
-    AXIS_LABELS = {a: i18n.t(f"axis_{a}", LANG)
-                   for a in ("mobility", "thermal", "surface")}
+    AXIS_LABELS = {
+        a: i18n.t(f"axis_{a}", LANG) for a in ("mobility", "thermal", "surface")
+    }
 
     st.header(T("settings_header"))
 
@@ -420,13 +649,21 @@ with st.sidebar:
 
     refs = moon_df[moon_df["role"] == "reference"].reset_index(drop=True)
 
-    ref_name = st.selectbox(T("ref_site_label_moon"), refs["name"].tolist())
-    ref_row = refs[refs["name"] == ref_name].iloc[0]
+    ref_site_id = st.selectbox(
+        T("ref_site_label_moon"),
+        refs["site_id"].tolist(),
+        format_func=lambda sid: i18n.moon_site_label(str(sid), LANG),
+    )
+    ref_row = refs[refs["site_id"] == ref_site_id].iloc[0]
+    ref_name = i18n.moon_site_label(str(ref_site_id), LANG)
     st.caption(
         f"{ref_name} · "
-        + T("ref_site_caption",
-            lat=f"{float(ref_row['lat']):.2f}", lon=f"{float(ref_row['lon']):.2f}",
-            lith=i18n.lith_label(str(ref_row.get("lithology_class", "")), LANG)),
+        + T(
+            "ref_site_caption",
+            lat=f"{float(ref_row['lat']):.2f}",
+            lon=f"{float(ref_row['lon']):.2f}",
+            lith=i18n.lith_label(str(ref_row.get("lithology_class", "")), LANG),
+        ),
         help=T("ref_site_tooltip", site_id=str(ref_row["site_id"])),
     )
 
@@ -442,8 +679,9 @@ with st.sidebar:
 
 # ── TITLE ────────────────────────────────────────────────────────────────────
 st.title(T("app_title"))
-st.caption(T("subtitle", n=len(earth_df)))
-st.caption(T("thermal_note"))
+st.caption(T("app_badge"))
+st.markdown(T("subtitle", n=len(earth_df)))
+st.info(T("thermal_note"))
 
 # ── COMPUTE SCORES (scoring module) ──────────────────────────────────────────
 result, long_scores = score_earth(ref_row, earth_df, mission)
@@ -452,60 +690,111 @@ result["region"] = [
 ]
 top = result.head(top_n)
 axes = list(AXES.keys())  # mobility, thermal, surface
+active_axes = ["mobility", "surface"]
 
 # ── REFERENCE SITE VALUES ────────────────────────────────────────────────────
 st.subheader(T("ref_subheader", name=ref_name, body=T("body_moon")))
 ref_features = [f for feats in AXES.values() for f in feats]
-ref_tbl = pd.DataFrame({
-    T("ref_col_feature"): [i18n.feature_label(f, LANG) for f in ref_features],
-    T("ref_col_value"): [round(float(ref_row.get(f, np.nan)), 3) for f in ref_features],
-    T("ref_col_unit"): [FEATURE_UNITS.get(f, "—") for f in ref_features],
-    T("ref_col_sd"): [round(float(ref_row.get(f"{f}_sd", np.nan)), 3) for f in ref_features],
-    T("ref_col_res"): [ref_row.get(f"{f}_res_m", np.nan) for f in ref_features],
-    T("ref_col_src"): [str(ref_row.get(f"{f}_src", "—")) for f in ref_features],
-})
-with st.expander(f"{T('ref_expander')} · {ref_name.split('(')[0].strip()}"):
+ref_tbl = pd.DataFrame(
+    {
+        T("ref_col_feature"): [i18n.feature_label(f, LANG) for f in ref_features],
+        T("ref_col_value"): [
+            round(float(ref_row.get(f, np.nan)), 3) for f in ref_features
+        ],
+        T("ref_col_unit"): [FEATURE_UNITS.get(f, "—") for f in ref_features],
+        T("ref_col_sd"): [
+            round(float(ref_row.get(f"{f}_sd", np.nan)), 3) for f in ref_features
+        ],
+        T("ref_col_res"): [ref_row.get(f"{f}_res_m", np.nan) for f in ref_features],
+        T("ref_col_src"): [
+            str(ref_row.get(f"{f}_src", "")) or "—" for f in ref_features
+        ],
+    }
+)
+with st.expander(f"{T('ref_expander')} · {ref_name}"):
     st.dataframe(ref_tbl, width="stretch", hide_index=True)
     st.caption(T("ref_table_caption"))
     st.caption(T("temp_note"))
 
 # ── TABS ─────────────────────────────────────────────────────────────────────
-tab_map, tab_radar, tab_terrain, tab_table, tab_validation, tab_breakdown = st.tabs([
-    T("tab_map"), T("tab_radar"), T("tab_terrain"), T("tab_table"),
-    T("tab_validation"), T("tab_breakdown"),
-])
+tab_map, tab_radar, tab_terrain, tab_table, tab_validation, tab_breakdown = st.tabs(
+    [
+        T("tab_map"),
+        T("tab_radar"),
+        T("tab_terrain"),
+        T("tab_table"),
+        T("tab_validation"),
+        T("tab_breakdown"),
+    ]
+)
 
 # ── TAB 1: MAP ───────────────────────────────────────────────────────────────
 with tab_map:
     st.markdown(T("map_heading", n=top_n))
     _map_chart(result, top_n)
 
-# ── TAB 2: RADAR CHARTS ──────────────────────────────────────────────────────
+# ── TAB 2: VISUAL COMPARISON & AXES (2D Scatter + Horizontal Axis Bars) ──────
 with tab_radar:
+    st.markdown(T("scatter_heading"))
+    st.plotly_chart(
+        _physical_scatter_chart(result, ref_row, ref_name), width="stretch"
+    )
+    st.caption(T("scatter_caption"))
+    st.divider()
+
+    st.markdown(T("bars_heading", n=top_n))
     st.markdown(T("radar_caption"))
-    per_row = 3
+    per_row = 2
+    any_card_widened = False
     for i in range(0, len(top), per_row):
-        chunk = top.iloc[i:i + per_row]
+        chunk = top.iloc[i : i + per_row]
         cols = st.columns(len(chunk))
         for col, (_, row) in zip(cols, chunk.iterrows()):
             with col:
-                st.plotly_chart(_radar_chart(row, axes), width="stretch")
-                q05 = row.get("q05_overall", np.nan)
-                q95 = row.get("q95_overall", np.nan)
-                interval = (
-                    f"{q05:.2f}–{q95:.2f}"
-                    if np.isfinite(q05) and np.isfinite(q95)
+                fig_bar, card_wid = _axis_bar_card(row)
+                any_card_widened = any_card_widened or card_wid
+                st.plotly_chart(fig_bar, width="stretch")
+
+                sc_ov = float(row.get("score", np.nan))
+                lo_ov, hi_ov, wid_ov = expanded_interval(
+                    sc_ov,
+                    float(row.get("q05_overall", np.nan)),
+                    float(row.get("q95_overall", np.nan)),
+                )
+                any_card_widened = any_card_widened or wid_ov
+                interval_txt = (
+                    f"{lo_ov:.2f}–{hi_ov:.2f}{'*' if wid_ov else ''}"
+                    if np.isfinite(lo_ov) and np.isfinite(hi_ov)
                     else T("uncertainty_unavailable")
                 )
-                st.caption(T(
-                    "radar_line",
-                    score=f"{float(row['score']):.2f}",
-                    interval=interval,
-                    n=int(row.get("n_axes_used", 0)), total=len(axes),
-                    lith=i18n.lith_label(str(row.get("lithology_class", "")), LANG),
-                ))
+                st.caption(
+                    T(
+                        "radar_line",
+                        score=f"{sc_ov:.2f}",
+                        interval=interval_txt,
+                        n=int(row.get("n_axes_used", 2)),
+                        lith=i18n.lith_label(
+                            str(row.get("lithology_class", "")), LANG
+                        ),
+                    )
+                )
+                s_mob = float(row.get("score_mobility", 0.0))
+                s_surf = float(row.get("score_surface", 0.0))
+                if s_mob >= s_surf:
+                    strong_ax, weak_ax = (
+                        AXIS_LABELS["mobility"],
+                        AXIS_LABELS["surface"],
+                    )
+                else:
+                    strong_ax, weak_ax = (
+                        AXIS_LABELS["surface"],
+                        AXIS_LABELS["mobility"],
+                    )
+                st.caption(T("card_strength_line", strong=strong_ax, weak=weak_ax))
+    if any_card_widened:
+        st.caption(T("table_widened_note"))
 
-# ── TAB 3: 3D TERRAIN (stub until M6/E7 DEM tiles land) ──────────────────────
+# ── TAB 3: 3D TERRAIN (real M6 Moon 5m LOLA + E7 Earth 30m GLO-30 tiles) ─────
 with tab_terrain:
     st.markdown(T("terrain_intro"))
     terrain_sel_name = st.selectbox(
@@ -534,16 +823,18 @@ with tab_terrain:
     if any_stub:
         st.info(T("terrain_stub_note"))
 
-# ── TAB 4: SCORE TABLE ───────────────────────────────────────────────────────
+# ── TAB 4: SCORE TABLE + COMPACT PORTFOLIO CARD ──────────────────────────────
 with tab_table:
     st.markdown(T("table_caption"))
     lith_opts = sorted(set(result["lithology_class"].dropna().astype(str)))
     lith_filter = st.multiselect(
-        T("filter_lith"), lith_opts,
+        T("filter_lith"),
+        lith_opts,
         format_func=lambda c: i18n.lith_label(c, LANG),
     )
     region_filter = st.selectbox(
-        T("filter_region"), REGION_OPTIONS,
+        T("filter_region"),
+        REGION_OPTIONS,
         format_func=lambda k: T(f"region_{k}"),
     )
     shown = result
@@ -552,211 +843,244 @@ with tab_table:
     if region_filter != "all":
         shown = shown[shown["region"] == region_filter]
 
-    def _fmt(score: float, lo: float, hi: float) -> str:
-        if np.isnan(score):
-            return ""
-        if np.isnan(lo) or np.isnan(hi):
-            return f"{score:.2f}"
-        return f"{score:.2f} [{lo:.2f}–{hi:.2f}]"
-
-    ref_lith = str(ref_row.get("lithology_class", ""))
+    any_table_widened = False
     rows = []
     for _, r in shown.iterrows():
         lith_code = str(r.get("lithology_class", ""))
         lith_txt = i18n.lith_label(lith_code, LANG)
-        if ref_lith and lith_code == ref_lith:
-            lith_txt += " ✓"
+        ov_txt, wid_ov = _format_score_interval(
+            float(r.get("score", np.nan)),
+            float(r.get("q05_overall", np.nan)),
+            float(r.get("q95_overall", np.nan)),
+        )
+        any_table_widened = any_table_widened or wid_ov
         rec = {
             T("col_site"): r["name"],
-            T("col_role"): _role_text(r["role"]),
+            T("col_role"): _role_text(str(r["role"])),
             T("col_lith"): lith_txt,
-            T("col_overall"): _fmt(
-                r["score"], r.get("q05_overall", np.nan),
-                r.get("q95_overall", np.nan),
-            ),
+            T("col_overall"): ov_txt,
         }
         for a in axes:
-            rec[AXIS_LABELS[a]] = _fmt(
-                r.get(f"score_{a}", np.nan),
-                r.get(f"q05_{a}", np.nan),
-                r.get(f"q95_{a}", np.nan),
+            if a == "thermal":
+                continue  # suspended in v1 under Decision #30 (Moon thermal = NaN)
+            ax_txt, wid_ax = _format_score_interval(
+                float(r.get(f"score_{a}", np.nan)),
+                float(r.get(f"q05_{a}", np.nan)),
+                float(r.get(f"q95_{a}", np.nan)),
             )
+            any_table_widened = any_table_widened or wid_ax
+            rec[AXIS_LABELS[a]] = ax_txt
         rows.append(rec)
+
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+    st.caption(T("table_thermal_note"))
+    if any_table_widened:
+        st.caption(T("table_widened_note"))
     st.caption(T("table_footer_caption"))
 
-# ── TAB 5: VALIDATION (blind ranking diagnostic) ────────────────────────────
+    # ── Compact Portfolio Card right below Score Table ───────────────────────
+    st.divider()
+    st.markdown(T("portfolio_heading"))
+    st.markdown(T("portfolio_intro"))
+
+    selected_ids, uncovered_axes = select_portfolio(
+        long_scores, min_score=PORTFOLIO_THRESHOLD, axes=axes
+    )
+    covered_axes = [a for a in axes if a not in uncovered_axes]
+
+    if selected_ids:
+        port_rows = []
+        for idx, sid in enumerate(selected_ids, start=1):
+            s_row = result[result["site_id"] == sid].iloc[0]
+            cov_here = [
+                AXIS_LABELS[a]
+                for a in active_axes
+                if float(s_row.get(f"score_{a}", np.nan)) >= PORTFOLIO_THRESHOLD
+            ]
+            port_rows.append(
+                {
+                    T("portfolio_col_order"): idx,
+                    T("portfolio_col_site"): s_row["name"],
+                    T("portfolio_col_role"): _role_text(str(s_row["role"])),
+                    T("portfolio_col_covered"): ", ".join(cov_here) or "—",
+                    T("portfolio_col_scores"): (
+                        f"{AXIS_LABELS['mobility']}: {float(s_row.get('score_mobility', np.nan)):.2f} · "
+                        f"{AXIS_LABELS['surface']}: {float(s_row.get('score_surface', np.nan)):.2f}"
+                    ),
+                }
+            )
+        st.dataframe(pd.DataFrame(port_rows), width="stretch", hide_index=True)
+    else:
+        st.info(T("portfolio_none_selected"))
+
+    covered_txt = (
+        ", ".join(AXIS_LABELS[a] for a in covered_axes)
+        if covered_axes
+        else ("Yok" if LANG == "tr" else "None")
+    )
+    uncovered_labels = []
+    for a in uncovered_axes:
+        if a == "thermal":
+            uncovered_labels.append(
+                f"{AXIS_LABELS[a]} ({'v1 askıda / NaN' if LANG == 'tr' else 'suspended in v1 / NaN'})"
+            )
+        else:
+            uncovered_labels.append(
+                f"{AXIS_LABELS[a]} (< {PORTFOLIO_THRESHOLD:.2f})"
+            )
+    uncovered_txt = ", ".join(uncovered_labels) if uncovered_labels else "—"
+
+    st.markdown(T("portfolio_covered_label", axes=covered_txt))
+    st.markdown(T("portfolio_uncovered_label", axes=uncovered_txt))
+
+    if "mobility" in uncovered_axes:
+        best_mob_row = result.sort_values(
+            "score_mobility", ascending=False, na_position="last"
+        ).iloc[0]
+        st.caption(
+            T(
+                "portfolio_best_mobility_note",
+                site=str(best_mob_row["name"]),
+                score=f"{float(best_mob_row['score_mobility']):.2f}",
+            )
+        )
+
+    st.caption(T("portfolio_threshold_note"))
+
+# ── TAB 5: DESCRIPTIVE RANK DIAGNOSTIC (10 validation sites × E1/E8) ─────────
 with tab_validation:
     st.markdown(T("val_intro"))
-    val = run_blind_validation(long_scores, earth_df, top_k=VALIDATION_TOP_K)
-    val = val.merge(earth_df[["site_id", "name"]], on="site_id", how="left")
+    val = run_blind_validation(long_scores, earth_df)
+    rank_piv = val.pivot(index="site_id", columns="axis", values="rank")
 
-    top_k_count = int(val["in_top_k"].sum())
-    st.metric(
-        T("val_metric_label"), f"{top_k_count} / {len(val)}",
-        help=T("val_metric_help"),
-    )
+    val_sites = earth_df[earth_df["role"] == "validation"].reset_index(drop=True)
+    diag_rows = []
+    for _, vrow in val_sites.iterrows():
+        sid = str(vrow["site_id"])
+        mob_r = (
+            rank_piv.loc[sid, "mobility"]
+            if sid in rank_piv.index and "mobility" in rank_piv.columns
+            else np.nan
+        )
+        surf_r = (
+            rank_piv.loc[sid, "surface"]
+            if sid in rank_piv.index and "surface" in rank_piv.columns
+            else np.nan
+        )
+        mob_str = str(int(mob_r)) if pd.notna(mob_r) else "—"
+        surf_str = str(int(surf_r)) if pd.notna(surf_r) else "—"
 
-    # Simple summary chart: one bar per criterion, counting how many of the
-    # 10 comparisons had a known analogue inside the top 5.
-    per_axis = [
-        int(val[val["axis"] == a]["in_top_k"].sum()) for a in axes
-    ]
-    n_val_sites = int((val["axis"] == axes[0]).sum())
-    fig = go.Figure(go.Bar(
-        x=[AXIS_LABELS[a] for a in axes],
-        y=per_axis,
-        marker_color=["#8A5A18", "#66838A", "#7B8088"][: len(axes)],
-        text=[f"{c} / {n_val_sites}" for c in per_axis],
-        textposition="outside",
-        cliponaxis=False,
-    ))
-    fig.update_layout(
-        template="plotly_white",
-        yaxis=dict(
-            range=[0, max(n_val_sites, max(per_axis) + 1)],
-            dtick=max(n_val_sites // 5, 1),
-            gridcolor="rgba(55,48,38,0.14)",
-            zeroline=False,
-        ),
-        margin=dict(l=10, r=10, t=30, b=10),
-        height=340,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#2C2923"),
-    )
-    st.plotly_chart(fig, width="stretch")
-    st.caption(T("val_chart_caption"))
+        exp_info = i18n.VALIDATION_EXPECTATIONS.get(sid, {}).get(LANG, {})
+        diag_rows.append(
+            {
+                T("val_col_site"): vrow["name"],
+                T("val_col_expected"): exp_info.get("expected", "—"),
+                T("val_col_raw_rank"): T(
+                    "val_rank_cell", mob=mob_str, surf=surf_str
+                ),
+                T("val_col_ice"): exp_info.get("ice", "—"),
+                T("val_col_rationale"): exp_info.get("rationale", "—"),
+                T("val_col_source"): exp_info.get("source", "—"),
+            }
+        )
 
-    val_tbl = val[["name", "axis", "rank", "in_top_k"]].copy()
-    val_tbl["axis"] = val_tbl["axis"].map(lambda a: AXIS_LABELS.get(a, a))
-    val_tbl["verdict"] = val_tbl["in_top_k"].map(
-        lambda b: T("val_verdict_yes") if b else T("val_verdict_no"))
-    val_tbl = val_tbl.drop(columns=["in_top_k"])
-    val_tbl.columns = [
-        T("val_col_site"), T("val_col_axis"), T("val_col_rank"),
-        T("val_col_verdict"),
-    ]
-    st.dataframe(val_tbl.sort_values(
-        [T("val_col_axis"), T("val_col_rank")]), width="stretch", hide_index=True)
+    st.dataframe(pd.DataFrame(diag_rows), width="stretch", hide_index=True)
+    st.caption(T("val_footer_note"))
 
-# ── TAB 6: ANALOGY LIMITS ────────────────────────────────────────────────────
+# ── TAB 6: ANALOGY LIMITS & 8-DIMENSION SCORECARD & ORBITAL EVIDENCE ─────────
 with tab_breakdown:
     st.markdown(T("breakdown_notes"))
     st.divider()
+
+    st.markdown(T("scorecard_heading"))
+    st.dataframe(
+        pd.DataFrame(i18n.DIMENSION_SCORECARD[LANG]),
+        width="stretch",
+        hide_index=True,
+    )
+    st.divider()
+
     sel_name = st.selectbox(
-        T("inspect_label"), result["name"].tolist(), index=0,
+        T("inspect_label"),
+        result["name"].tolist(),
+        index=0,
         help=T("inspect_help"),
     )
     inspected = result[result["name"] == sel_name].iloc[0]
     cand_row = earth_df[earth_df["site_id"] == inspected["site_id"]].iloc[0]
+    cand_sid = str(cand_row["site_id"])
+    ref_sid = str(ref_row["site_id"])
 
-    # ── Visual & topographic context inspector (evidence panel) ─────────────
-    # Purpose: evidence & exploration only. Imagery never creates or changes
-    # a score — the quantitative per-axis scores + percentiles below are the
-    # basis of every claim.
-    is_moon_ref = (str(ref_row.get("body", body)).strip().lower() == "moon")
-
-    # Earth candidate: geodesic bbox for a ~2x-radius view window (WGS84).
-    lat_c = float(cand_row["lat"])
-    lon_c = float(cand_row["lon"])
-    rad_c_m = float(cand_row.get("radius_m", 1000.0))
-    half_box_m = max(rad_c_m * 1.5, 1500.0)
-
-    # Moon reference: south-pole stereographic metric coords (EPSG:32761,
-    # R = 1,737,400 m, lat_0 = -90°, lon_0 = 0°), centred on the selected
-    # ref site — never pinned to (0, 0).
-    moon_bbox = None
-    lat_r = lon_r = rad_r_m = np.nan
-    if is_moon_ref:
-        lat_r = float(ref_row["lat"])
-        lon_r = float(ref_row["lon"])
-        rad_r_m = float(ref_row.get("radius_m", 1000.0))
-        r_m = 2.0 * 1_737_400.0 * np.tan(np.radians(90.0 + lat_r) / 2.0)
-        x_m = r_m * np.sin(np.radians(lon_r))
-        y_m = r_m * np.cos(np.radians(lon_r))
-        pad_m = 15_000.0  # 30x30 km regional context window around the ref site
-        moon_bbox = (f"{x_m - pad_m:.1f},{y_m - pad_m:.1f},"
-                     f"{x_m + pad_m:.1f},{y_m + pad_m:.1f}")
-
+    # ── Verified Local Orbital Visual & Topographic Context Card ────────────
     st.markdown(T("vis_heading", ref=ref_name, sel=sel_name))
     c_moon_wac, c_moon_lola, c_earth_opt = st.columns(3)
 
+    m_meta = moon_atlas_meta.get(ref_sid, {})
+    hillshade_file = MOON_ATLAS_DIR / f"{ref_sid}_hillshade.png"
+    hazard_file = MOON_ATLAS_DIR / f"{ref_sid}_hazard.png"
+
     with c_moon_wac:
         st.markdown(f"**{T('vis_col_moon_opt')}**")
-        if is_moon_ref and moon_bbox:
-            wac_url = (
-                "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
-                "?map=/maps/earth/moon_spole.map&SERVICE=WMS&VERSION=1.1.1"
-                "&REQUEST=GetMap&LAYERS=LRO_WAC_south&STYLES=&SRS=EPSG:32761"
-                f"&BBOX={moon_bbox}&WIDTH=420&HEIGHT=420&FORMAT=image/png"
+        if hillshade_file.exists():
+            st.image(
+                str(hillshade_file),
+                caption=T(
+                    "vis_moon_hillshade_caption",
+                    ref=ref_name,
+                    relief=f"{float(m_meta.get('relief_m', ref_row.get('relief', np.nan))):.1f}",
+                    slope=f"{float(m_meta.get('slope_mean_deg', ref_row.get('slope_mean', np.nan))):.1f}",
+                ),
             )
-            img, err = _safe_fetch_preview_png(wac_url)
-            if img is not None:
-                st.image(
-                    img,
-                    caption=T("vis_wac_caption", ref=ref_name,
-                              lat=f"{lat_r:.2f}", lon=f"{lon_r:.2f}"),
-                )
-            else:
-                st.info(T("vis_wac_error", err=err))
         else:
-            st.info(T("vis_moon_only_note"))
-        st.caption(T("vis_wac_source"))
+            st.info(T("vis_moon_missing"))
+        st.caption(T("vis_moon_local_source"))
 
     with c_moon_lola:
         st.markdown(f"**{T('vis_col_moon_relief')}**")
-        if is_moon_ref and moon_bbox:
-            lola_url = (
-                "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
-                "?map=/maps/earth/moon_spole.map&SERVICE=WMS&VERSION=1.1.1"
-                "&REQUEST=GetMap&LAYERS=LOLA_south&STYLES=&SRS=EPSG:32761"
-                f"&BBOX={moon_bbox}&WIDTH=420&HEIGHT=420&FORMAT=image/png"
+        if hazard_file.exists():
+            st.image(
+                str(hazard_file),
+                caption=T(
+                    "vis_moon_hazard_caption",
+                    ref=ref_name,
+                    lt10=f"{float(m_meta.get('pct_lt10deg', 0.0)):.1f}",
+                    mid=f"{float(m_meta.get('pct_10_20deg', 0.0)):.1f}",
+                    gt20=f"{float(m_meta.get('pct_gt20deg', 0.0)):.1f}",
+                ),
             )
-            img, err = _safe_fetch_preview_png(lola_url)
-            if img is not None:
-                st.image(
-                    img,
-                    caption=T("vis_lola_caption", ref=ref_name,
-                              rad=f"{rad_r_m:.0f}"),
-                )
-            else:
-                st.info(T("vis_lola_error", err=err))
         else:
-            st.info(T("vis_moon_only_note"))
-        st.caption(T("vis_lola_source"))
+            st.info(T("vis_moon_missing"))
+        st.caption(T("vis_moon_local_source"))
 
     with c_earth_opt:
         st.markdown(f"**{T('vis_col_earth')}**")
-        img = used_km = None
-        err = ""
-        # First try the ~2x-radius window; if the export service has no
-        # imagery at that pixel resolution (e.g. open ocean), retry once
-        # with a 3x-wider regional window before surfacing the error.
-        for hb_m in (half_box_m, half_box_m * 3.0):
-            dlat_h = hb_m / 111_320.0
-            dlon_h = hb_m / (111_320.0 * max(np.cos(np.radians(lat_c)), 0.1))
-            esri_url = (
-                "https://server.arcgisonline.com/ArcGIS/rest/services/"
-                "World_Imagery/MapServer/export"
-                f"?bbox={lon_c - dlon_h:.6f},{lat_c - dlat_h:.6f},"
-                f"{lon_c + dlon_h:.6f},{lat_c + dlat_h:.6f}"
-                "&bboxSR=4326&imageSR=4326&size=420,420&format=png&f=image"
-            )
-            img, err = _safe_fetch_preview_png(esri_url)
-            if img is not None:
-                used_km = 2 * hb_m / 1000
-                break
-        if img is not None:
+        lat_c = float(cand_row["lat"])
+        lon_c = float(cand_row["lon"])
+        e_meta = earth_atlas_meta.get(cand_sid, {})
+        webp_file = EARTH_ATLAS_DIR / f"{cand_sid}.webp"
+        if webp_file.exists():
             st.image(
-                img,
-                caption=T("vis_earth_caption", sel=sel_name,
-                          lat=f"{lat_c:.4f}", lon=f"{lon_c:.4f}",
-                          km=f"{used_km:.1f}", rad=f"{rad_c_m:.0f}"),
+                str(webp_file),
+                caption=T(
+                    "vis_earth_s2_caption",
+                    sel=sel_name,
+                    lat=f"{lat_c:.4f}",
+                    lon=f"{lon_c:.4f}",
+                ),
+            )
+            acq_date = str(e_meta.get("acquisition_date", "—"))[:10]
+            st.caption(
+                T(
+                    "vis_earth_s2_meta",
+                    collection=str(e_meta.get("collection", "sentinel-2-l2a")),
+                    scene_id=str(e_meta.get("scene_id", "—")),
+                    date=acq_date,
+                    cloud=f"{float(e_meta.get('local_cloud_pct', 0.0)):.2f}",
+                )
             )
         else:
-            st.info(T("vis_earth_error", err=err))
-        st.caption(T("vis_earth_source"))
+            st.info(T("vis_earth_missing"))
+
         wv_url = (
             f"https://worldview.earthdata.nasa.gov/"
             f"?v={lon_c - 0.15:.4f},{lat_c - 0.15:.4f},"
@@ -769,26 +1093,39 @@ with tab_breakdown:
             f"{lat_c:.5f},{lon_c:.5f},14z/data=!3m1!1e3"
         )
         st.markdown(
-            T("vis_link_worldview", url=wv_url) + " · "
+            T("vis_link_worldview", url=wv_url)
+            + " · "
             + T("vis_link_gmaps", url=gmaps_url)
         )
 
-    # Scientific context: imagery must be judged against the numbers.
+    # Quantitative context banner
     ci_lines = []
     for axis in axes:
         score = float(inspected.get(f"score_{axis}", np.nan))
         q05 = float(inspected.get(f"q05_{axis}", np.nan))
         q95 = float(inspected.get(f"q95_{axis}", np.nan))
-        score_text = f"{score:.2f}" if np.isfinite(score) else "—"
-        interval = (
-            f"{q05:.2f}–{q95:.2f}"
-            if np.isfinite(q05) and np.isfinite(q95)
-            else T("uncertainty_unavailable")
-        )
-        ci_lines.append(T("vis_quant_line", axis=AXIS_LABELS[axis],
-                          score=score_text, lo=interval.split("–")[0],
-                          hi=interval.split("–")[-1]))
-    st.info(T("vis_quant_head") + " · ".join(ci_lines) + "\n\n" + T("vis_quant_msg"))
+        if not np.isfinite(score):
+            ci_lines.append(T("vis_quant_suspended", axis=AXIS_LABELS[axis]))
+        else:
+            lo, hi, wid = expanded_interval(score, q05, q95)
+            mark = "*" if wid else ""
+            lo_txt = f"{lo:.2f}" if np.isfinite(lo) else "—"
+            hi_txt = f"{hi:.2f}{mark}" if np.isfinite(hi) else "—"
+            ci_lines.append(
+                T(
+                    "vis_quant_line",
+                    axis=AXIS_LABELS[axis],
+                    score=f"{score:.2f}",
+                    lo=lo_txt,
+                    hi=hi_txt,
+                )
+            )
+    st.info(
+        T("vis_quant_head")
+        + " · ".join(ci_lines)
+        + "\n\n"
+        + T("vis_quant_msg")
+    )
 
     st.markdown(T("gaps_heading", sel=sel_name, ref=ref_name))
     gaps = axis_gaps(ref_row, earth_df)
@@ -797,20 +1134,32 @@ with tab_breakdown:
         st.info(T("gaps_empty"))
     else:
         gaps = gaps.sort_values("z_diff", key=lambda s: s.abs(), ascending=False)
-        # Source + native-resolution transparency: e.g. a ~1 km thermal
-        # product cannot resolve a 500 m site, while the DEM features
-        # are 30 m.
         gaps["ref_src"] = gaps["feature"].map(
-            lambda f: str(ref_row.get(f"{f}_src", "—")))
+            lambda f: str(ref_row.get(f"{f}_src", "")) or "—"
+        )
         gaps["ref_res_m"] = gaps["feature"].map(
-            lambda f: float(ref_row.get(f"{f}_res_m", np.nan)))
+            lambda f: float(ref_row.get(f"{f}_res_m", np.nan))
+        )
         gaps["cand_src"] = gaps["feature"].map(
-            lambda f: str(cand_row.get(f"{f}_src", "—")))
+            lambda f: str(cand_row.get(f"{f}_src", "")) or "—"
+        )
         gaps["cand_res_m"] = gaps["feature"].map(
-            lambda f: float(cand_row.get(f"{f}_res_m", np.nan)))
-        gaps["feature"] = gaps["feature"].map(lambda f: i18n.feature_label(f, LANG))
-        keep = ["feature", "ref_value", "cand_value", "diff", "z_diff",
-                "ref_src", "ref_res_m", "cand_src", "cand_res_m"]
+            lambda f: float(cand_row.get(f"{f}_res_m", np.nan))
+        )
+        gaps["feature"] = gaps["feature"].map(
+            lambda f: i18n.feature_label(f, LANG)
+        )
+        keep = [
+            "feature",
+            "ref_value",
+            "cand_value",
+            "diff",
+            "z_diff",
+            "ref_src",
+            "ref_res_m",
+            "cand_src",
+            "cand_res_m",
+        ]
         show = gaps[keep].copy()
         show.columns = i18n.GAP_COLUMNS[LANG]
         st.dataframe(show.round(3), width="stretch", hide_index=True)

@@ -1,10 +1,12 @@
 """app/terrain.py — elevation grids for the 3D Terrain tab.
 
-Real tiles live at data/processed/dem_tiles/{site_id}.npz (array key "z",
-elevation in metres; optional "radius_m"). Until the DEM tiles from
-Person 2 / Person 3 (M6/E7) land, a deterministic stub grid is generated
-from the site's own measured slope/roughness/relief statistics; the UI
-labels every stub card as generated sample terrain.
+Loads verified orbital DEM elevation grids committed in data/processed/:
+- Moon references: data/processed/moon_3d/{site_id}_3d.npz (key "elev_m", 5 m/px LOLA)
+- Earth sites: data/processed/earth_3d_grids.npz (key "{site_id}", 30 m/px GLO-30 / NASADEM)
+- Legacy single-tile path: data/processed/dem_tiles/{site_id}.npz (key "z" or "elev_m")
+If a site's grid is not found on disk, falls back to a deterministic stub
+grid shaped by the site's measured slope/roughness/relief statistics and
+marks it as sample terrain (is_stub=True).
 """
 from __future__ import annotations
 
@@ -17,7 +19,10 @@ import streamlit as st
 from scipy.ndimage import zoom
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TILE_DIR = ROOT / "data" / "processed" / "dem_tiles"
+PROC_DIR = ROOT / "data" / "processed"
+MOON_3D_DIR = PROC_DIR / "moon_3d"
+EARTH_3D_NPZ = PROC_DIR / "earth_3d_grids.npz"
+TILE_DIR = PROC_DIR / "dem_tiles"
 
 GRID = 64  # stub grid resolution (GRID x GRID)
 
@@ -88,11 +93,27 @@ def hillshade(z: np.ndarray, radius_m: float) -> np.ndarray:
 def get_tile(row: pd.Series) -> tuple[np.ndarray, bool]:
     """Return (elevation grid in metres, is_stub) for one site.
 
-    Uses a verified tile from data/processed/dem_tiles/ when available;
-    otherwise generates the labelled stub grid from measured stats.
+    Reads verified orbital elevation grids from data/processed/moon_3d/,
+    data/processed/earth_3d_grids.npz, or data/processed/dem_tiles/ when
+    present; otherwise generates the labelled stub grid from measured stats.
     """
-    path = TILE_DIR / f"{row['site_id']}.npz"
+    site_id = str(row["site_id"])
+
+    moon_path = MOON_3D_DIR / f"{site_id}_3d.npz"
+    if moon_path.exists():
+        with np.load(moon_path) as data:
+            key = "elev_m" if "elev_m" in data.files else "z"
+            return np.asarray(data[key], dtype=float), False
+
+    if EARTH_3D_NPZ.exists():
+        with np.load(EARTH_3D_NPZ) as data:
+            if site_id in data.files:
+                return np.asarray(data[site_id], dtype=float), False
+
+    path = TILE_DIR / f"{site_id}.npz"
     if path.exists():
-        data = np.load(path)
-        return np.asarray(data["z"], dtype=float), False
+        with np.load(path) as data:
+            key = "z" if "z" in data.files else "elev_m"
+            return np.asarray(data[key], dtype=float), False
+
     return _stub_dem(row), True
