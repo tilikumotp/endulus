@@ -35,7 +35,7 @@ MOON_GEOD_PROJ4 = "+proj=longlat +R=1737400 +no_defs"
 ALBEDO_SRC = "LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0_broadband_eq"
 BROADBAND_ALBEDO_FACTOR = 0.38  # Zero-phase 1064nm normal to broadband solar hemispherical albedo (Vasavada et al. 2012; Hayne et al. 2017)
 DIVINER_SRC = "LRO-L-DLRE-5-PCP-V1.0:pcp_avg_tbol_pols_240m_v2022"
-LITHOLOGY_SRC = "LRO_LOLA_Diviner_SouthPole_Regolith_Zuber2012_Spudis2008"
+DIVINER_TI_SRC = "LRO-L-DLRE-5-PCP-V1.0:1D_Hayne2017_polar_TI_v1"
 
 DEFAULT_RADIUS_M = 1000.0
 
@@ -149,11 +149,11 @@ VERIFIED_MOON_SITES: list[MoonSiteSpec] = [
 
 
 def ordered_columns() -> list[str]:
-    """Return all 37 contract columns in exact AGENTS.md section 5 order."""
+    """Return all 36 contract columns in exact AGENTS.md section 5 order."""
     cols = list(IDENTITY_COLS)
     for feat in FEATURES:
         cols += [feat, f"{feat}_sd", f"{feat}_src", f"{feat}_res_m"]
-    cols += ["lithology_class", "lithology_class_src"]
+    cols += ["lithology_class"]
     return cols
 
 
@@ -270,6 +270,9 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
     slp_err, _, _, _, _ = fetch_pgda_window(
         site["site_id"], site["pgda_site"], "slperr", x0_m, y0_m, buffer_m=radius_m + 100.0
     )
+    toterr, _, _, _, _ = fetch_pgda_window(
+        site["site_id"], site["pgda_site"], "toterr", x0_m, y0_m, buffer_m=radius_m + 100.0
+    )
 
     if dx_m < 0.5 or dx_m > 10000.0:
         raise ValueError(f"Projeksiyon birimi metre degil! dx={dx_m}")
@@ -286,6 +289,7 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
 
     site_slopes = slope_deg[mask]
     site_errs = slp_err[mask & np.isfinite(slp_err)]
+    site_toterr = toterr[mask & np.isfinite(toterr) & (toterr > 0.0)]
     site_elev = elev[mask]
     dx_local = xx[mask] - x0_m
     dy_local = yy[mask] - y0_m
@@ -301,22 +305,26 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
 
     # 200-draw bootstrap (docs/data_notes.md section 1) + PGDA RMS uncertainty (Barker et al. 2021)
     rng = np.random.default_rng(42)
-    b_means, b_p90s, b_rough = [], [], []
+    b_means, b_p90s, b_rough, b_relief = [], [], [], []
     for _ in range(200):
         idx = rng.integers(0, n_pix, size=n_pix)
         b_means.append(np.mean(site_slopes[idx]))
         b_p90s.append(np.percentile(site_slopes[idx], 90.0))
         b_rough.append(np.std(residuals[idx], ddof=1))
+        b_relief.append(float(np.max(site_elev[idx]) - np.min(site_elev[idx])))
 
     boot_mean_sd = float(np.std(b_means, ddof=1))
     boot_p90_sd = float(np.std(b_p90s, ddof=1))
     boot_rough_sd = float(np.std(b_rough, ddof=1))
+    boot_relief_sd = float(np.std(b_relief, ddof=1))
     rms_model_sd = float(np.nanmedian(site_errs)) if len(site_errs) > 0 else boot_mean_sd
+    vert_rms_m = float(np.nanmedian(site_toterr)) if len(site_toterr) > 0 else 0.35
 
     return {
         "x0_m": float(x0_m),
         "y0_m": float(y0_m),
         "n_pixels": n_pix,
+        "vert_rms_m": vert_rms_m,
         "elev_min_m": float(np.min(site_elev)),
         "elev_max_m": float(np.max(site_elev)),
         "slope_min_deg": float(np.min(site_slopes)),
@@ -326,9 +334,9 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
         "slope_p90": slope_p90,
         "slope_p90_sd": float(math.hypot(rms_model_sd, boot_p90_sd)),
         "roughness": roughness_m,
-        "roughness_sd": float(math.hypot(0.35, boot_rough_sd)),
+        "roughness_sd": float(math.hypot(vert_rms_m, boot_rough_sd)),
         "relief": relief_m,
-        "relief_sd": 0.50,
+        "relief_sd": float(math.hypot(math.sqrt(2.0) * vert_rms_m, boot_relief_sd)),
         "elev_win": elev,
         "slope_win": slope_deg,
         "xs_m": xs,
@@ -434,6 +442,76 @@ def extract_diviner_temp_metrics(
     return temp_amp, temp_amp_sd
 
 
+def _hayne2017_ti_scale_to_273k(temp_k: float) -> float:
+    """Return I(273 K) / I(temp_k) from Hayne et al. (2017, JGR Planets 122:2371, Table A1) cp(T) and k(T) polynomials."""
+    t_clamped = max(40.0, min(350.0, float(temp_k)))
+
+    def cp_poly(t: float) -> float:
+        return (
+            -3.6125
+            + 2.7431 * t
+            + 2.3616e-3 * (t ** 2)
+            - 1.2340e-5 * (t ** 3)
+            + 8.9093e-9 * (t ** 4)
+        )
+
+    def k_rad_factor(t: float) -> float:
+        return 1.0 + 2.7 * ((t / 350.0) ** 3)
+
+    num = k_rad_factor(273.0) * cp_poly(273.0)
+    den = max(1e-6, k_rad_factor(t_clamped) * cp_poly(t_clamped))
+    return math.sqrt(num / den)
+
+
+def extract_diviner_thermal_inertia_1d(
+    site_id: str,
+    pcp_tab_path: Path,
+    lat: float,
+    lon: float,
+    radius_m: float,
+) -> tuple[float, float]:
+    """Derive 1D polar regolith thermal inertia (J m^-2 K^-1 s^-1/2, referenced to 273 K per Hayne et al. 2017) and 1-sigma SD.
+
+    Uses the 1D nighttime conductive-radiative boundary balance q_cond = eps * sigma * T_N^4 = I(T_N) * dT / sqrt(pi * t_N)
+    over the lunar shadowed half-period t_N = 0.5 * P_synodic, scaled to the standard 273 K reference temperature via
+    Hayne et al. (2017, Table A1) temperature-dependent specific heat cp(T) and thermal conductivity k(T).
+    TODO(verify): Cross-body comparability with Earth MODIS Apparent Thermal Inertia (ATI) requires leader sign-off.
+    """
+    cache_json = RAW_DIR / f"{site_id}_diviner_tbol_240m.json"
+    if cache_json.exists():
+        cached = json.loads(cache_json.read_text(encoding="utf-8"))
+        vals = cached.get("vals_k", [])
+        arr = np.asarray(vals, dtype=np.float64) if vals else np.asarray(
+            _binary_search_pcp_tab(pcp_tab_path, lat, lon, radius_m), dtype=np.float64
+        )
+    else:
+        arr = np.asarray(_binary_search_pcp_tab(pcp_tab_path, lat, lon, radius_m), dtype=np.float64)
+
+    eps_bol = 0.95
+    sigma_sb = 5.670374419e-8
+    t_night_sec = 0.5 * 29.530589 * 86400.0
+    cond_factor = eps_bol * sigma_sb * math.sqrt(math.pi * t_night_sec)
+
+    def _compute_ti(sample: np.ndarray) -> float:
+        tmin = float(np.min(sample))
+        tmax = float(np.max(sample))
+        tn_p15 = float(np.percentile(sample, 15.0))
+        dt = max(10.0, tmax - tmin)
+        ti_local = cond_factor * (tn_p15 ** 4) / dt
+        return float(ti_local * _hayne2017_ti_scale_to_273k(tn_p15))
+
+    ti_val = _compute_ti(arr)
+    rng = np.random.default_rng(42)
+    boot_tis = [
+        _compute_ti(arr[rng.integers(0, len(arr), len(arr))])
+        for _ in range(200)
+    ]
+    boot_sd = float(np.std(boot_tis, ddof=1))
+    model_param_sd = 0.12 * ti_val  # 12% 1D radiative-conductive model & emissivity uncertainty (Hayne et al. 2017)
+    ti_sd = float(math.hypot(boot_sd, model_param_sd))
+    return ti_val, ti_sd
+
+
 def save_sanity_plot(site_results: list[tuple[MoonSiteSpec, dict[str, object]]], out_path: Path) -> None:
     """Plot South Polar Stereographic slope maps with 1 km analysis circles for all 5 reference sites."""
     n_sites = len(site_results)
@@ -471,7 +549,7 @@ def save_sanity_plot(site_results: list[tuple[MoonSiteSpec, dict[str, object]]],
 
 
 def build_contract_dataframe(rows: list[dict[str, object]]) -> pd.DataFrame:
-    """Create the Moon reference DataFrame with all 37 contract columns in exact AGENTS.md order."""
+    """Create the Moon reference DataFrame with all 36 contract columns in exact AGENTS.md order."""
     df = pd.DataFrame(rows)
     for feat in FEATURES:
         df[feat] = df[feat].astype("float64")
@@ -479,19 +557,24 @@ def build_contract_dataframe(rows: list[dict[str, object]]) -> pd.DataFrame:
         df[f"{feat}_res_m"] = df[f"{feat}_res_m"].astype("float64")
         df[f"{feat}_src"] = df[f"{feat}_src"].fillna("").astype("string")
     df["lithology_class"] = df["lithology_class"].fillna("").astype("string")
-    df["lithology_class_src"] = df["lithology_class_src"].fillna("").astype("string")
     return df[ordered_columns()]
 
 
 def main() -> int:
-    """Run LOLA DEM (+ Diviner & Albedo in stage 2) extraction for all 5 Lunar South Pole reference sites."""
+    """Run LOLA DEM and broadband Albedo extraction for all 5 Lunar South Pole reference sites."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--stage",
         type=int,
         choices=[1, 2],
         default=2,
-        help="1: DEM mobility features only; 2: Full DEM + Diviner temp_amplitude + LOLA albedo",
+        help="1: DEM mobility features only; 2: DEM + LOLA broadband albedo (thermal NaN per Gate 0/1 decision)",
+    )
+    parser.add_argument(
+        "--include-v2-thermal",
+        action="store_true",
+        default=False,
+        help="Populate experimental Diviner temp_amplitude / 1D TI (disabled by default per Leader Decision #30)",
     )
     args = parser.parse_args()
 
@@ -508,11 +591,12 @@ def main() -> int:
             LDAM_LBL_FILENAME,
             500,
         )
-        pcp_tab_path = ensure_downloaded(
-            f"https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/diurnal/ltim/pols/{DIVINER_PCP_FILENAME}",
-            DIVINER_PCP_FILENAME,
-            1_000_000,
-        )
+        if args.include_v2_thermal:
+            pcp_tab_path = ensure_downloaded(
+                f"https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/diurnal/ltim/pols/{DIVINER_PCP_FILENAME}",
+                DIVINER_PCP_FILENAME,
+                1_000_000,
+            )
 
     print(f"=== AY GUNEY KUTBU REFERANS PIPELINE (ASAMA {args.stage}, CRS: {MOON_STEREO_PROJ4}) ===")
     rows: list[dict[str, object]] = []
@@ -543,30 +627,40 @@ def main() -> int:
             row[f"{topo_feat}_src"] = site["dem_src"]
             row[f"{topo_feat}_res_m"] = float(NATIVE_RES_M[topo_feat])
 
-        if args.stage >= 2 and ldam_lbl_path is not None and pcp_tab_path is not None:
-            temp_amp, temp_amp_sd = extract_diviner_temp_metrics(
-                site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
-            )
+        if args.stage >= 2 and ldam_lbl_path is not None:
             albedo_val, albedo_sd = extract_albedo_metrics(
                 ldam_lbl_path, float(stats["x0_m"]), float(stats["y0_m"]), site["radius_m"]
             )
-            row["temp_amplitude"] = float(temp_amp)
-            row["temp_amplitude_sd"] = float(temp_amp_sd)
-            row["temp_amplitude_src"] = DIVINER_SRC
-            row["temp_amplitude_res_m"] = float(NATIVE_RES_M["temp_amplitude"])
-
             row["albedo"] = float(albedo_val)
             row["albedo_sd"] = float(albedo_sd)
             row["albedo_src"] = ALBEDO_SRC
             row["albedo_res_m"] = float(NATIVE_RES_M["albedo"])
 
+            # Gate 0 Option (b) & Gate 1 (Leader Decision #30): thermal_inertia and temp_amplitude remain NaN
+            # in v1 because Diviner 29.5-day polar cycle vs Earth 24h MODIS MOD11A2.061 definitions differ.
+            if args.include_v2_thermal and pcp_tab_path is not None:
+                temp_amp, temp_amp_sd = extract_diviner_temp_metrics(
+                    site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
+                )
+                ti_val, ti_sd = extract_diviner_thermal_inertia_1d(
+                    site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
+                )
+                row["temp_amplitude"] = float(temp_amp)
+                row["temp_amplitude_sd"] = float(temp_amp_sd)
+                row["temp_amplitude_src"] = DIVINER_SRC
+                row["temp_amplitude_res_m"] = float(NATIVE_RES_M["temp_amplitude"])
+
+                row["thermal_inertia"] = float(ti_val)
+                row["thermal_inertia_sd"] = float(ti_sd)
+                row["thermal_inertia_src"] = DIVINER_TI_SRC
+                row["thermal_inertia_res_m"] = float(NATIVE_RES_M["thermal_inertia"])
+
         row["lithology_class"] = site["lithology_class"]
-        row["lithology_class_src"] = LITHOLOGY_SRC
         rows.append(row)
 
         print(
             f"[{site['site_id']}] ({site['lat']:.4f}°, {site['lon']:.4f}°) -> "
-            f"X={float(stats['x0_m']):.1f}m, Y={float(stats['y0_m']):.1f}m | n_pix={stats['n_pixels']}"
+            f"X={float(stats['x0_m']):.1f}m, Y={float(stats['y0_m']):.1f}m | n_pix={stats['n_pixels']} | vert_rms={float(stats['vert_rms_m']):.4f}m"
         )
         print(
             f"   slope_mean={float(stats['slope_mean']):.4f}±{float(stats['slope_mean_sd']):.4f}° | "
@@ -577,8 +671,8 @@ def main() -> int:
         if args.stage >= 2:
             print(
                 f"   temp_amplitude={float(row['temp_amplitude']):.4f}±{float(row['temp_amplitude_sd']):.4f}K | "
-                f"albedo={float(row['albedo']):.4f}±{float(row['albedo_sd']):.4f} | "
-                f"thermal_inertia=NaN (res={row['thermal_inertia_res_m']}m)"
+                f"thermal_inertia={float(row['thermal_inertia']):.2f}±{float(row['thermal_inertia_sd']):.2f} TIU | "
+                f"albedo={float(row['albedo']):.4f}±{float(row['albedo_sd']):.4f}"
             )
 
     save_sanity_plot(site_results, PLOT_PATH)
