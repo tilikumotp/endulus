@@ -1,7 +1,8 @@
-"""Earth MODIS feature extraction pipeline (MOD11A2.061 temp_amplitude & MCD43A3.061 albedo)."""
+"""Earth MODIS feature extraction pipeline (MOD11A2.061 annual mean temp_amplitude & MCD43A3.061 albedo)."""
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ import pyproj
 import requests
 from rasterio.io import MemoryFile
 
-MOD11A2_SRC = "MOD11A2.061"
+MOD11A2_SRC = "MOD11A2.061_annual_mean"
 MCD43A3_SRC = "MCD43A3.061"
 PC_STAC_SEARCH_URL = "https://planetarycomputer.microsoft.com/api/stac/v1/search"
 PC_MODIS_SAS_URL = (
@@ -33,17 +34,64 @@ def _load_dotenv_token(key: str = "EARTHDATA_TOKEN") -> str | None:
     return None
 
 
+def _process_single_composite(
+    item: dict[str, Any],
+    sas_token: str,
+    lat: float,
+    lon: float,
+) -> dict[str, Any] | None:
+    """Download and extract valid 3x3 pixel day/night LST pairs from one MOD11A2.061 composite."""
+    day_url = f"{item['assets']['LST_Day_1km']['href']}?{sas_token}"
+    night_url = f"{item['assets']['LST_Night_1km']['href']}?{sas_token}"
+    b_day = requests.get(day_url, timeout=20).content
+    b_night = requests.get(night_url, timeout=20).content
+
+    with MemoryFile(b_day) as m_d, MemoryFile(b_night) as m_n:
+        with m_d.open() as src_d, m_n.open() as src_n:
+            crs_str = src_d.crs.to_proj4() or str(src_d.crs)
+            shape_tuple = (src_d.height, src_d.width)
+            res_tuple = (round(abs(src_d.res[0]), 2), round(abs(src_d.res[1]), 2))
+            tf = pyproj.Transformer.from_crs("EPSG:4326", src_d.crs, always_xy=True)
+            cx, cy = tf.transform(lon, lat)
+            row, col = src_d.index(cx, cy)
+            win = (
+                (max(0, row - 1), min(src_d.height, row + 2)),
+                (max(0, col - 1), min(src_d.width, col + 2)),
+            )
+            w_d = src_d.read(1, window=win).astype(np.float64)
+            w_n = src_n.read(1, window=win).astype(np.float64)
+
+            valid = (w_d > 0) & (w_n > 0)
+            if not np.any(valid):
+                return None
+            d_k = w_d[valid] * 0.02
+            n_k = w_n[valid] * 0.02
+            diff = d_k - n_k
+            pos = diff > 0
+            if not np.any(pos):
+                return None
+            return {
+                "id": item["id"],
+                "amps": diff[pos].tolist(),
+                "days_k": d_k[pos].tolist(),
+                "nights_k": n_k[pos].tolist(),
+                "crs_str": crs_str,
+                "shape": shape_tuple,
+                "res": res_tuple,
+            }
+
+
 def fetch_mod11a2_temp_amplitude(
     site_id: str,
     lat: float,
     lon: float,
     raw_dir: Path = Path("data/raw/earth"),
-    datetime_range: str = "2025-06-01/2025-08-31",
-    max_composites: int = 4,
+    datetime_range: str = "2024-01-01/2024-12-31",
+    max_composites: int = 24,
 ) -> dict[str, Any]:
-    """Extract diurnal temperature amplitude (LST_Day - LST_Night, K) from Terra MOD11A2.061 COGs."""
+    """Extract annual-cycle diurnal temperature amplitude (LST_Day - LST_Night, K) from Terra MOD11A2.061."""
     raw_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = raw_dir / f"{site_id}_mod11a2_061.json"
+    cache_file = raw_dir / f"{site_id}_mod11a2_061_annual_2024.json"
     if cache_file.exists():
         return json.loads(cache_file.read_text(encoding="utf-8"))
 
@@ -58,16 +106,21 @@ def fetch_mod11a2_temp_amplitude(
             "collections": ["modis-11A2-061"],
             "intersects": {"type": "Point", "coordinates": [lon, lat]},
             "datetime": datetime_range,
-            "limit": 20,
+            "limit": 120,
         },
         timeout=15,
     )
     stac_resp.raise_for_status()
     features = stac_resp.json().get("features", [])
-    terra_items = sorted(
+    all_terra = sorted(
         [it for it in features if it["id"].startswith("MOD11A2.")],
         key=lambda x: x["id"],
-    )[:max_composites]
+    )
+    if len(all_terra) > max_composites:
+        idx = np.linspace(0, len(all_terra) - 1, max_composites, dtype=int)
+        terra_items = [all_terra[i] for i in idx]
+    else:
+        terra_items = all_terra
 
     amps: list[float] = []
     days_k: list[float] = []
@@ -77,35 +130,21 @@ def fetch_mod11a2_temp_amplitude(
     shape_tuple: tuple[int, int] = (0, 0)
     res_tuple: tuple[float, float] = (0.0, 0.0)
 
-    for it in terra_items:
-        day_url = f"{it['assets']['LST_Day_1km']['href']}?{sas_token}"
-        night_url = f"{it['assets']['LST_Night_1km']['href']}?{sas_token}"
-        b_day = sess.get(day_url, timeout=20).content
-        b_night = sess.get(night_url, timeout=20).content
-
-        with MemoryFile(b_day) as m_d, MemoryFile(b_night) as m_n:
-            with m_d.open() as src_d, m_n.open() as src_n:
-                crs_str = src_d.crs.to_proj4() or str(src_d.crs)
-                shape_tuple = (src_d.height, src_d.width)
-                res_tuple = (round(abs(src_d.res[0]), 2), round(abs(src_d.res[1]), 2))
-                tf = pyproj.Transformer.from_crs("EPSG:4326", src_d.crs, always_xy=True)
-                cx, cy = tf.transform(lon, lat)
-                row, col = src_d.index(cx, cy)
-                win = ((max(0, row - 1), min(src_d.height, row + 2)), (max(0, col - 1), min(src_d.width, col + 2)))
-                w_d = src_d.read(1, window=win).astype(np.float64)
-                w_n = src_n.read(1, window=win).astype(np.float64)
-
-                valid = (w_d > 0) & (w_n > 0)
-                if np.any(valid):
-                    d_k = w_d[valid] * 0.02
-                    n_k = w_n[valid] * 0.02
-                    diff = d_k - n_k
-                    pos = diff > 0
-                    if np.any(pos):
-                        amps.extend(diff[pos].tolist())
-                        days_k.extend(d_k[pos].tolist())
-                        nights_k.extend(n_k[pos].tolist())
-                        granule_ids.append(it["id"])
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = [
+            pool.submit(_process_single_composite, it, sas_token, lat, lon)
+            for it in terra_items
+        ]
+        for fut in futures:
+            res = fut.result()
+            if res is not None:
+                amps.extend(res["amps"])
+                days_k.extend(res["days_k"])
+                nights_k.extend(res["nights_k"])
+                granule_ids.append(res["id"])
+                crs_str = res["crs_str"]
+                shape_tuple = res["shape"]
+                res_tuple = res["res"]
 
     if not amps:
         raise RuntimeError(f"No valid MOD11A2.061 day/night pairs found for {site_id}")
@@ -113,6 +152,7 @@ def fetch_mod11a2_temp_amplitude(
     amps_arr = np.asarray(amps, dtype=np.float64)
     result = {
         "site_id": site_id,
+        "datetime_range": datetime_range,
         "temp_amplitude": float(np.mean(amps_arr)),
         "temp_amplitude_sd": float(np.std(amps_arr, ddof=1)) if amps_arr.size > 1 else 1.0,
         "temp_amplitude_src": MOD11A2_SRC,
@@ -120,6 +160,7 @@ def fetch_mod11a2_temp_amplitude(
         "lst_day_mean_k": float(np.mean(days_k)),
         "lst_night_mean_k": float(np.mean(nights_k)),
         "n_valid_samples": int(amps_arr.size),
+        "n_valid_composites": len(granule_ids),
         "granules": granule_ids,
         "native_shape": list(shape_tuple),
         "native_res_m": list(res_tuple),
