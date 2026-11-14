@@ -12,6 +12,8 @@ interface Props {
   title: string;
   note: string;
   modeLabels: { overall: string; mobility: string; surface: string };
+  maxBars?: number;
+  onMaxBarsChange?: (n: number) => void;
   lang: Lang;
 }
 
@@ -25,9 +27,11 @@ export function ScoreBarsChart({
   title,
   note,
   modeLabels,
+  maxBars = 12,
+  onMaxBarsChange,
   lang,
 }: Props) {
-  const visible = rows.slice(0, 12);
+  const visible = rows.slice(0, maxBars);
 
   return (
     <div className="rounded-xl border hairline bg-[#11141c] p-5 flex flex-col gap-4">
@@ -37,21 +41,47 @@ export function ScoreBarsChart({
           <p className="text-[12px] text-[#7a8296] mt-0.5">{note}</p>
         </div>
 
-        <div className="inline-flex rounded-lg p-1 bg-[#07080d] border hairline">
-          {(["overall", "mobility", "surface"] as ChartAxisMode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => onModeChange(m)}
-              className={`px-3 py-1 rounded-md text-[12px] font-medium transition-colors duration-150 ${
-                mode === m
-                  ? "active-highlight text-[#eef0f5]"
-                  : "text-[#7a8296] hover:text-[#eef0f5]"
-              }`}
-            >
-              {modeLabels[m]}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          {onMaxBarsChange && (
+            <div className="inline-flex rounded-lg p-1 bg-[#07080d] border hairline text-[11.5px] font-mono tabular">
+              {[
+                [8, "8"],
+                [12, "12"],
+                [20, "20"],
+                [40, lang === "tr" ? "Tümü" : "All"],
+              ].map(([count, lbl]) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => onMaxBarsChange(count as number)}
+                  className={`px-2 py-1 rounded-md transition-colors duration-150 ${
+                    maxBars === count
+                      ? "active-highlight text-[#eef0f5]"
+                      : "text-[#7a8296] hover:text-[#eef0f5]"
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="inline-flex rounded-lg p-1 bg-[#07080d] border hairline">
+            {(["overall", "mobility", "surface"] as ChartAxisMode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => onModeChange(m)}
+                className={`px-3 py-1 rounded-md text-[12px] font-medium transition-colors duration-150 ${
+                  mode === m
+                    ? "active-highlight text-[#eef0f5]"
+                    : "text-[#7a8296] hover:text-[#eef0f5]"
+                }`}
+              >
+                {modeLabels[m]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

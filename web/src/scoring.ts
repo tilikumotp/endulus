@@ -1,6 +1,80 @@
-import type { EarthSite, MoonRef, SiteScoreRow } from "./types";
+import type { EarthSite, MissionKey, MoonRef, SiteScoreRow } from "./types";
 
 export type AxisName = "mobility" | "surface";
+
+export const PRESET_WEIGHTS: Record<MissionKey, { wMob: number; wSurf: number }> = {
+  default: { wMob: 1.0, wSurf: 1.0 },
+  rover_mobility: { wMob: 2.0, wSurf: 1.0 },
+  isru_ice: { wMob: 0.5, wSurf: 1.0 },
+  radar_calibration: { wMob: 1.0, wSurf: 2.0 },
+};
+
+/**
+ * Compute live custom-weighted composite scores from base axis scores and intervals.
+ * Mirrors `src/scoring/similarity.py::combine_axes` normalized weighted mean.
+ */
+export function computeWeightedScores(
+  baseRows: SiteScoreRow[],
+  wMob: number,
+  wSurf: number
+): SiteScoreRow[] {
+  const safeMob = Math.max(0, wMob);
+  const safeSurf = Math.max(0, wSurf);
+  const sumW = safeMob + safeSurf;
+  const wm = sumW > 0 ? safeMob / sumW : 0.5;
+  const ws = sumW > 0 ? safeSurf / sumW : 0.5;
+
+  const updated = baseRows.map((r) => {
+    const score = wm * r.mob + ws * r.surf;
+
+    let ci_lo: number | null = null;
+    let ci_hi: number | null = null;
+    let widened = false;
+
+    if (ws === 0 && r.mob_lo !== null && r.mob_hi !== null) {
+      ci_lo = r.mob_lo;
+      ci_hi = r.mob_hi;
+      widened = r.mob_widened;
+    } else if (wm === 0 && r.surf_lo !== null && r.surf_hi !== null) {
+      ci_lo = r.surf_lo;
+      ci_hi = r.surf_hi;
+      widened = r.surf_widened;
+    } else if (
+      r.mob_lo !== null &&
+      r.mob_hi !== null &&
+      r.surf_lo !== null &&
+      r.surf_hi !== null
+    ) {
+      const mLo = Math.max(0, r.mob - r.mob_lo);
+      const mHi = Math.max(0, r.mob_hi - r.mob);
+      const sLo = Math.max(0, r.surf - r.surf_lo);
+      const sHi = Math.max(0, r.surf_hi - r.surf);
+      const loHalf = Math.hypot(wm * mLo, ws * sLo);
+      const hiHalf = Math.hypot(wm * mHi, ws * sHi);
+      ci_lo = Math.max(0, Math.min(score, score - loHalf));
+      ci_hi = Math.min(1, Math.max(score, score + hiHalf));
+      widened = r.mob_widened || r.surf_widened;
+    }
+
+    return {
+      ...r,
+      score,
+      ci_lo,
+      ci_hi,
+      widened,
+    };
+  });
+
+  updated.sort((a, b) => {
+    if (Math.abs(b.score - a.score) > 1e-12) return b.score - a.score;
+    return a.site_id.localeCompare(b.site_id);
+  });
+
+  return updated.map((r, idx) => ({
+    ...r,
+    rank: idx + 1,
+  }));
+}
 
 export interface PortfolioResult {
   selected: {
