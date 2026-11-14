@@ -8,3 +8,6 @@ __pycache__/
 *.pyc
 .venv/
 .ipynb_checkpoints/
+
+# Streamlit secrets must never be committed (theme config.toml IS committed)
+.streamlit/secrets.toml
