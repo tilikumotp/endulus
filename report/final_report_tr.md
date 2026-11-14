@@ -75,7 +75,7 @@ Shackleton Kenarı yüksek ortalama eğimi (`18.50°`), p90 dikliği (`30.79°`)
 | Genel Sıra | `site_id` | Rol | Genel Skor (`P5–P95`) | Mobilite Skoru (Sıra) | Yüzey Skoru (Sıra) | Litoloji |
 |---:|---|---|---:|---:|---:|---|
 | **1** | `earth_karapinar_meke` | `candidate` | **0.528** `[0.406–0.569]` | 0.153 (`#11`) | **0.903** (`#1`) | `basalt` |
-| **2** | `earth_mcmurdo_wright_valley` | `validation` | **0.509** `[0.088–0.513*]` | 0.134 (`#14`) | **0.885** (`#2`) | `regolith_permafrost` |
+| **2** | `earth_mcmurdo_wright_valley` | `validation` | **0.509** `[0.088–0.513]` | 0.134 (`#14`) | **0.885** (`#2`) | `regolith_permafrost` |
 | **3** | `earth_hasandagi_kecekalecik` | `candidate` | **0.502** `[0.375–0.646]` | **0.335** (`#1`) | 0.670 (`#12`) | `basalt` |
 | **4** | `earth_agri_dogubayazit_flow` | `candidate` | **0.499** `[0.414–0.564]` | 0.147 (`#12`) | **0.850** (`#4`) | `basalt` |
 | **5** | `earth_erciyes_kojugedigi` | `candidate` | **0.495** `[0.405–0.613]` | 0.266 (`#6`) | 0.725 (`#8`) | `basalt` |
@@ -85,7 +85,7 @@ Shackleton Kenarı yüksek ortalama eğimi (`18.50°`), p90 dikliği (`30.79°`)
 | **9** | `earth_deccan_mahabaleshwar` | `candidate` | **0.453** `[0.372–0.563]` | **0.272** (`#4`) | 0.633 (`#14`) | `basalt` |
 | **10** | `earth_karacadag_summit` | `candidate` | **0.419** `[0.360–0.483]` | 0.103 (`#18`) | 0.736 (`#7`) | `basalt` |
 
-*Not: `*` işareti, nokta tahmininin ham `q95` değerini aşması nedeniyle gösterim aralığının `expanded_interval` ile nokta tahminine eşitlendiğini belirtir (McMurdo'nun yüksek `albedo_sd = 0.0961` değeri yüzünden alt sınır `0.043`e kadar iner).*
+*Not: `McMurdo` yüksek `albedo_sd = 0.0961` belirsizliği nedeniyle Yüzey ekseninde `P5 = 0.043`e kadar sarkan çok geniş bir aralık gösterir; bu nedenle Bağlantı Sırtı, de Gerlache, Shackleton Yakını Zirve ve Faustini referanslarında nokta tahmini ham `q95`i aştığında `expanded_interval` görüntülenen aralığı nokta tahmine eşitleyip `*` ile işaretler.*
 
 **Görev Profili Duyarlılığı (`moon_shackleton_rim`):**
 * **Dengeli (`default`):** `#1 Karapınar Meke (0.528)`, `#2 McMurdo (0.509)`, `#3 Hasandağı (0.502)`, `#4 Ağrı Doğubayazıt (0.499)`, `#5 Erciyes (0.495)`.
@@ -93,6 +93,10 @@ Shackleton Kenarı yüksek ortalama eğimi (`18.50°`), p90 dikliği (`30.79°`)
 * **Kaynak / Buz (v1'de buz verisi içermez)** ve **Yeraltı Radar Kalibrasyonu** (`surface` 2× ağırlıklı): `#1 Karapınar Meke (0.653)`, `#2 McMurdo (0.635)`, `#3 Ağrı Doğubayazıt (0.616)`, `#4 Kula Divlit (0.609)`, `#5 Erciyes (0.572)`.
 
 **Mobilite vs Yüzey Liderleri (`Shackleton`):** Yalnızca arazi geometrisine (Mobilite) bakıldığında `#1 Hasandağı (0.335)`, `#2 Parícutin (0.311)`, **`#3 Etna Cisternazza (0.299)`**, `#4 Deccan (0.272)` ve `#5 Pinacate (0.271)` öne çıkar. Yüzeyde ise `#1 Karapınar Meke (0.903)`, `#2 McMurdo (0.885)`, `#3 Kula Divlit (0.866)`, `#4 Ağrı Doğubayazıt (0.850)` ve `#5 Harrat Ash Shaam (0.796)` sıralanır.
+
+![Shackleton Kenarı İlk 15 Dünya Sahası ve Eksen Ayrışması](figures/fig01_shackleton_top15_axes.png)
+
+![Görev Profiline Göre Sıralama Duyarlılığı](figures/fig02_mission_reweighting.png)
 
 ### 4.2 Diğer 4 Ay Referans Bölgesi İçin Karşılaştırmalı Özet (Dengeli Profil)
 
@@ -105,6 +109,8 @@ Shackleton Kenarı yüksek ortalama eğimi (`18.50°`), p90 dikliği (`30.79°`)
 
 *Not: Yukarıdaki portföy sütunu, çekirdek motor [`src/scoring/portfolio.py`](../src/scoring/portfolio.py) (`select_portfolio`, eşik `0.70` sezgisel indeks ayarıdır) tarafından hesaplanan kuramsal kapsamdır; arayüz sade tutulduğundan ayrı portföy kartı uygulamaya konmamıştır.*
 
+![5 Ay Güney Kutbu Bölgesi Eksen Bazlı Dünya Karşılaştırma Isı Haritası](figures/fig03_moon_regions_heatmap.png)
+
 ---
 
 ## 5. Betimsel Sıra Tanısı, Fiziksel Ayrışma ve Türkiye Aday Vaka Analizi
@@ -115,8 +121,10 @@ Skorlayıcı `role` sütununu asla görmez. Ancak `40` sahanın tamamı `Z`-öl�
 
 Shackleton Kenarı'nda bazı ünlü Dünya analoglarının genel sırada düşük görünmesinin **iki net fiziksel nedeni** vardır (`axis_gaps`):
 
-1. **Referans Krater Geometrisi (Dik vs Düz Arazi):** Shackleton Kenarı `18.50°` ortalama eğim ve `501.4 m` rölyef taşır (`roughness = 90.43 m`). **Etna Cisternazza** `22.74°` eğim ve `86.00 m` pürüzlülükle (`z_diff = -0.201`) **Mobilite'de `#3 / 40` (`0.299`)** çıkar; fakat albedosu `0.047` (koyu Ay Maria bazaltı) olduğundan `0.147` parlaklıktaki Shackleton'la Yüzey'de ayrışır (`z_diff = -1.719`, Yüzey `#37 / 40`, genel `#26`). Buna karşılık **Atacama Yungay** (`slope_mean = 2.65°`, `roughness = 10.67 m`) ve **Haughton Krateri** (`slope_mean = 3.51°`, `relief = 68.9 m`) düz Mars/Arktik test sahalarıdır; Shackleton'da Mobilite `#28` ve `#27` olsalar da daha yatık **`Faustini Kenarı`** (`5.20°`, `roughness = 12.29 m`) seçildiğinde **Svalbard `#3 (0.759)`**, **Mauna Loa `#5 (0.733)`**, **Haughton `#6 (0.727)`** ve **Atacama `#8 (0.723)`** düzeyine yükselir.
+1. **Referans Krater Geometrisi (Dik vs Düz Arazi):** Shackleton Kenarı `18.50°` ortalama eğim ve `501.4 m` rölyef taşır (`roughness = 90.43 m`). **Etna Cisternazza** `22.74°` eğim ve `86.00 m` pürüzlülükle (`z_diff = -0.201`) **Mobilite'de `#3 / 40` (`0.299`)** çıkar; fakat albedosu `0.047` (koyu Ay Maria bazaltı) olduğundan `0.147` parlaklıktaki Shackleton'la Yüzey'de ayrışır (`z_diff = -1.719`, Yüzey `#37 / 40`, genel `#26`). Buna karşılık **Atacama Yungay** (`slope_mean = 2.65°`, `roughness = 10.67 m`) ve **Haughton Krateri** (`slope_mean = 3.51°`, `relief = 68.9 m`) düz Mars/Arktik test sahalarıdır; Shackleton'da Mobilite `#28` ve `#27` olsalar da daha yatık **`Faustini Kenarı`** (`5.20°`, `roughness = 12.29 m`) seçildiğinde **Mobilite ekseninde Svalbard `#3 (0.759)`** *(genel `#3`, `0.749`)*, **Mauna Loa `#5 (0.733)`**, **Haughton `#6 (0.727)`** ve **Atacama `#8 (0.723)`** düzeyine yükselir.
 2. **Albedoya Dayalı Highland–Mare Ayrımı:** Shackleton (`0.147`) koyu Ay denizleri (`mare`) yerine parlaklığa yakın Ay yaylası/kutbu regolith albedosu taşır; bu yüzden taze koyu bazaltlar (`Mauna Loa 0.030`, `Etna 0.047`, `Lanzarote 0.063`) Yüzey ekseninde alt sıralarda kalır.
+
+![Fiziksel Özellik Uzayı ve Bilinen 10 Doğrulama Sahasının Sıra Tanısı](figures/fig04_physical_space_validation.png)
 
 ### 5.2 Türkiye Sahaları Vaka İncelemesi (`14` Aday Saha)
 
@@ -153,6 +161,8 @@ Uygulamadaki `Analojinin Sınırları` sekmesi 8 fiziksel boyutu açıkça ayır
 6. **Lav Tüpleri & Yeraltı Boşlukları (`Nitel — Skorsuz`):** v2'de RADARSAT-1 / Mini-RF radar entegrasyonu hedeflenir.
 7. **Toz, Rüzgâr & Elektrostatik Toz (`Laboratuvar & Simülasyon`):** Elektrostatik yapışkan regolit yalnızca plazma/toz odalarında test edilebilir.
 8. **Yerçekimi (`1/6 g`), Vakum, Radyasyon & 29.5 Günlük Döngü (`Laboratuvar & Simülasyon`):** Hiçbir Dünya arazisinde doğal olarak yeniden üretilemez.
+
+![Çevrimdışı Yörünge ve Uydu Görsel Kanıt Galerisi](figures/fig05_orbital_evidence_gallery.png)
 
 ---
 
