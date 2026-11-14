@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import struct
 from pathlib import Path
 from typing import Any
 
@@ -10,9 +11,14 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
+import requests
 from rasterio.enums import Resampling
+from rasterio.io import MemoryFile
+from rasterio.merge import merge
 from rasterio.warp import calculate_default_transform, reproject
-from rasterio.windows import from_bounds as window_from_bounds
+from rasterio.windows import Window, from_bounds as window_from_bounds
+
+from src.earth.sites import VERIFIED_EARTH_SITES, SiteSpec
 
 COPERNICUS_DEM_SRC = "Copernicus_DEM_GLO-30_2023.1"
 
@@ -68,14 +74,98 @@ def get_metric_crs(lat: float, lon: float) -> str:
     return f"EPSG:{epsg}"
 
 
-def copernicus_tile_url(lat: float, lon: float) -> str:
-    """Build the AWS S3 public Cloud-Optimized GeoTIFF URL for Copernicus DEM GLO-30."""
-    lat_fl = math.floor(lat)
-    lon_fl = math.floor(lon)
-    ns = f"N{abs(lat_fl):02d}" if lat_fl >= 0 else f"S{abs(lat_fl):02d}"
-    ew = f"E{abs(lon_fl):03d}" if lon_fl >= 0 else f"W{abs(lon_fl):03d}"
+def copernicus_tile_url(lat_floor: int, lon_floor: int) -> str:
+    """Build the AWS S3 public Cloud-Optimized GeoTIFF URL for a 1x1 deg Copernicus DEM GLO-30 tile."""
+    ns = f"N{abs(lat_floor):02d}" if lat_floor >= 0 else f"S{abs(lat_floor):02d}"
+    ew = f"E{abs(lon_floor):03d}" if lon_floor >= 0 else f"W{abs(lon_floor):03d}"
     tile_id = f"Copernicus_DSM_COG_10_{ns}_00_{ew}_00_DEM"
     return f"https://copernicus-dem-30m.s3.amazonaws.com/{tile_id}/{tile_id}.tif"
+
+
+def _read_cog_window_via_range(
+    url: str,
+    west: float,
+    south: float,
+    east: float,
+    north: float,
+) -> tuple[np.ndarray, rasterio.Affine, rasterio.crs.CRS] | None:
+    """Fetch only the intersecting internal TIFF tiles via HTTP Range requests and read the window."""
+    r_hdr = requests.get(url, headers={"Range": "bytes=0-16383"}, timeout=15)
+    if r_hdr.status_code not in (200, 206):
+        return None
+    hdr = bytearray(r_hdr.content)
+
+    ifd_off = struct.unpack("<I", hdr[4:8])[0]
+    n_entries = struct.unpack("<H", hdr[ifd_off : ifd_off + 2])[0]
+    tags: dict[int, tuple[int, int, int, int]] = {}
+    for i in range(n_entries):
+        pos = ifd_off + 2 + i * 12
+        tag, typ, cnt, val_off = struct.unpack("<HHII", hdr[pos : pos + 12])
+        tags[tag] = (typ, cnt, val_off, pos)
+
+    struct.pack_into("<I", hdr, ifd_off + 2 + n_entries * 12, 0)
+
+    img_w = tags[256][2]
+    img_h = tags[257][2]
+    tile_w = tags[322][2]
+    tile_h = tags[323][2]
+    _, n_tiles, off_pos, _ = tags[324]
+    _, _, cnt_pos, _ = tags[325]
+
+    orig_offsets = list(struct.unpack(f"<{n_tiles}I", hdr[off_pos : off_pos + 4 * n_tiles]))
+    orig_counts = list(struct.unpack(f"<{n_tiles}I", hdr[cnt_pos : cnt_pos + 4 * n_tiles]))
+
+    empty_hdr = bytearray(hdr)
+    struct.pack_into(f"<{n_tiles}I", empty_hdr, off_pos, *([0] * n_tiles))
+    struct.pack_into(f"<{n_tiles}I", empty_hdr, cnt_pos, *([0] * n_tiles))
+
+    with MemoryFile(bytes(empty_hdr)) as mem_meta:
+        with mem_meta.open() as ds_meta:
+            t_west = max(west, ds_meta.bounds.left)
+            t_south = max(south, ds_meta.bounds.bottom)
+            t_east = min(east, ds_meta.bounds.right)
+            t_north = min(north, ds_meta.bounds.top)
+            if t_west >= t_east or t_south >= t_north:
+                return None
+            raw_win = window_from_bounds(
+                t_west, t_south, t_east, t_north, transform=ds_meta.transform
+            )
+            r0 = max(0, math.floor(raw_win.row_off))
+            r1 = min(img_h, math.ceil(raw_win.row_off + raw_win.height))
+            c0 = max(0, math.floor(raw_win.col_off))
+            c1 = min(img_w, math.ceil(raw_win.col_off + raw_win.width))
+            win = Window(col_off=c0, row_off=r0, width=c1 - c0, height=r1 - r0)
+
+    n_tx = math.ceil(img_w / tile_w)
+    needed_indices: set[int] = set()
+    for ty in range(r0 // tile_h, (r1 - 1) // tile_h + 1):
+        for tx in range(c0 // tile_w, (c1 - 1) // tile_w + 1):
+            needed_indices.add(ty * n_tx + tx)
+
+    new_offsets = [0] * n_tiles
+    new_counts = [0] * n_tiles
+    payload = bytearray()
+    for idx in sorted(needed_indices):
+        t_off = orig_offsets[idx]
+        t_cnt = orig_counts[idx]
+        resp = requests.get(
+            url, headers={"Range": f"bytes={t_off}-{t_off + t_cnt - 1}"}, timeout=20
+        )
+        resp.raise_for_status()
+        chunk = resp.content
+        new_offsets[idx] = len(hdr) + len(payload)
+        new_counts[idx] = len(chunk)
+        payload.extend(chunk)
+
+    struct.pack_into(f"<{n_tiles}I", hdr, off_pos, *new_offsets)
+    struct.pack_into(f"<{n_tiles}I", hdr, cnt_pos, *new_counts)
+
+    with MemoryFile(bytes(hdr) + bytes(payload)) as mem:
+        with mem.open() as src:
+            data = src.read(1, window=win).astype(np.float32)
+            win_transform = src.window_transform(win)
+            crs = src.crs
+    return data, win_transform, crs
 
 
 def fetch_dem_patch(
@@ -88,7 +178,7 @@ def fetch_dem_patch(
     """Download a small windowed DEM patch around (lat, lon) from Copernicus GLO-30 COG into data/raw/earth/."""
     raw_dir.mkdir(parents=True, exist_ok=True)
     out_tif = raw_dir / f"{site_id}_copdem30_wgs84.tif"
-    if out_tif.exists():
+    if out_tif.exists() and out_tif.stat().st_size > 0:
         return out_tif
 
     buffer_m = radius_m * 2.5
@@ -96,23 +186,68 @@ def fetch_dem_patch(
     dlon = buffer_m / (111_320.0 * max(math.cos(math.radians(lat)), 0.1))
     west, south, east, north = lon - dlon, lat - dlat, lon + dlon, lat + dlat
 
-    url = f"/vsicurl/{copernicus_tile_url(lat, lon)}"
-    with rasterio.open(url) as src:
-        win = window_from_bounds(west, south, east, north, transform=src.transform)
-        win = win.round_offsets().round_lengths()
-        data = src.read(1, window=win).astype(np.float32)
-        win_transform = src.window_transform(win)
-        profile = src.profile.copy()
-        profile.update(
-            height=data.shape[0],
-            width=data.shape[1],
-            transform=win_transform,
-            dtype="float32",
-            count=1,
-            compress="deflate",
-        )
-        with rasterio.open(out_tif, "w", **profile) as dst:
-            dst.write(data, 1)
+    lat_tiles = range(math.floor(south), math.floor(north) + 1)
+    lon_tiles = range(math.floor(west), math.floor(east) + 1)
+
+    memfiles: list[MemoryFile] = []
+    datasets = []
+    try:
+        for lt in lat_tiles:
+            for ln in lon_tiles:
+                res = _read_cog_window_via_range(
+                    copernicus_tile_url(lt, ln), west, south, east, north
+                )
+                if res is None:
+                    continue
+                data, win_transform, crs = res
+                profile = {
+                    "driver": "GTiff",
+                    "height": data.shape[0],
+                    "width": data.shape[1],
+                    "transform": win_transform,
+                    "crs": crs,
+                    "dtype": "float32",
+                    "count": 1,
+                    "nodata": np.nan,
+                }
+                mem = MemoryFile()
+                dst_mem = mem.open(**profile)
+                dst_mem.write(data, 1)
+                memfiles.append(mem)
+                datasets.append(dst_mem)
+
+        if not datasets:
+            raise RuntimeError(f"Failed to fetch Copernicus DEM tiles for {site_id}")
+
+        if len(datasets) == 1:
+            mosaic = datasets[0].read(1)
+            out_transform = datasets[0].transform
+            out_crs = datasets[0].crs
+        else:
+            mosaic_arr, out_transform = merge(datasets, nodata=np.nan)
+            mosaic = mosaic_arr[0].astype(np.float32)
+            out_crs = datasets[0].crs
+
+        out_profile = {
+            "driver": "GTiff",
+            "height": mosaic.shape[0],
+            "width": mosaic.shape[1],
+            "count": 1,
+            "dtype": "float32",
+            "crs": out_crs,
+            "transform": out_transform,
+            "nodata": np.nan,
+            "compress": "deflate",
+        }
+        with MemoryFile() as out_mem:
+            with out_mem.open(**out_profile) as dst:
+                dst.write(mosaic, 1)
+            out_tif.write_bytes(out_mem.read())
+    finally:
+        for ds in datasets:
+            ds.close()
+        for mem in memfiles:
+            mem.close()
 
     return out_tif
 
@@ -123,33 +258,39 @@ def reproject_dem_to_metric(
     res_m: float = 30.0,
 ) -> tuple[np.ndarray, rasterio.Affine, dict[str, Any]]:
     """Reproject a geographic DEM patch to a metric CRS at native 30m spacing before slope computation."""
-    with rasterio.open(src_tif) as src:
-        transform, width, height = calculate_default_transform(
-            src.crs,
-            dst_crs,
-            src.width,
-            src.height,
-            *src.bounds,
-            resolution=(res_m, res_m),
-        )
-        dst_data = np.full((height, width), np.nan, dtype=np.float32)
-        reproject(
-            source=rasterio.band(src, 1),
-            destination=dst_data,
-            src_transform=src.transform,
-            src_crs=src.crs,
-            dst_transform=transform,
-            dst_crs=dst_crs,
-            dst_nodata=np.nan,
-            resampling=Resampling.bilinear,
-        )
-        summary = {
-            "src_shape": (src.height, src.width),
-            "src_crs": str(src.crs),
-            "dst_shape": (height, width),
-            "dst_crs": dst_crs,
-            "dst_bounds": rasterio.transform.array_bounds(height, width, transform),
-        }
+    with MemoryFile(src_tif.read_bytes()) as mem:
+        with mem.open() as src:
+            transform, width, height = calculate_default_transform(
+                src.crs,
+                dst_crs,
+                src.width,
+                src.height,
+                *src.bounds,
+                resolution=(res_m, res_m),
+            )
+            dst_data = np.full((height, width), np.nan, dtype=np.float32)
+            reproject(
+                source=rasterio.band(src, 1),
+                destination=dst_data,
+                src_transform=src.transform,
+                src_crs=src.crs,
+                dst_transform=transform,
+                dst_crs=dst_crs,
+                src_nodata=np.nan,
+                dst_nodata=np.nan,
+                resampling=Resampling.bilinear,
+            )
+            summary = {
+                "src_shape": (src.height, src.width),
+                "src_crs": str(src.crs),
+                "src_bounds": tuple(round(b, 5) for b in src.bounds),
+                "dst_shape": (height, width),
+                "dst_crs": dst_crs,
+                "dst_bounds": tuple(
+                    round(b, 1)
+                    for b in rasterio.transform.array_bounds(height, width, transform)
+                ),
+            }
     return dst_data, transform, summary
 
 
@@ -201,7 +342,10 @@ def compute_slope_in_radius(
         "slope_min_deg": float(np.min(valid_slopes)),
         "slope_max_deg": float(np.max(valid_slopes)),
         "slope_grid": slope_deg,
+        "dem_grid": dem_m,
         "mask_grid": valid_mask,
+        "rel_x_m": xs_arr - cx,
+        "rel_y_m": ys_arr - cy,
     }
 
 
@@ -247,3 +391,137 @@ def build_contract_dataframe(rows: list[dict[str, Any]]) -> pd.DataFrame:
     df["radius_m"] = df["radius_m"].astype("float64")
     df["lithology_class"] = df["lithology_class"].fillna("").astype(str)
     return df
+
+
+def save_sanity_html(
+    diagnostics: list[dict[str, Any]],
+    out_html: Path = Path("data/raw/earth/slope_sanity_map.html"),
+) -> Path:
+    """Save an interactive Plotly sanity-check map of projected slope grids for visual verification."""
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    fig = make_subplots(
+        rows=2,
+        cols=2,
+        subplot_titles=[
+            f"{d['site_id']} ({d['dst_crs']})<br>mean={d['slope_mean']:.2f}°, p90={d['slope_p90']:.2f}°"
+            for d in diagnostics
+        ],
+    )
+    theta = np.linspace(0.0, 2.0 * np.pi, 180)
+    for idx, d in enumerate(diagnostics):
+        r = idx // 2 + 1
+        c = idx % 2 + 1
+        x_axis = d["rel_x_m"][0, :]
+        y_axis = d["rel_y_m"][:, 0]
+        fig.add_trace(
+            go.Heatmap(
+                z=d["slope_grid"],
+                x=x_axis,
+                y=y_axis,
+                colorscale="YlOrRd",
+                zmin=0.0,
+                zmax=35.0,
+                colorbar={"title": "Slope (°)"} if idx == 0 else None,
+                showscale=(idx == 0),
+            ),
+            row=r,
+            col=c,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=d["radius_m"] * np.cos(theta),
+                y=d["radius_m"] * np.sin(theta),
+                mode="lines",
+                line={"color": "cyan", "width": 2, "dash": "dash"},
+                name="radius_m = 1000m",
+                showlegend=(idx == 0),
+            ),
+            row=r,
+            col=c,
+        )
+    fig.update_layout(
+        title_text="Earth Task 2 — Projected Slope (degrees) & 1000 m Analysis Radius Sanity Check",
+        height=850,
+        width=1000,
+    )
+    out_html.parent.mkdir(parents=True, exist_ok=True)
+    fig.write_html(str(out_html))
+    return out_html
+
+
+def run_task2(
+    sites: list[SiteSpec] | None = None,
+    out_parquet: Path = Path("data/processed/features_earth.parquet"),
+) -> pd.DataFrame:
+    """Execute Task 2 end-to-end: fetch Copernicus DEM, reproject, compute slope, and write parquet."""
+    target_sites = sites if sites is not None else VERIFIED_EARTH_SITES
+    rows: list[dict[str, Any]] = []
+    diagnostics: list[dict[str, Any]] = []
+
+    print("=== EARTH TASK 2: COPERNICUS DEM GLO-30 SLOPE EXTRACTION ===")
+    for s in target_sites:
+        sid = s["site_id"]
+        lat = s["lat"]
+        lon = s["lon"]
+        radius_m = s["radius_m"]
+        dst_crs = get_metric_crs(lat, lon)
+
+        tif_path = fetch_dem_patch(sid, lat, lon, radius_m=radius_m)
+        dem_m, transform, summary = reproject_dem_to_metric(tif_path, dst_crs=dst_crs, res_m=30.0)
+        stats = compute_slope_in_radius(
+            dem_m, transform, lat, lon, dst_crs=dst_crs, radius_m=radius_m
+        )
+
+        print(
+            f"[{sid}] src_shape={summary['src_shape']} ({summary['src_crs']}, bounds={summary['src_bounds']}) "
+            f"-> dst_shape={summary['dst_shape']} ({summary['dst_crs']}, bounds={summary['dst_bounds']})"
+        )
+        print(
+            f"   n_pixels(r<=1000m)={stats['n_pixels']} | elev={stats['elev_min_m']:.1f}..{stats['elev_max_m']:.1f} m "
+            f"| slope_min..max={stats['slope_min_deg']:.2f}..{stats['slope_max_deg']:.2f} deg "
+            f"| slope_mean={stats['slope_mean']:.3f} ± {stats['slope_mean_sd']:.3f} deg "
+            f"| slope_p90={stats['slope_p90']:.3f} ± {stats['slope_p90_sd']:.3f} deg"
+        )
+
+        row = make_empty_contract_row(
+            site_id=sid,
+            name=s["name"],
+            role=s["role"],
+            lat=lat,
+            lon=lon,
+            radius_m=radius_m,
+            lithology_class=s["lithology_class"],
+        )
+        row["slope_mean"] = stats["slope_mean"]
+        row["slope_mean_sd"] = stats["slope_mean_sd"]
+        row["slope_mean_src"] = COPERNICUS_DEM_SRC
+        row["slope_mean_res_m"] = 30.0
+
+        row["slope_p90"] = stats["slope_p90"]
+        row["slope_p90_sd"] = stats["slope_p90_sd"]
+        row["slope_p90_src"] = COPERNICUS_DEM_SRC
+        row["slope_p90_res_m"] = 30.0
+
+        rows.append(row)
+        diagnostics.append(
+            {
+                "site_id": sid,
+                "dst_crs": dst_crs,
+                "radius_m": radius_m,
+                **stats,
+            }
+        )
+
+    df = build_contract_dataframe(rows)
+    out_parquet.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(out_parquet, index=False)
+    html_path = save_sanity_html(diagnostics)
+    print(f"\nWrote contract parquet: {out_parquet} ({len(df)} rows, {len(df.columns)} cols)")
+    print(f"Wrote visual sanity map: {html_path}")
+    return df
+
+
+if __name__ == "__main__":
+    run_task2()
