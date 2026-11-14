@@ -410,34 +410,7 @@ export default function App() {
                 <line x1="15" y1="10" x2="18" y2="10" stroke="#7a8296" strokeWidth="1.2" />
               </svg>
               <span>{copy.brand}</span>
-              <span className="hidden sm:inline text-[12px] font-mono text-[#7a8296] pl-2 border-l hairline">
-                {copy.subtitleTag}
-              </span>
             </a>
-
-            <nav className="hidden lg:flex items-center gap-1 text-[13px]">
-              {(
-                [
-                  ["overview", copy.navWorkbench],
-                  ["terrain", copy.navTerrain],
-                  ["validation", copy.navValidation],
-                  ["figures", copy.navFigures],
-                ] as [WorkbenchTab, string][]
-              ).map(([tbId, lbl]) => (
-                <a
-                  key={tbId}
-                  href="#observatory"
-                  onClick={() => setWorkbenchTab(tbId)}
-                  className={`px-3 py-1.5 rounded-lg transition-colors duration-150 ${
-                    workbenchTab === tbId
-                      ? "text-[#eef0f5] bg-[#1a1e28]"
-                      : "text-[#a3a9b8] hover:text-[#eef0f5] hover:bg-[#1a1e28]/60"
-                  }`}
-                >
-                  {lbl}
-                </a>
-              ))}
-            </nav>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
@@ -495,6 +468,17 @@ export default function App() {
 
             {/* Clean uniform 5-crater selector strip + telemetry */}
             <div className="mt-7 pt-5 border-t hairline w-full">
+              <div className="flex items-center justify-between gap-2 mb-2 text-[11.5px] font-mono text-[#7a8296]">
+                <span className="inline-flex items-center gap-1.5 text-[#a3a9b8]">
+                  <Compass className="w-3.5 h-3.5 text-[#4c8bf5]" strokeWidth={1.6} />
+                  <span>
+                    {lang === "tr"
+                      ? "Ay kraterleri (hedef bölge seçin)"
+                      : "Lunar craters (select target region)"}
+                  </span>
+                </span>
+                <span>{lang === "tr" ? "5 Güney Kutbu bölgesi" : "5 South Pole sites"}</span>
+              </div>
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {data.moon_refs.map((m) => {
                   const fullLabel = lang === "tr" ? m.name_tr : m.name_en;
