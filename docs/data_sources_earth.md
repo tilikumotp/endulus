@@ -240,3 +240,15 @@ v2'de lider onayı alındığı takdirde mevcut 5 ana sınıfa ek olarak `andesi
 | **Eski** (`37.7450, 15.0060`) | `37.7450, 15.0060` | `2980.5 m` · `21.00°` / `31.27°` / `717.1 m` | Tefra `%98.5` · Bitki `%1.5` · Kar `%0.0` | Yaz: bitki `%0.0`, kar `%0.0` · Nisan: kar `%6.0` | Kar `%36.5` · Çıplak `%61.1` · Bitki `%0.0` | Değiştirildi |
 | **Aday 1 (Seçildi):** Cisternazza (OSM) | `37.7257, 15.0084` | `2565.0 m` · `22.74°` / `35.47°` / `868.9 m` | **Tefra `%99.4`** · **Bitki `%0.6`** · Kar `%0.0` | Yaz: **bitki `%0.0`, kar `%0.0`** · Nisan: **kar `%0.3`** | **En düşük kar `%22.0`** · Çıplak `%76.8` | **Uygulandı** (`sites.py` & parquet) |
 | **Aday 2:** Piano del Lago W | `37.7190, 14.9970` | `2474.9 m` · `16.52°` / `26.84°` / `525.4 m` | Tefra `%96.7` · Bitki `%3.3` · Kar `%0.0` | Yaz: bitki `%1.0`, kar `%0.0` · Nisan: kar `%6.9` | Kar `%53.1` · Çıplak `%42.6` | Elendi (daha yüksek kış/ilkbahar karı) |
+
+---
+
+## 8. E7 Kompakt 3D DEM Gridleri ve Ağrı Düşey Datum Notu (`EGM96` vs. `EGM2008`)
+
+`data/processed/earth_3d_grids.npz` (40 × `(74, 74)` `float32` yükseklik gridi, `30.0 m` aralık, `2220 × 2220 m` E5 Sentinel-2 merkezine hizalı) yalnızca 3B arazi görselleştirmesi için üretilmiştir; `features_earth.parquet` içindeki sözleşme özelliklerini veya `*_src` kolonlarını değiştirmez.
+
+- **Düşey Datum Ayrımı (`earth_agri_dogubayazit_flow`):**
+  - **39 / 40 Saha (`Copernicus_DEM_GLO-30`):** Copernicus DEM GLO-30 DGED, yükseklikleri **EGM2008** (`EPSG:3855`) ortometrik düşey datumunda verir (`sigma_z_rel_m = 1.0 m`, Airbus/ESA `GEO.2018-1988-2 §4.2`).
+  - **1 / 40 Saha (`earth_agri_dogubayazit_flow`, `NASADEM_HGT_v001` Fallback):** `N39 E044` karesi Copernicus GLO-30 arşivinde bulunmadığı için (`AWS S3 HTTP 404` / Planetary Computer `0` öğe) kullanılan `NASADEM_HGT_v001` ürünü yükseklikleri **EGM96** geoid düşey datumunda verir (`data/processed/earth_3d_meta.json` içinde `vertical_datum = "EGM96"`, `sigma_z_rel_m = null`).
+  - **Yorumlama Etkisi:** EGM96 ile EGM2008 geoit modelleri arasında bölgeye göre metre ölçeğinde sabit düşey ofset bulunabilir; bu nedenle **mutlak rakım (`elev_min_m`–`elev_max_m`)** doğrudan GLO-30 sahalarıyla aynı datuma dönüştürülmeden mutlak kot kıyaslamasında kullanılmamalıdır. Buna karşılık aynı `2.22 × 2.22 km` veya `r = 1 km` pencere içi eğim (`slope_mean`, `slope_p90`), düzlem kalıntısı (`roughness`) ve göreceli rölyef (`relief`) yerel fark/türev aldığı için bu yavaş değişen bölgesel geoit farkından pratikte etkilenmez.
+
