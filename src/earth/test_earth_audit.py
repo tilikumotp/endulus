@@ -313,3 +313,40 @@ def test_mixed_pixel_diagnostic_rules_and_schema(df_earth: pd.DataFrame) -> None
     for row in diag_rows:
         assert row["mixed_pixel_flag"] == row["rule_flag"]
         assert row["is_mixed"] == row["rule_is_mixed"]
+
+
+def test_earth_3d_grids_e7_integrity(df_earth: pd.DataFrame) -> None:
+    """Verify E7 compact 74x74 DEM archive and E5-aligned metadata stay < 1 MB and match parquet *_src."""
+    npz_path = Path("data/processed/earth_3d_grids.npz")
+    meta_path = Path("data/processed/earth_3d_meta.json")
+    atlas_meta_path = Path("data/processed/earth_atlas/metadata.json")
+
+    assert npz_path.exists() and meta_path.exists()
+    assert 0 < npz_path.stat().st_size < 1_000_000
+
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    atlas_by_id = {s["site_id"]: s for s in json.loads(atlas_meta_path.read_text(encoding="utf-8"))["sites"]}
+    parquet_src = df_earth.set_index("site_id")["slope_mean_src"].to_dict()
+    expected_ids = [s["site_id"] for s in VERIFIED_EARTH_SITES]
+
+    assert meta["window_side_m"] == 2220.0
+    assert meta["grid_res_m"] == 30.0
+    assert meta["grid_shape"] == [74, 74]
+    assert meta["site_count"] == 40
+    assert meta["source_counts"] == {COPERNICUS_DEM_SRC: 39, NASADEM_DEM_SRC: 1}
+    assert [r["site_id"] for r in meta["sites"]] == expected_ids
+
+    with np.load(npz_path) as npz:
+        assert list(npz.files) == expected_ids
+        for rec in meta["sites"]:
+            sid = rec["site_id"]
+            grid = npz[sid]
+            assert grid.shape == (74, 74)
+            assert grid.dtype == np.float32
+            assert np.all(np.isfinite(grid))
+            assert rec["e5_scene_id"] == atlas_by_id[sid]["scene_id"]
+            assert rec["dem_source"] == parquet_src[sid]
+            assert rec["center_offset_from_site_m"] <= 7.5
+            expected_sigma = 1.0 if rec["dem_source"] == COPERNICUS_DEM_SRC else None
+            assert rec["sigma_z_rel_m"] == expected_sigma
+
