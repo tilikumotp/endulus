@@ -29,6 +29,8 @@ METADATA_PATH = ATLAS_DIR / "atlas_metadata.json"
 THUMBS_DIR = REPO_ROOT / "data" / "processed" / "thumbs" / "moon"
 THUMBS_META_JSON = THUMBS_DIR / "thumbs_metadata.json"
 THUMBS_META_CSV = THUMBS_DIR / "thumbs_metadata.csv"
+MOON_3D_DIR = REPO_ROOT / "data" / "processed" / "moon_3d"
+MOON_3D_META_JSON = MOON_3D_DIR / "moon_3d_metadata.json"
 
 BG_COLOR = "#0e1117"
 PANEL_BG = "#161b22"
@@ -220,6 +222,105 @@ def _save_siglip_thumb_224(
     }
 
 
+def _save_moon_3d_grid(
+    site: MoonSiteSpec,
+    elev: np.ndarray,
+    slope_deg: np.ndarray,
+    xs_m: np.ndarray,
+    ys_m: np.ndarray,
+    xs_rel: np.ndarray,
+    ys_rel: np.ndarray,
+    x0_m: float,
+    y0_m: float,
+    radius_m: float,
+) -> dict[str, object]:
+    """Save 2.2x2.2 km 5 m/px 3D elevation grid (npz float32 + 16-bit PNG heightmap + cross-sections) in data/processed/moon_3d/."""
+    MOON_3D_DIR.mkdir(parents=True, exist_ok=True)
+    site_id = site["site_id"]
+    name_tr = SITE_NAMES_TR.get(site_id, site["name"])
+
+    r_mid = int(np.argmin(np.abs(ys_rel)))
+    c_mid = int(np.argmin(np.abs(xs_rel)))
+    z0_m = float(elev[r_mid, c_mid])
+    we_profile_dz = (elev[r_mid, :] - z0_m).astype(np.float32)
+    sn_profile_x = ys_rel[::-1].astype(np.float32)
+    sn_profile_dz = (elev[::-1, c_mid] - z0_m).astype(np.float32)
+
+    elev_f32 = np.round(elev, 2).astype(np.float32)
+    xs_rel_f32 = np.round(xs_rel, 2).astype(np.float32)
+    ys_rel_f32 = np.round(ys_rel, 2).astype(np.float32)
+    xs_stereo_f32 = np.round(xs_m, 2).astype(np.float32)
+    ys_stereo_f32 = np.round(ys_m, 2).astype(np.float32)
+
+    npz_path = MOON_3D_DIR / f"{site_id}_3d.npz"
+    np.savez_compressed(
+        npz_path,
+        elev_m=elev_f32,
+        xs_rel_m=xs_rel_f32,
+        ys_rel_m=ys_rel_f32,
+        xs_stereo_m=xs_stereo_f32,
+        ys_stereo_m=ys_stereo_f32,
+        profile_we_x_m=xs_rel_f32,
+        profile_we_dz_m=np.round(we_profile_dz, 2).astype(np.float32),
+        profile_sn_y_m=np.round(sn_profile_x, 2).astype(np.float32),
+        profile_sn_dz_m=np.round(sn_profile_dz, 2).astype(np.float32),
+        x0_m=np.float64(x0_m),
+        y0_m=np.float64(y0_m),
+        z0_m=np.float64(z0_m),
+        radius_m=np.float64(radius_m),
+        dx_m=np.float64(5.0),
+        dy_m=np.float64(5.0),
+    )
+
+    elev_min = float(np.nanmin(elev_f32))
+    elev_max = float(np.nanmax(elev_f32))
+    span = max(1e-6, elev_max - elev_min)
+    quant_step_m = span / 65535.0
+    u16 = np.clip(np.round((elev_f32 - elev_min) / span * 65535.0), 0, 65535).astype(np.uint16)
+    png16_path = MOON_3D_DIR / f"{site_id}_heightmap16.png"
+    Image.fromarray(u16).save(png16_path, format="PNG", optimize=True)
+
+    return {
+        "site_id": site_id,
+        "name": site["name"],
+        "name_tr": name_tr,
+        "pgda_site": site["pgda_site"],
+        "dem_src": site["dem_src"],
+        "crs": MOON_STEREO_PROJ4,
+        "lat": round(float(site["lat"]), 4),
+        "lon": round(float(site["lon"]), 4),
+        "x0_m": round(float(x0_m), 2),
+        "y0_m": round(float(y0_m), 2),
+        "z0_center_m": round(z0_m, 2),
+        "radius_m": round(float(radius_m), 1),
+        "grid_shape": [int(elev_f32.shape[0]), int(elev_f32.shape[1])],
+        "dx_m": 5.0,
+        "dy_m": 5.0,
+        "window_km": 2.2,
+        "extent_rel_m": [
+            round(float(xs_rel_f32.min()), 2),
+            round(float(xs_rel_f32.max()), 2),
+            round(float(ys_rel_f32.min()), 2),
+            round(float(ys_rel_f32.max()), 2),
+        ],
+        "extent_stereo_m": [
+            round(float(xs_stereo_f32.min()), 2),
+            round(float(xs_stereo_f32.max()), 2),
+            round(float(ys_stereo_f32.min()), 2),
+            round(float(ys_stereo_f32.max()), 2),
+        ],
+        "elev_min_m": round(elev_min, 3),
+        "elev_max_m": round(elev_max, 3),
+        "npz_dtype": "float32",
+        "npz_vertical_precision_m": 0.01,
+        "png16_dtype": "uint16",
+        "png16_scale_formula": "elev_m = elev_min_m + (uint16_val / 65535.0) * (elev_max_m - elev_min_m)",
+        "png16_quantization_step_m": round(quant_step_m, 5),
+        "npz_path": f"data/processed/moon_3d/{site_id}_3d.npz",
+        "heightmap16_path": f"data/processed/moon_3d/{site_id}_heightmap16.png",
+    }
+
+
 DISCLAIMER_NOTE = "Illustrative slope bins; not a landing-safety assessment."
 
 
@@ -237,8 +338,8 @@ def _add_disclaimer_footer(fig: plt.Figure) -> None:
     )
 
 
-def generate_site_atlas(site: MoonSiteSpec) -> tuple[dict[str, object], dict[str, object]]:
-    """Generate hillshade, hazard, and 3-panel atlas PNGs + 224x224 SigLIP thumb + metadata dicts for one lunar site."""
+def generate_site_atlas(site: MoonSiteSpec) -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
+    """Generate hillshade, hazard, and 3-panel atlas PNGs + 224x224 SigLIP thumb + 3D grid + metadata dicts."""
     site_id = site["site_id"]
     name_tr = SITE_NAMES_TR.get(site_id, site["name"])
     radius_m = float(site["radius_m"])
@@ -267,6 +368,7 @@ def generate_site_atlas(site: MoonSiteSpec) -> tuple[dict[str, object], dict[str
     hs = _compute_dual_hillshade(elev, 5.0, 5.0)
     hazard_rgb = _blend_hazard_rgb(hs, slope_deg)
     thumb_meta = _save_siglip_thumb_224(site, hs, x0_m, y0_m)
+    grid3d_meta = _save_moon_3d_grid(site, elev, slope_deg, xs_m, ys_m, xs_rel, ys_rel, x0_m, y0_m, radius_m)
 
     # 1. Output A: <site_id>_hillshade.png
     fig_a, ax_a = plt.subplots(figsize=(4.6, 4.7), dpi=95, facecolor=BG_COLOR)
@@ -395,30 +497,35 @@ def generate_site_atlas(site: MoonSiteSpec) -> tuple[dict[str, object], dict[str
         "hazard_path": f"data/processed/moon_atlas/{site_id}_hazard.png",
         "atlas_path": f"data/processed/moon_atlas/{site_id}_atlas.png",
     }
-    return atlas_meta, thumb_meta
+    return atlas_meta, thumb_meta, grid3d_meta
 
 
 def main() -> int:
-    """Generate all 15 Lunar South Pole visual atlas PNGs, 5 SigLIP 224x224 thumbs, and metadata files."""
+    """Generate all 15 Lunar South Pole visual atlas PNGs, 5 SigLIP 224x224 thumbs, 5 3D grids, and metadata files."""
     import pandas as pd
 
     ATLAS_DIR.mkdir(parents=True, exist_ok=True)
     THUMBS_DIR.mkdir(parents=True, exist_ok=True)
+    MOON_3D_DIR.mkdir(parents=True, exist_ok=True)
     metadata_list: list[dict[str, object]] = []
     thumbs_list: list[dict[str, object]] = []
+    grid3d_list: list[dict[str, object]] = []
     for site in VERIFIED_MOON_SITES:
-        meta, t_meta = generate_site_atlas(site)
+        meta, t_meta, g_meta = generate_site_atlas(site)
         metadata_list.append(meta)
         thumbs_list.append(t_meta)
+        grid3d_list.append(g_meta)
 
     METADATA_PATH.write_text(json.dumps(metadata_list, indent=2, ensure_ascii=False), encoding="utf-8")
     THUMBS_META_JSON.write_text(json.dumps(thumbs_list, indent=2, ensure_ascii=False), encoding="utf-8")
     pd.DataFrame(thumbs_list).to_csv(THUMBS_META_CSV, index=False)
+    MOON_3D_META_JSON.write_text(json.dumps(grid3d_list, indent=2, ensure_ascii=False), encoding="utf-8")
     total_kb = sum(p.stat().st_size for p in ATLAS_DIR.glob("*") if p.is_file()) / 1024.0
     thumbs_kb = sum(p.stat().st_size for p in THUMBS_DIR.glob("*") if p.is_file()) / 1024.0
+    grid3d_kb = sum(p.stat().st_size for p in MOON_3D_DIR.glob("*") if p.is_file()) / 1024.0
     print(
-        f"[TAMAMLANDI] {len(metadata_list)} saha icin 15 PNG + metadata ({total_kb:.1f} KB) ve "
-        f"5 SigLIP 224x224 thumb ({thumbs_kb:.1f} KB) uretildi."
+        f"[TAMAMLANDI] {len(metadata_list)} saha icin 15 PNG + metadata ({total_kb:.1f} KB), "
+        f"5 SigLIP 224x224 thumb ({thumbs_kb:.1f} KB) ve 5 3D grid ({grid3d_kb:.1f} KB) uretildi."
     )
     return 0
 

@@ -123,6 +123,18 @@ Nitelikli görsel keşif kanalı için (**sayısal skorlamaya dahil edilmez**) 5
 | **`moon_shackleton_peak`** | `PGDA_LOLA_5mpp_Site07` | `-88.8063, +123.5451` | `(+30169.5, -20002.9)` | `224x224` | `9.8214` (5.0 m native) | `NASA_GSFC_PGDA_Product78:LRO_LOLA_PGDA_Site07_5mpp_v2021` | `data/processed/thumbs/moon/moon_shackleton_peak.png` |
 | **`moon_faustini_rim`** | `PGDA_LOLA_5mpp_LM7` | `-87.8897, +90.0000` | `(+63998.6, 0.0)` | `224x224` | `9.8214` (5.0 m native) | `NASA_GSFC_PGDA_Product78:LRO_LOLA_PGDA_LM7_5mpp_v2021` | `data/processed/thumbs/moon/moon_faustini_rim.png` |
 
+### 5.4. M6 · Commit'lenmiş Moon 3D Yükseklik Gridleri (`data/processed/moon_3d/`)
+
+2D görsel atlas ile birebir aynı merkez (`x0_m, y0_m`), aynı `2.2 × 2.2 km` yerel pencere (`441 × 441` piksel, `dx = dy = 5.0 m`) ve aynı `r = 1000 m` analiz çemberine sahip 3D yükseklik gridleri hem sıkıştırılmış `float32` (`<site_id>_3d.npz`, merkezden geçen Batı–Doğu ve Güney–Kuzey kesit profilleri dahil) hem de `16-bit grayscale heightmap PNG` (`<site_id>_heightmap16.png`) formatında `data/processed/moon_3d/` altına kaydedilmiştir (`moon_3d_metadata.json` içinde `elev_min_m`, `elev_max_m`, `dx_m`, `dy_m`, `extent_rel_m`, `extent_stereo_m` ve 16-bit kuantizasyon hassasiyeti `png16_quantization_step_m` belgelidir):
+
+| `site_id` | Grid Boyutu (`px`) | `dx = dy` (m) | `elev_min_m` .. `elev_max_m` (m) | `float32` `.npz` Hassasiyeti | `16-bit PNG` Kuantizasyon Adımı (`m/ADU`) | Dosyalar (`data/processed/moon_3d/`) |
+|---|---|---|---|---|---|---|
+| **`moon_shackleton_rim`** | `441 × 441` | `5.0` | `1237.75 .. 1739.12` (pencere: `1174.16 .. 1756.51`) | `~0.0001 m` | `0.00889 m` | `moon_shackleton_rim_{3d.npz,heightmap16.png}` |
+| **`moon_connecting_ridge`** | `441 × 441` | `5.0` | `1775.02 .. 1959.50` (pencere: `1726.35 .. 1959.50`) | `~0.0001 m` | `0.00356 m` | `moon_connecting_ridge_{3d.npz,heightmap16.png}` |
+| **`moon_de_gerlache_rim`** | `441 × 441` | `5.0` | `1565.57 .. 1815.99` (pencere: `1506.03 .. 1824.30`) | `~0.0001 m` | `0.00486 m` | `moon_de_gerlache_rim_{3d.npz,heightmap16.png}` |
+| **`moon_shackleton_peak`** | `441 × 441` | `5.0` | `1435.11 .. 1648.68` (pencere: `1382.34 .. 1648.68`) | `~0.0001 m` | `0.00406 m` | `moon_shackleton_peak_{3d.npz,heightmap16.png}` |
+| **`moon_faustini_rim`** | `441 × 441` | `5.0` | `-30.51 .. +114.73` (pencere: `-49.38 .. +120.73`) | `~0.0001 m` | `0.00260 m` | `moon_faustini_rim_{3d.npz,heightmap16.png}` |
+
 ---
 
 ## Özellik kaynağı ve literatür spot-kontrolü

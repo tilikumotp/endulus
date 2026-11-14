@@ -17,7 +17,15 @@ for p in (SRC_DIR, SCRIPTS_DIR):
         sys.path.insert(0, str(p))
 
 from moon_mars.albedo_sensitivity import FACTORS, NOMINAL_FACTOR, run_albedo_sensitivity  # noqa: E402
-from moon_mars.moon_visual_atlas import ATLAS_DIR, METADATA_PATH, THUMBS_DIR, THUMBS_META_CSV, THUMBS_META_JSON  # noqa: E402
+from moon_mars.moon_visual_atlas import (  # noqa: E402
+    ATLAS_DIR,
+    METADATA_PATH,
+    MOON_3D_DIR,
+    MOON_3D_META_JSON,
+    THUMBS_DIR,
+    THUMBS_META_CSV,
+    THUMBS_META_JSON,
+)
 from moon_mars.shackleton_slope import (  # noqa: E402
     MOON_GEOD_PROJ4,
     MOON_STEREO_PROJ4,
@@ -114,6 +122,28 @@ def test_moon_visual_atlas_files_and_sizes() -> None:
         assert t_path.exists(), f"Missing thumb {t_path}"
         with Image.open(t_path) as im:
             assert im.size == (224, 224)
+
+    # M6: Verify 3D grids in data/processed/moon_3d/ (total <= 5 MB, exact same 2.2 km window and r=1 km circle)
+    assert MOON_3D_META_JSON.exists(), f"Missing {MOON_3D_META_JSON}"
+    grid3d_meta = json.loads(MOON_3D_META_JSON.read_text(encoding="utf-8"))
+    assert len(grid3d_meta) == len(VERIFIED_MOON_SITES)
+    total_3d_bytes = MOON_3D_META_JSON.stat().st_size
+    for g_item, a_item in zip(grid3d_meta, meta_list):
+        sid = g_item["site_id"]
+        assert sid == a_item["site_id"]
+        assert g_item["window_km"] == a_item["window_km"] == 2.2
+        assert g_item["dx_m"] == 5.0 and g_item["dy_m"] == 5.0
+        assert g_item["radius_m"] == 1000.0
+        assert g_item["png16_quantization_step_m"] > 0.0
+        npz_p = MOON_3D_DIR / f"{sid}_3d.npz"
+        png16_p = MOON_3D_DIR / f"{sid}_heightmap16.png"
+        assert npz_p.exists() and png16_p.exists()
+        total_3d_bytes += npz_p.stat().st_size + png16_p.stat().st_size
+        d = np.load(npz_p)
+        assert d["elev_m"].dtype == np.float32
+        assert list(d["elev_m"].shape) == g_item["grid_shape"]
+        assert "profile_we_dz_m" in d and "profile_sn_dz_m" in d
+    assert total_3d_bytes <= 5 * 1024 * 1024, f"moon_3d total {total_3d_bytes / 1024:.1f} KB exceeds 5 MB"
 
 
 def test_moon_thermal_and_albedo_bounds() -> None:
