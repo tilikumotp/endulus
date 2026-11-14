@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_meteor_crater_arizona",
+  "name": "Meteor Crater / Barringer Impact Crater (Arizona)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20251005T180119_R041_T12SVD_20251005T220407",
+  "datetime": "2025-10-05T18:01:19.024000Z",
+  "cloud_cover": 0.000308,
+  "lat": 35.0272,
+  "lon": -111.0225,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32612",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

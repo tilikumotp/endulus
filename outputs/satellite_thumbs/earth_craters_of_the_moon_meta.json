@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_craters_of_the_moon",
+  "name": "Craters of the Moon Lava Field (Idaho)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20250819T182811_R127_T11TQJ_20250820T005914",
+  "datetime": "2025-08-19T18:28:11.024000Z",
+  "cloud_cover": 0.006348,
+  "lat": 43.4617,
+  "lon": -113.5625,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32611",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

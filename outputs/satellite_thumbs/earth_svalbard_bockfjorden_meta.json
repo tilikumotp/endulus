@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_svalbard_bockfjorden",
+  "name": "Svalbard Bockfjorden (Sverrefjellet AMASE, Norway)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20240717T125711_R038_T33XVJ_20240717T172120",
+  "datetime": "2024-07-17T12:57:11.024000Z",
+  "cloud_cover": 1.027359,
+  "lat": 79.428,
+  "lon": 13.385,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32633",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

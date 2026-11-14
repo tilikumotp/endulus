@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_harrat_rahat_madinah",
+  "name": "Harrat Rahat Volcanic Field (Northern Basalt Plateau, Saudi Arabia)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2C_MSIL2A_20250927T074721_R135_T37REH_20250927T113815",
+  "datetime": "2025-09-27T07:47:21.025000Z",
+  "cloud_cover": 0.002803,
+  "lat": 24.33,
+  "lon": 39.77,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32637",
+  "shape_hwc": [
+    326,
+    501,
+    3
+  ]
+}

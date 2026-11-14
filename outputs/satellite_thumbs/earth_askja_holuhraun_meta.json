@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_askja_holuhraun",
+  "name": "Askja / Holuhraun Basalt Sand & Lava Plain (Dyngjusandur, Iceland)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20250816T130259_R038_T28WDT_20250816T134715",
+  "datetime": "2025-08-16T13:02:59.024000Z",
+  "cloud_cover": 0.189826,
+  "lat": 64.88,
+  "lon": -16.82,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32628",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

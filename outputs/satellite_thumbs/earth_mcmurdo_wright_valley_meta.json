@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_mcmurdo_wright_valley",
+  "name": "McMurdo Dry Valleys (Wright Valley, Antarctica)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20251225T145759_R053_T57CWQ_20251225T193009",
+  "datetime": "2025-12-25T14:57:59.024000Z",
+  "cloud_cover": 1.217574,
+  "lat": -77.518,
+  "lon": 161.85,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32757",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

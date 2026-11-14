@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_pinacate_el_elegante",
+  "name": "Sierra del Pinacate Volcanic Field (El Elegante Maar Rim, Sonora, Mexico)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2C_MSIL2A_20250725T180941_R084_T12STA_20250725T233721",
+  "datetime": "2025-07-25T18:09:41.025000Z",
+  "cloud_cover": 0.009137,
+  "lat": 31.795,
+  "lon": -113.39,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32612",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

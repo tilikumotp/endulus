@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_lanzarote_timanfaya",
+  "name": "Lanzarote Tinguat\u00f3n / Timanfaya (ESA PANGAEA, Canary Islands)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20241227T113511_R080_T28RFT_20241227T153950",
+  "datetime": "2024-12-27T11:35:11.024000Z",
+  "cloud_cover": 0.072412,
+  "lat": 29.015,
+  "lon": -13.715,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32628",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

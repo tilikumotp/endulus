@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_salda_terrace",
+  "name": "Lake Salda Onshore Terrace (Hydromagnesite/Ultramafic Shore, Burdur)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20250917T085431_R107_T36STG_20250917T111018",
+  "datetime": "2025-09-17T08:54:31.024000Z",
+  "cloud_cover": 0.05708,
+  "lat": 37.515,
+  "lon": 29.635,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32636",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

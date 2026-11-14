@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_haughton_crater",
+  "name": "Haughton Impact Crater (Devon Island)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2C_MSIL2A_20250620T185931_R013_T16XDJ_20250620T223720",
+  "datetime": "2025-06-20T18:59:31.025000Z",
+  "cloud_cover": 0.057669,
+  "lat": 75.37,
+  "lon": -89.68,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32616",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

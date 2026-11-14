@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_qaidam_dalangtan",
+  "name": "Qaidam Basin (Dalangtan Hyperarid Evaporite Flat, China)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20251015T043659_R033_T46SCH_20251015T071342",
+  "datetime": "2025-10-15T04:36:59.024000Z",
+  "cloud_cover": 0.486539,
+  "lat": 38.48,
+  "lon": 91.45,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32646",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

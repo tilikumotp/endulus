@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_etna_cisternazza",
+  "name": "Mount Etna (Cisternazza / Piano del Lago)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20250915T094029_R036_T33SVB_20250915T122659",
+  "datetime": "2025-09-15T09:40:29.024000Z",
+  "cloud_cover": 0.01098,
+  "lat": 37.745,
+  "lon": 15.006,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32633",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

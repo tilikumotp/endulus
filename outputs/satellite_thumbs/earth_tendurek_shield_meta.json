@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_tendurek_shield",
+  "name": "Tend\u00fcrek Shield Volcano (\u00c7ald\u0131ran Basalt Lava Apron, A\u011fr\u0131-Van)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20251114T080109_R035_T38SMJ_20251114T085821",
+  "datetime": "2025-11-14T08:01:09.024000Z",
+  "cloud_cover": 4.2e-05,
+  "lat": 39.32,
+  "lon": 43.92,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32638",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

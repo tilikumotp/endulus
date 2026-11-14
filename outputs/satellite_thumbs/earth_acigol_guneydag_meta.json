@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_acigol_guneydag",
+  "name": "Ac\u0131g\u00f6l-Nev\u015fehir Caldera (G\u00fcneyda\u011f Maar & Tephra Ring, Nev\u015fehir)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20250713T082751_R021_T36SXH_20250713T115814",
+  "datetime": "2025-07-13T08:27:51.024000Z",
+  "cloud_cover": 0.301628,
+  "lat": 38.525,
+  "lon": 34.555,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32636",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

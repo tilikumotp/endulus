@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_harrat_ash_shaam",
+  "name": "Harrat Ash Shaam Basalt Desert (Badia Black Basalt Plateau, Jordan)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2C_MSIL2A_20250804T080631_R078_T37SCR_20250804T114914",
+  "datetime": "2025-08-04T08:06:31.025000Z",
+  "cloud_cover": 0.0,
+  "lat": 32.22,
+  "lon": 37.15,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32637",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

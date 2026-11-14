@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_tuz_golu_south",
+  "name": "Tuz G\u00f6l\u00fc Basin (Southern Evaporite Marginal Flat, Aksaray)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20250914T082559_R021_T36SWH_20250914T112245",
+  "datetime": "2025-09-14T08:25:59.024000Z",
+  "cloud_cover": 0.311744,
+  "lat": 38.55,
+  "lon": 33.62,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32636",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

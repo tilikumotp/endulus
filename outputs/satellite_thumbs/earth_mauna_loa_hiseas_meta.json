@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_mauna_loa_hiseas",
+  "name": "Mauna Loa North Flank (HI-SEAS Basalt Field, Hawaii)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20241122T205941_R014_T04QHG_20241122T230753",
+  "datetime": "2024-11-22T20:59:41.024000Z",
+  "cloud_cover": 2.289007,
+  "lat": 19.6028,
+  "lon": -155.4878,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32604",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

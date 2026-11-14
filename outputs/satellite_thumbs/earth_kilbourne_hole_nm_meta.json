@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_kilbourne_hole_nm",
+  "name": "Potrillo Volcanic Field (Kilbourne Hole Maar & Basalt Rim, New Mexico)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20251006T174731_R098_T13SCR_20251007T000014",
+  "datetime": "2025-10-06T17:47:31.024000Z",
+  "cloud_cover": 0.020644,
+  "lat": 31.968,
+  "lon": -106.972,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32613",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

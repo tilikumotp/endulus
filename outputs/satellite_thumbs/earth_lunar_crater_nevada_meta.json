@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_lunar_crater_nevada",
+  "name": "Lunar Crater Volcanic Field (Black Rock Flow, Nevada)",
+  "role": "validation",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2C_MSIL2A_20250711T182941_R027_T11SNC_20250711T230914",
+  "datetime": "2025-07-11T18:29:41.025000Z",
+  "cloud_cover": 0.18699,
+  "lat": 38.384,
+  "lon": -116.068,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32611",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}

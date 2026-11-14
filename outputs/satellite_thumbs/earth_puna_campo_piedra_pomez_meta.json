@@ -1,0 +1,18 @@
+{
+  "site_id": "earth_puna_campo_piedra_pomez",
+  "name": "Puna de Atacama (Campo de Piedra P\u00f3mez Ignimbrite & Basalt, Argentina)",
+  "role": "candidate",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2C_MSIL2A_20250812T142731_R053_T19JFL_20250812T185813",
+  "datetime": "2025-08-12T14:27:31.025000Z",
+  "cloud_cover": 0.071078,
+  "lat": -26.57,
+  "lon": -67.44,
+  "bbox_km": 5.0,
+  "crs": "EPSG:32719",
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ]
+}
