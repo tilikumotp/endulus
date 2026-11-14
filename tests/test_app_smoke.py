@@ -73,45 +73,44 @@ def test_streamlit_app_smoke_tr_and_en() -> None:
     assert not at.exception
     assert len(at.tabs) == 6
 
-    at.sidebar.radio[1].set_value("earth_blue").run()
-    assert not at.exception
-    assert len(at.tabs) == 6
+    # Localized Moon crater display names hide raw ROI suffixes
+    moon_caption_text = " ".join(c.value for c in at.caption)
+    assert "ROI" not in moon_caption_text
+
+    # No emojis remain in tabs, titles, alerts, or captions
+    for col in (at.title, at.subheader, at.caption, at.markdown, at.info, at.warning):
+        for el in col:
+            assert not any(ord(ch) > 0x2600 for ch in el.value), el.value
 
     at.sidebar.radio[0].set_value("English").run()
     assert not at.exception
     assert len(at.tabs) == 6
 
-    at.sidebar.radio[1].set_value("moon_grey").run()
-    assert not at.exception
-
     for mission in ("rover_mobility", "isru_ice", "radar_calibration"):
         at.sidebar.selectbox[1].set_value(mission).run()
         assert not at.exception
 
-    # Verify Rank Diagnostic sorting options work and table ranks are monotone integers
-    for sort_key, col_hint in (("overall", "Overall"), ("surface", "Surface"), ("mobility", "Mobil")):
-        at.radio(key="val_sort_by").set_value(sort_key).run()
-        assert not at.exception
-        diag_df = next(
-            el.value
-            for el in at.dataframe
-            if len(el.value) == 10 and any("DOI" in str(c) for c in el.value.columns)
-        )
-        rank_col = next(
-            c
-            for c in diag_df.columns
-            if pd.api.types.is_integer_dtype(diag_df[c]) and col_hint in str(c)
-        )
-        ranks = diag_df[rank_col].tolist()
-        assert ranks == sorted(ranks)
+    # Verify Rank Diagnostic dataframe has 10 validation rows sorted monotonically by Mobility rank
+    diag_df = next(
+        el.value
+        for el in at.dataframe
+        if len(el.value) == 10 and any("DOI" in str(c) for c in el.value.columns)
+    )
+    mob_col = next(
+        c
+        for c in diag_df.columns
+        if pd.api.types.is_integer_dtype(diag_df[c]) and "Mobil" in str(c)
+    )
+    ranks = diag_df[mob_col].tolist()
+    assert ranks == sorted(ranks)
 
-    # Verify map toggle works cleanly as well
+    # Verify map toggle works cleanly
     at.checkbox(key="map_show_all_val").set_value(False).run()
     assert not at.exception
 
-    # Verify 8-dimension challenge scorecard & plotly figures (scatter + bars + 2x 3D DEM) render
+    # Verify 8-dimension challenge scorecard & plotly figures (bars + 2x 3D DEM) render
     assert any(len(el.value) == 8 for el in at.dataframe)
-    assert len(at.get("plotly_chart")) >= 4
+    assert len(at.get("plotly_chart")) >= 3
 
 
 

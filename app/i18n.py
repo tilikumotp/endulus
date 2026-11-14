@@ -14,6 +14,30 @@ LANGUAGE_LABEL = "Dil / Language"
 
 LANG_OPTIONS: dict[str, str] = {"tr": "Türkçe", "en": "English"}
 
+# Plain crater / region names for Moon reference sites (no ROI / tile suffixes).
+MOON_REF_NAMES: dict[str, dict[str, str]] = {
+    "moon_shackleton_rim": {
+        "tr": "Shackleton Krateri Kenarı",
+        "en": "Shackleton Crater Rim",
+    },
+    "moon_connecting_ridge": {
+        "tr": "Bağlantı Sırtı (Shackleton–de Gerlache)",
+        "en": "Connecting Ridge (Shackleton–de Gerlache)",
+    },
+    "moon_de_gerlache_rim": {
+        "tr": "de Gerlache Krateri Kenarı",
+        "en": "de Gerlache Crater Rim",
+    },
+    "moon_shackleton_peak": {
+        "tr": "Shackleton Yakını Zirve",
+        "en": "Peak Near Shackleton",
+    },
+    "moon_faustini_rim": {
+        "tr": "Faustini Krateri Kenarı",
+        "en": "Faustini Crater Rim",
+    },
+}
+
 TEXTS: dict[str, dict[str, str]] = {
     # ── shell ────────────────────────────────────────────────────────────────
     "data_missing": {
@@ -21,54 +45,31 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "Cannot find {stem}.parquet in data/processed/.",
     },
     "app_title": {
-        "tr": "🌕 Ay ↔ Dünya Benzer Koşullar Analizi",
-        "en": "🌕 Moon ↔ Earth Similar-Conditions Analysis",
+        "tr": "Ay ↔ Dünya Benzer Koşullar Analizi",
+        "en": "Moon ↔ Earth Similar-Conditions Analysis",
     },
     "subtitle": {
-        "tr": ("Bu uygulama Ay üzerinde seçilen bir bölgeyi Dünya üzerindeki "
-               "{n} sahayla karşılaştırır. v1 sayısal skorlaması iki aktif "
-               "eksende yürür: arazi/eğim (Mobilite) ve yüzey parlaklığı "
-               "(Yüzey). Termal ekseni Ay günlük sıcaklık döngüsü tanımı "
-               "nedeniyle v1'de askıdadır. Puanlar 0–1 arası benzerlik "
-               "indeksidir, olasılık değildir."),
-        "en": ("This app compares a selected Moon region with {n} Earth "
-               "sites. v1 numeric scoring runs on two active axes: "
+        "tr": ("Ay'da seçilen krater/bölgeyi arazi/eğim (Mobilite) ve yüzey "
+               "parlaklığı (Yüzey) açısından Dünya'daki {n} sahayla karşılaştırır. "
+               "Termal veri, Ay–Dünya günlük döngü tanım farkı nedeniyle "
+               "hesaba katılmaz."),
+        "en": ("Compares a selected Moon region against {n} Earth sites on "
                "terrain/slope (Mobility) and surface brightness (Surface). "
-               "The Thermal axis is suspended in v1 due to diurnal cycle "
-               "definition mismatch. Scores are 0–1 similarity indices, "
-               "not probabilities."),
-    },
-    "thermal_note": {
-        "tr": ("Karar #30 (Termal Eksen Askıda): Ay tarafında temp_amplitude "
-               "ve her iki gök cisminde thermal_inertia v1'de bilinçli olarak "
-               "NaN bırakılmıştır; genel skorlar yalnızca Mobilite ve Yüzey "
-               "eksenlerinden hesaplanır."),
-        "en": ("Decision #30 (Thermal Axis Suspended): Lunar temp_amplitude "
-               "and both bodies' thermal_inertia are intentionally kept NaN "
-               "in v1; overall scores combine Mobility and Surface only."),
+               "Thermal data is omitted due to diurnal definition mismatch."),
     },
     # ── sidebar ──────────────────────────────────────────────────────────────
-    "settings_header": {"tr": "⚙️ Ayarlar", "en": "⚙️ Settings"},
-    "theme_label": {"tr": "Görünüm teması", "en": "Visual theme"},
-    "theme_moon_grey": {
-        "tr": "🌑 Ay · Siyah–Gri",
-        "en": "🌑 Moon · Black–Grey",
-    },
-    "theme_earth_blue": {
-        "tr": "🌍 Dünya · Mavi",
-        "en": "🌍 Earth · Blue",
-    },
+    "settings_header": {"tr": "Ayarlar", "en": "Settings"},
     "body_moon": {"tr": "Ay", "en": "Moon"},
     "ref_site_label_moon": {
-        "tr": "Referans saha (Ay'dan)",
-        "en": "Reference site (from the Moon)",
+        "tr": "Ay referans krateri / bölgesi",
+        "en": "Lunar reference crater / site",
     },
     "ref_site_caption": {
         "tr": "Enlem {lat}°, Boylam {lon}° · Zemin: {lith}",
         "en": "Latitude {lat}°, Longitude {lon}° · Ground: {lith}",
     },
     "ref_site_tooltip": {
-        "tr": "Sahanın kod adı: {site_id}",
+        "tr": "Saha kodu: {site_id}",
         "en": "Site code: {site_id}",
     },
     "mission_label": {
@@ -84,16 +85,12 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "Rover mobility test",
     },
     "mission_isru_ice": {
-        "tr": "Kaynak / buz taraması (v1: buz nitel; termal askıda — yüzey ağırlıklı)",
-        "en": "Resource / ice prospecting (v1: ice qualitative; thermal suspended — surface-weighted)",
+        "tr": "Kaynak / buz potansiyeli (yüzey ağırlıklı)",
+        "en": "Resource / ice prospecting (surface-weighted)",
     },
     "mission_isru_note": {
-        "tr": ("ℹ️ Buz/permafrost verisi (E8) v1 sayısal skoruna girmez ve Ay "
-               "termali askıdadır (NaN). Aktif sayısal oran Mobilite : Yüzey = "
-               "1 : 2 (yüzey ağırlıklı) olarak çalışır."),
-        "en": ("ℹ️ Ice/permafrost records (E8) do not enter numeric scores in "
-               "v1 and lunar thermal data are suspended (NaN). Active numeric "
-               "weights run at Mobility : Surface = 1 : 2 (surface-weighted)."),
+        "tr": "Buz kayıtları sayısal skora girmez; yalnızca arazi ve yüzey parlaklığı (ağırlıkla Yüzey) hesaplanır.",
+        "en": "Ice records do not enter numeric scores; only terrain and surface brightness (surface-weighted) are scored.",
     },
     "mission_radar_calibration": {
         "tr": "Yer altı radar kalibrasyonu",
@@ -105,12 +102,12 @@ TEXTS: dict[str, dict[str, str]] = {
     },
     # ── reference measurements ───────────────────────────────────────────────
     "ref_subheader": {
-        "tr": "📍 Referans saha: {name} ({body})",
-        "en": "📍 Reference site: {name} ({body})",
+        "tr": "Referans bölge: {name} ({body})",
+        "en": "Reference region: {name} ({body})",
     },
     "ref_expander": {
-        "tr": "Referans sahanın ölçümleri",
-        "en": "Measurements of the reference site",
+        "tr": "Referans bölgenin ölçümleri",
+        "en": "Reference measurements",
     },
     "ref_col_feature": {"tr": "Ölçüt", "en": "Criterion"},
     "ref_col_value": {"tr": "Değer", "en": "Value"},
@@ -119,61 +116,43 @@ TEXTS: dict[str, dict[str, str]] = {
     "ref_col_res": {"tr": "Çözünürlük (m)", "en": "Resolution (m)"},
     "ref_col_src": {"tr": "Kaynak", "en": "Source"},
     "ref_table_caption": {
-        "tr": ("Değer: saha çevresinde ölçülen ortalama. Belirsizlik (±): "
-               "ölçüm hatası. Çözünürlük (m): verinin piksel boyutu — küçük "
-               "sayı, daha ayrıntılı veri demektir. Kaynak: ölçümü yapan uzay "
-               "aracı ve veri seti."),
-        "en": ("Value: mean measured around the site. Uncertainty (±): "
-               "measurement error. Resolution (m): pixel size of the data — "
-               "smaller means more detail. Source: spacecraft and dataset "
-               "that produced the measurement."),
-    },
-    "temp_note": {
-        "tr": ("Dünya sıcaklık genliği 2024 MODIS gün-gece ortalamasıdır; "
-               "Ay tarafı günlük döngü uyumsuzluğu nedeniyle v1'de askıdadır (NaN)."),
-        "en": ("Earth temperature swing is the 2024 MODIS day–night annual mean; "
-               "the lunar side is suspended in v1 (NaN) due to diurnal-cycle mismatch."),
+        "tr": "Çevresel ortalama değerler, ölçüm belirsizliği (±) ve uydu piksel çözünürlüğü (m).",
+        "en": "Local site averages, measurement uncertainty (±), and satellite pixel resolution (m).",
     },
     "ref_value_suspended": {
-        "tr": "— (v1 askıda)",
-        "en": "— (suspended v1)",
+        "tr": "Kullanılmıyor",
+        "en": "Omitted",
     },
     # ── tabs ─────────────────────────────────────────────────────────────────
-    "tab_map": {"tr": "🗺️ Harita", "en": "🗺️ Map"},
-    "tab_radar": {"tr": "📡 Eksen Grafikleri", "en": "📡 Axis Charts"},
-    "tab_terrain": {"tr": "⛰️ 3D Arazi", "en": "⛰️ 3D Terrain"},
-    "tab_table": {"tr": "📊 Skor & Portföy", "en": "📊 Scores & Portfolio"},
-    "tab_validation": {"tr": "🧭 Sıra Tanısı (Doğrulama)", "en": "🧭 Rank Diagnostic"},
-    "tab_portfolio": {"tr": "🧭 Ziyaret Portföyü", "en": "🧭 Visit Portfolio"},
+    "tab_map": {"tr": "Harita", "en": "Map"},
+    "tab_radar": {"tr": "Eksen Grafikleri", "en": "Axis Charts"},
+    "tab_terrain": {"tr": "3D Arazi", "en": "3D Terrain"},
+    "tab_table": {"tr": "Skor Tablosu", "en": "Score Table"},
+    "tab_validation": {"tr": "Sıra Tanısı", "en": "Rank Diagnostic"},
     "tab_breakdown": {
-        "tr": "⚠️ Analojinin Sınırları",
-        "en": "⚠️ Limits of the Analogy",
+        "tr": "Analojinin Sınırları",
+        "en": "Limits of the Analogy",
     },
     # ── map tab ──────────────────────────────────────────────────────────────
     "map_heading": {
-        "tr": ("Haritadaki her nokta bir Dünya sahasıdır. Nokta ne kadar "
-               "büyük ve yeşilse o saha seçili Ay bölgesine o kadar çok "
-               "benzer. Küçük ve kırmızı nokta daha az benzer demektir."),
-        "en": ("Each dot on this map is an Earth site. The bigger and "
-               "greener the dot, the more that site resembles the selected "
-               "Moon region. A small red dot means less similarity."),
+        "tr": ("Haritadaki her nokta bir Dünya sahasıdır. Büyük ve yeşil "
+               "nokta seçili Ay bölgesine daha yakın, küçük ve kırmızı "
+               "nokta daha uzaktır."),
+        "en": ("Each dot is an Earth site. Larger, greener dots resemble the "
+               "selected Moon region more closely; smaller, red dots less so."),
     },
     "map_caption": {
-        "tr": ("Mavi halkalı noktalar literatürden bilinen referans analog "
-               "sahalarıdır (bazıları Ekvatoral koyu Ay bazaltı ya da düz "
-               "Mars/permafrost sahasıdır — her Ay kraterinde üstte "
-               "çıkmamaları eksen bazlı fiziksel ayrımı gösterir). İç dolgu "
-               "rengi (yeşilden kırmızıya) seçili Ay bölgesi için aktif "
-               "benzerlik indeksini gösterir."),
-        "en": ("Blue-ringed dots mark known literature analogue benchmarks "
-               "(several are dark Mare basalt or flat Mars/permafrost testbeds "
-               "— ranking lower on steep bright crater rims reflects genuine "
-               "axis mismatch rather than missing data). Fill color (green to "
-               "red) encodes the active similarity index for the selected Moon site."),
+        "tr": ("Mavi halkalı noktalar literatürden bilinen 10 referans analog "
+               "sahasıdır (bazıları koyu Ay bazaltı ya da düz Mars/permafrost "
+               "sahası olduğu için dik ve parlak kutup kraterlerinde düşük "
+               "sırada çıkabilir). İç renk genel benzerliği gösterir."),
+        "en": ("Blue-ringed dots mark the 10 known literature benchmark sites "
+               "(some are dark basalt or flat permafrost testbeds, so ranking "
+               "lower on steep bright polar craters reflects physical mismatch)."),
     },
     "map_show_all_val": {
-        "tr": "Bilinen tüm 10 referans analog sahasını (mavi halkalar) haritada her zaman göster",
-        "en": "Always show all 10 reference analogue benchmarks (blue rings) on the map",
+        "tr": "10 bilinen referans sahasını (mavi halka) haritada her zaman göster",
+        "en": "Always show all 10 known benchmark sites (blue rings) on the map",
     },
     "map_tooltip": {
         "tr": ("<b>{name}</b><br/>Rol: {role}<br/>Genel Skor: {score}"
@@ -191,72 +170,49 @@ TEXTS: dict[str, dict[str, str]] = {
     "role_candidate": {"tr": "Aday saha", "en": "Candidate site"},
     # ── radar tab ────────────────────────────────────────────────────────────
     "radar_caption": {
-        "tr": ("Aktif iki ölçüt için benzerlik skoru (0–1) ve %5–%95 Monte Carlo "
-               "belirsizlik aralığı. Termal ekseni v1'de askıdadır (NaN)."),
-        "en": ("Similarity score (0–1) and 5th–95th Monte Carlo uncertainty "
-               "interval on the two active criteria. Thermal is suspended in v1 (NaN)."),
+        "tr": "Mobilite ve Yüzey skorları (0–1) ile %5–%95 Monte Carlo belirsizlik aralığı.",
+        "en": "Mobility and Surface scores (0–1) with 5th–95th Monte Carlo uncertainty bounds.",
     },
     "radar_line": {
-        "tr": ("Genel: {score} · Belirsizlik: {interval} · "
-               "Aktif ölçüt: {n}/{total} · Mobilite: {mob} · Yüzey: {surf} · Zemin: {lith}"),
-        "en": ("Overall: {score} · Uncertainty: {interval} · "
-               "Active axes: {n}/{total} · Mobility: {mob} · Surface: {surf} · Ground: {lith}"),
+        "tr": ("Genel: {score} · Aralık: {interval} · "
+               "Mobilite: {mob} · Yüzey: {surf} · Zemin: {lith}"),
+        "en": ("Overall: {score} · Range: {interval} · "
+               "Mobility: {mob} · Surface: {surf} · Ground: {lith}"),
     },
     "uncertainty_unavailable": {
-        "tr": "belirsizlik aralığı hesaplanamıyor",
-        "en": "uncertainty interval unavailable",
+        "tr": "belirsizlik aralığı yok",
+        "en": "interval unavailable",
     },
     "q95_label": {"tr": "üst sınır (%95)", "en": "upper bound (95%)"},
     "q05_label": {"tr": "alt sınır (%5)", "en": "lower bound (5%)"},
     "axis_mobility": {"tr": "Mobilite", "en": "Mobility"},
     "axis_thermal": {"tr": "Termal", "en": "Thermal"},
     "axis_surface": {"tr": "Yüzey", "en": "Surface"},
-    "scatter_heading": {
-        "tr": "### Fiziksel Özellik Uzayı: Ortalama Eğim vs Geniş Bant Albedo (40 Dünya Sahası + Ay Referansı)",
-        "en": "### Physical Feature Space: Mean Slope vs Broadband Albedo (40 Earth Sites + Moon Reference)",
-    },
-    "scatter_x": {"tr": "Ortalama eğim (slope_mean, °)", "en": "Mean slope (slope_mean, °)"},
-    "scatter_y": {"tr": "Geniş bant albedo (0–1)", "en": "Broadband albedo (0–1)"},
-    "scatter_colorbar": {"tr": "Genel skor", "en": "Overall score"},
-    "scatter_caption": {
-        "tr": ("Nokta konumu ham uydu ölçümlerini (`slope_mean` ve `albedo`), nokta boyutu yüzey pürüzlülüğünü (`roughness`), "
-               "renk genel benzerlik indeksini, dış halka ise bilinen 10 doğrulama analogunu gösterir."),
-        "en": ("Position reflects raw orbital features (`slope_mean` vs `albedo`), marker size encodes `roughness`, "
-               "color shows overall similarity index, and highlighted rings mark the 10 known validation sites."),
-    },
     "expanded_note": {
-        "tr": ("* Yıldızlı aralıklar, nokta tahmini ham P5–P95 belirsizlik sınırlarının dışına düştüğünde "
-               "yalnızca gösterimde `expanded_interval` ile genişletilmiştir; sayısal skorlar değiştirilmez."),
-        "en": ("* Starred intervals indicate display-only widening (`expanded_interval`) where the point score sits "
-               "outside raw P5–P95 draws; underlying numeric scores are never altered."),
+        "tr": "* İşaretli aralıklarda nokta skor P5–P95 dışında kaldığı için yalnızca gösterim sınırı genişletilmiştir.",
+        "en": "* Starred intervals widen display bounds only where the point score sits outside raw P5–P95 draws.",
     },
     # ── 3D terrain tab ───────────────────────────────────────────────────────
     "body_earth": {"tr": "Dünya", "en": "Earth"},
     "terrain_intro": {
-        "tr": ("Seçili Ay bölgesi ile seçili Dünya sahasının arazisi yan "
-               "yana 3D yüzey olarak gösterilir. Renk, arazi "
-               "gölgelendirmesinden gelir. Uydu görüntüleri için Analojinin "
-               "Sınırları sekmesindeki 2D kartlara bakın."),
-        "en": ("The terrain of the selected Moon region and the selected "
-               "Earth site are shown side by side as 3D surfaces. Colour "
-               "comes from terrain shading. For satellite imagery see the "
-               "2D cards on the Limits of the Analogy tab."),
+        "tr": "Seçili Ay bölgesi ile Dünya sahasının gerçek arazi yüzeyi yan yana gösterilir.",
+        "en": "Elevation terrain of the selected Moon region and Earth site side by side.",
     },
     "terrain_pick": {
-        "tr": "Sağ tarafta gösterilecek Dünya sahası",
-        "en": "Earth site shown on the right",
+        "tr": "Sağda gösterilecek Dünya sahası",
+        "en": "Earth site on the right",
     },
     "terrain_exag_label": {
         "tr": "Dikey abartı (×)",
         "en": "Vertical exaggeration (×)",
     },
     "terrain_exag_note": {
-        "tr": "Dikey ölçek abartılı gösteriliyor",
-        "en": "Vertical scale is exaggerated",
+        "tr": "Dikey ölçek görsel netlik için çarpılmıştır.",
+        "en": "Vertical scale is exaggerated for clarity.",
     },
     "terrain_orbit_label": {
-        "tr": "Kamera yörünge açısı (derece)",
-        "en": "Camera orbit angle (degrees)",
+        "tr": "Kamera açısı (derece)",
+        "en": "Camera angle (degrees)",
     },
     "terrain_hover": {
         "tr": ("Sağa: %{x:.2f} km<br/>İleri: %{y:.2f} km"
@@ -265,35 +221,21 @@ TEXTS: dict[str, dict[str, str]] = {
                "<br/>Elevation: %{z:.0f} m<extra></extra>"),
     },
     "terrain_card_source": {
-        "tr": ("Kaynak: {src} · Çözünürlük: {res} m/piksel · "
-               "Pencere: {km} km · Yükselti verisi"),
-        "en": ("Source: {src} · Resolution: {res} m/pixel · "
-               "Window: {km} km · elevation data"),
+        "tr": "Kaynak: {src} · {res} m/piksel · Pencere: {km} km",
+        "en": "Source: {src} · {res} m/px · Window: {km} km",
     },
     "terrain_card_stub": {
-        "tr": ("Örnek arazi verisi · istatistik kaynağı: {src} · "
-               "Çözünürlük: {res} m/piksel · Pencere: {km} km"),
-        "en": ("Generated sample terrain · stats source: {src} · "
-               "Resolution: {res} m/pixel · Window: {km} km"),
+        "tr": "Örnek arazi · Kaynak: {src} · {res} m/piksel · {km} km",
+        "en": "Sample terrain · Source: {src} · {res} m/px · {km} km",
     },
     "terrain_stub_note": {
-        "tr": ("Bu 3D kartlarda örnek arazi verisi kullanılıyor. Örnek "
-               "arazi, sahaların gerçek ölçüm istatistiklerinden (eğim, "
-               "pürüz, yükselti farkı) üretilir; gerçek yükselti paftaları "
-               "geldiğinde kartlar otomatik olarak gerçeğe döner."),
-        "en": ("These 3D cards use generated sample terrain. The sample is "
-               "built from the sites' real measured statistics (slope, "
-               "roughness, relief); the cards switch to real elevation "
-               "tiles automatically once they arrive."),
+        "tr": "Gerçek yükselti paftası bulunmayan sahalarda istatistiksel arazi yüzeyi gösterilir.",
+        "en": "Where elevation tiles are absent, synthetic terrain from site stats is shown.",
     },
     # ── score table ──────────────────────────────────────────────────────────
     "table_caption": {
-        "tr": ("Her Dünya sahası için görev ağırlıklı genel benzerlik ve "
-               "ölçüt bazında skorlar — her sayının yanında belirsizlik "
-               "aralığı da yazar."),
-        "en": ("Mission-weighted overall similarity and per-criterion scores "
-               "for every Earth site — each number carries its uncertainty "
-               "range."),
+        "tr": "Görev ağırlıklı genel benzerlik ve ölçüt skorları (parantez içi belirsizlik aralığı).",
+        "en": "Mission-weighted overall similarity and per-axis scores with uncertainty ranges.",
     },
     "col_site": {"tr": "Saha", "en": "Site"},
     "col_role": {"tr": "Rol", "en": "Role"},
@@ -309,164 +251,48 @@ TEXTS: dict[str, dict[str, str]] = {
     "region_south_america": {"tr": "Güney Amerika", "en": "South America"},
     "region_oceania": {"tr": "Okyanusya", "en": "Oceania"},
     "region_antarctica": {"tr": "Antarktika", "en": "Antarctica"},
+    "lith_match_tag": {"tr": " (eşleşiyor)", "en": " (match)"},
     "table_footer_caption": {
-        "tr": ("Termal ekseni (temp_amplitude ve thermal_inertia) Karar #30 "
-               "uyarınca v1'de askıda (NaN) olduğundan tabloda yalnızca aktif "
-               "Mobilite ve Yüzey skorları gösterilir. Zemin sütunundaki ✓ "
-               "işareti referans ile aynı kaya sınıfını gösterir; skora girmez."),
-        "en": ("Per Decision #30, Thermal (temp_amplitude and thermal_inertia) "
-               "is suspended in v1 (NaN), so only active Mobility and Surface "
-               "scores appear. A ✓ in ground means the same lithology class "
-               "as the reference; informational only."),
+        "tr": "Tabloda Mobilite ve Yüzey skorları yer alır; 'eşleşiyor' ifadesi referans ile aynı kaya sınıfını belirtir ve skora girmez.",
+        "en": "Table shows Mobility and Surface scores; '(match)' notes the same rock class as the reference without entering the score.",
     },
-    # ── portfolio card (under score table) ───────────────────────────────────
-    "portfolio_heading": {
-        "tr": "🧭 Kompakt Ziyaret Portföyü (Test Kümesi)",
-        "en": "🧭 Compact Visit Portfolio (Test Set)",
-    },
-    "portfolio_desc": {
-        "tr": ("Tek bir Dünya sahası tüm eksenleri kapsamadığında, seçili eşikte "
-               "en fazla aktif ekseni kapsayan en küçük saha kümesi seçilir. "
-               "Eşik kalibre edilmiş bir olasılık değil, yalnızca sezgisel bir "
-               "indeks ayarıdır."),
-        "en": ("When no single Earth site covers all axes, this selects the "
-               "smallest site set covering the most active axes at the chosen "
-               "threshold. The threshold is a heuristic index setting, not a "
-               "calibrated probability."),
-    },
-    "portfolio_threshold_label": {
-        "tr": "Portföy kapsam eşiği (benzerlik indeksi)",
-        "en": "Portfolio coverage threshold (similarity index)",
-    },
-    "portfolio_none": {
-        "tr": "Seçili eşikte (≥ {thr:.2f}) hiçbir Dünya sahası aktif bir ekseni tek başına kapsamıyor; tüm açık eksenler yüksek uyuşmazlık / laboratuvar doğrulaması gerektirir.",
-        "en": "At ≥ {thr:.2f}, no Earth site reaches coverage on any active axis; remaining gaps stay in simulation/lab verification.",
-    },
-    "portfolio_col_order": {"tr": "Sıra", "en": "Order"},
-    "portfolio_col_site": {"tr": "Seçilen Saha", "en": "Selected Site"},
-    "portfolio_col_role": {"tr": "Rol", "en": "Role"},
-    "portfolio_col_covered": {"tr": "Kapsanan Eksen(ler) (≥ eşik)", "en": "Covered Axes (≥ threshold)"},
-    "portfolio_col_scores": {"tr": "Eksen Skorları", "en": "Axis Scores"},
-    "portfolio_best_mobility_note": {
-        "tr": "ℹ️ Mobilite ekseni mevcut eşiği tek başına aşamasa da bu havuzdaki en yüksek Mobilite skoru: **{site}** ({score}).",
-        "en": "ℹ️ Although Mobility falls below threshold here, the highest Mobility candidate in the pool is **{site}** ({score}).",
-    },
-    "portfolio_uncovered_label": {
-        "tr": "Kapsam dışı / laboratuvara kalan eksenler:",
-        "en": "Uncovered axes / deferred to lab or simulation:",
-    },
-    "portfolio_uncovered_thermal_note": {
-        "tr": "Termal (v1'de askıda — günlük döngü farkı + ekstrem kutup salınımı)",
-        "en": "Thermal (suspended in v1 — diurnal mismatch + extreme polar swings)",
-    },
-    "portfolio_all_active_covered": {
-        "tr": "Aktif iki sayısal eksen (Mobilite + Yüzey) ≥ {thr:.2f} eşiğinde seçilen küme ile kapsanıyor; yalnızca v1'de askıda olan Termal ekseni açıkta kalıyor.",
-        "en": "Both active numeric axes (Mobility + Surface) are covered at ≥ {thr:.2f}; only the v1-suspended Thermal axis remains uncovered.",
-    },
-    # ── validation tab (10-row descriptive rank diagnostic) ──────────────────
-    "val_intro": {
-        "tr": ("⚠️ **Bağımsız bir holdout doğrulaması değil, betimsel sıra tanısıdır:** "
-               "40 sahanın tamamı Z-ölçeklemesine katılır; skorlayıcı rol etiketlerini "
-               "görmeden tüm sahaları sıralar. Aşağıdaki beklenen eksenler ve kaynaklar "
-               "(`docs/validation_expectations.md`), sıralama çıktılarına bakılmadan "
-               "**ön-kayıtlı** literatürden alınmıştır."),
-        "en": ("⚠️ **Descriptive rank diagnostic, not independent holdout validation:** "
-               "all 40 sites enter Z-standardization while the scorer ranks blindly "
-               "without role labels. Expected axes and citations below are "
-               "**pre-registered** from `docs/validation_expectations.md`."),
-    },
+    # ── validation tab (10-row rank diagnostic) ──────────────────────────────
     "val_summary_note": {
-        "tr": ("**v1 aktif eksen özeti (Mobilite & Yüzey):** Birincil literatürde "
-               "Mobilite için **8/10** sahada kesin beklenti vardır; McMurdo yalnız "
-               "Termal (v1 askıda) literatüründedir, Svalbard ise aktif eksenlerde "
-               "doğrulanmış kaynak taşımaz. Yüzey (broadband albedo) için 10 sahada "
-               "da kesin birincil yayın doğrulanmamıştır."),
-        "en": ("**v1 active-axis summary (Mobility & Surface):** Primary literature "
-               "documents Mobility expectations for **8/10** validation sites; "
-               "McMurdo is documented on Thermal only (suspended in v1) and Svalbard "
-               "has no verified active-axis analogue study."),
-    },
-    "val_sort_label": {
-        "tr": "Tabloyu şuna göre sırala:",
-        "en": "Sort table by:",
-    },
-    "val_sort_mobility": {"tr": "Mobilite Sırası", "en": "Mobility Rank"},
-    "val_sort_overall": {"tr": "Genel Sıra", "en": "Overall Rank"},
-    "val_sort_surface": {"tr": "Yüzey Sırası", "en": "Surface Rank"},
-    "val_why_low_note": {
-        "tr": ("💡 **Bazı bilinen sahalar (ör. Atacama, Haughton, Mauna Loa) neden düşük genel sırada görünüyor?** "
-               "İki fiziksel nedeni var: **(1) Referans krater geometrisi:** Seçili *Shackleton Kenarı* **18.5° dik eğime** "
-               "ve 501 m yükselti farkına sahiptir; **Atacama (2.65°)** ve **Haughton (3.51°)** düz Mars/permafrost çöl "
-               "sahalarıdır (daha yatık **Faustini Kenarı** seçildiğinde Mobilite'de `#6–#8` sıraya çıkarlar), **Etna (22.7°)** "
-               "ise Shackleton'da bile **Mobilite'de #3 / 40**'tır. **(2) Albedo ayrımı:** Etna (`0.047`), Mauna Loa (`0.030`) "
-               "ve Lanzarote (`0.063`) koyu Ay Maria bazaltı albedosuna yakındır; Güney Kutbu (`0.147`) Yüzey ekseninde onları "
-               "aşağı çeker. Bilinen sahaları yapay ağırlıkla yukarı zorlamak (`tuning`) bilimsel dürüstlük gereği yapılmaz."),
-        "en": ("💡 **Why do some famous analogues (e.g., Atacama, Haughton, Mauna Loa) rank low overall here?** "
-               "Two physical reasons: **(1) Crater geometry:** *Shackleton Rim* has an **18.5° steep wall** and 501 m relief, "
-               "whereas **Atacama (2.65°)** and **Haughton (3.51°)** are flat Mars/Arctic analogues (they climb to `#6–#8` on "
-               "gentler **Faustini Rim**), while **Mt. Etna (22.7°)** still ranks **#3 / 40 on Mobility** here. **(2) Albedo mismatch:** "
-               "Etna (`0.047`), Mauna Loa (`0.030`), and Lanzarote (`0.063`) are ultra-dark basalt matching lunar Maria rather "
-               "than brighter highlands regolith (`0.147`). We intentionally avoid tuning weights to inflate known benchmarks."),
+        "tr": ("Bilinen 10 sahanın 40 saha içindeki sıralaması (sütun başlıklarına tıklayarak sıralayabilirsiniz). "
+               "Literatürde 8/10 saha için arazi/mobilite beklentisi doğrulanmıştır."),
+        "en": ("Ranking of the 10 known analogue sites within the 40-site pool (click column headers to sort). "
+               "Primary literature documents Mobility expectations for 8/10 sites."),
     },
     "val_col_site": {"tr": "Doğrulama Sahası", "en": "Validation Site"},
     "val_col_overall_rank": {"tr": "Genel Sıra", "en": "Overall Rank"},
     "val_col_mob_rank": {"tr": "Mobilite Sırası", "en": "Mobility Rank"},
     "val_col_surf_rank": {"tr": "Yüzey Sırası", "en": "Surface Rank"},
-    "val_col_expected": {"tr": "Beklenen Eksen (v1)", "en": "Expected Axis (v1)"},
-    "val_col_ice": {"tr": "Buz / Permafrost (nitel E8)", "en": "Ice / Permafrost (E8)"},
+    "val_col_expected": {"tr": "Beklenen Eksen", "en": "Expected Axis"},
+    "val_col_ice": {"tr": "Buz / Permafrost", "en": "Ice / Permafrost"},
     "val_col_rationale": {"tr": "Gerekçe", "en": "Rationale"},
     "val_col_source": {"tr": "Kaynak (DOI/URL)", "en": "Source (DOI/URL)"},
     "val_exp_mobility": {"tr": "Mobilite (Kesin)", "en": "Mobility (Confirmed)"},
-    "val_exp_thermal_only": {"tr": "Yalnız Termal (v1 askıda)", "en": "Thermal only (v1 suspended)"},
+    "val_exp_thermal_only": {"tr": "Yalnız Termal", "en": "Thermal only"},
     "val_exp_none": {"tr": "Kaynak doğrulanamadı", "en": "No verified primary source"},
     # ── analogy limits tab ───────────────────────────────────────────────────
     "breakdown_notes": {
         "tr": (
-            "Hiçbir Dünya sahası Ay'in tüm koşullarını aynı anda sunmaz. "
-            "Aşağıdaki koşullar Dünya üzerinde doğal olarak bulunmadığı "
-            "için sahada test edilemez:\n\n"
-            "- **Yerçekimi:** Ay yüzeyinde yerçekimi, Dünya'nınkinin "
-            "yaklaşık altıda biridir. Zemin malzemesinin davranışı ve "
-            "tozun çökme hızı bu yüzden Dünya'da tam olarak test edilemez.\n"
-            "- **Atmosfer:** Ay'da hemen hemen hiç atmosfer yoktur. "
-            "Dünya yüzeyinde böyle bir boşluk ortamı doğal olarak "
-            "bulunmaz.\n"
-            "- **Radyasyon:** Ay'da manyetik alan koruması yoktur. "
-            "Dünya'daki radyasyon düzeyi bu koşul için ölçek değildir.\n"
-            "- **Gün uzunluğu:** Ay'da bir gündüz gece döngüsü yaklaşık "
-            "29 Dünya günü sürer. Dünya'da bu ritim yoktur.\n"
-            "- **Zemin malzemesi:** Ay toprağının mineral bileşimi hiçbir "
-            "Dünya kaya türüne birebir benzemez.\n\n"
-            "Ayrıca şu bilgiler sahadan ayrı olarak okunur ve sayısal "
-            "puana girmez: buz ve daima gölgede kalan alanlar, lav "
-            "tüpleri ve tozun elektriklenmesi. Bunlar jeoloji "
-            "haritalarından değerlendirilir.\n\n"
-            "Bu nedenle saha testini yalnızca uyuşan ölçütler için "
-            "kullanın. Geri kalan koşulları laboratuvar ve simülasyonlarla "
-            "doğrulayın."
+            "Hiçbir Dünya sahası Ay'ın tüm koşullarını aynı anda sunmaz. "
+            "Aşağıdaki koşullar sahada doğal olarak test edilemez:\n\n"
+            "- **Yerçekimi:** Ay'da yerçekimi Dünya'nın altıda biridir; zemin çökmesi ve toz hareketi değişir.\n"
+            "- **Atmosfer & Radyasyon:** Ay'da vakum ortamı vardır ve manyetik koruma yoktur.\n"
+            "- **Gün Uzunluğu:** Bir Ay gündüz-gece döngüsü yaklaşık 29.5 Dünya günüdür.\n"
+            "- **Malzeme & Buz:** Kalıcı gölge buzu ve elektrostatik toz yalnız laboratuvarda test edilir.\n\n"
+            "Saha testlerini yalnızca uyuşan fiziksel eksenler için kullanın."
         ),
         "en": (
-            "No Earth site reproduces all Moon conditions at once. The "
-            "following conditions do not occur naturally on Earth, so they "
-            "cannot be tested in the field:\n\n"
-            "- **Gravity:** surface gravity on the Moon is about one sixth "
-            "of Earth's. Soil behaviour and dust settling cannot be fully "
-            "tested on Earth.\n"
-            "- **Atmosphere:** the Moon has almost no atmosphere. No "
-            "natural vacuum environment exists at Earth's surface.\n"
-            "- **Radiation:** the Moon has no magnetic-field shielding. "
-            "Earth radiation levels are no scale for this condition.\n"
-            "- **Day length:** one day-night cycle on the Moon lasts about "
-            "29 Earth days. This rhythm does not exist on Earth.\n"
-            "- **Ground material:** the mineral composition of lunar soil "
-            "matches no Earth rock type exactly.\n\n"
-            "Also read separately from the site and excluded from the "
-            "numeric score: ice and permanently shadowed areas, lava "
-            "tubes, and dust electrification. These are assessed from "
-            "geology maps.\n\n"
-            "For these reasons, use field testing only for the criteria "
-            "that match. Verify the remaining conditions in laboratories "
-            "and simulations."
+            "No Earth site reproduces all lunar conditions at once. "
+            "The following conditions cannot be tested naturally in the field:\n\n"
+            "- **Gravity:** Lunar gravity is ~1/6 g, altering regolith compaction and dust settling.\n"
+            "- **Atmosphere & Radiation:** Hard vacuum with no magnetic-field shielding.\n"
+            "- **Day Length:** One lunar synodic cycle lasts ~29.5 Earth days.\n"
+            "- **Material & Ice:** Cryogenic PSR ice and electrostatic dust require vacuum chambers.\n\n"
+            "Use terrestrial sites only for the matching physical criteria."
         ),
     },
     "inspect_label": {
@@ -474,14 +300,13 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "Earth site to inspect",
     },
     "inspect_help": {
-        "tr": ("Yalnızca ilk sıradakini değil, listedeki herhangi bir sahayı "
-               "inceleyebilirsiniz."),
-        "en": ("Inspect any site in the list, not only the top-ranked one."),
+        "tr": "Listeden herhangi bir Dünya sahasını seçip ölçüt farklarını inceleyin.",
+        "en": "Select any Earth site to inspect feature differences.",
     },
     # ── visual evidence panel ────────────────────────────────────────────────
     "vis_heading": {
-        "tr": "🛰️ Görsel ve Yükselti Bağlamı: {ref} vs {sel}",
-        "en": "🛰️ Visual & Elevation Context: {ref} vs {sel}",
+        "tr": "Görsel ve Yükselti Bağlamı: {ref} vs {sel}",
+        "en": "Visual & Elevation Context: {ref} vs {sel}",
     },
     "vis_col_moon_hillshade": {
         "tr": "Ay Yükselti Kabartması (5 m LOLA)",
@@ -492,119 +317,92 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "Moon Slope Classes (5 m LOLA)",
     },
     "vis_col_earth_s2": {
-        "tr": "Dünya Uydu Görüntüsü (10 m Sentinel-2 L2A)",
-        "en": "Earth Satellite Image (10 m Sentinel-2 L2A)",
+        "tr": "Dünya Uydu Görüntüsü (10 m Sentinel-2)",
+        "en": "Earth Satellite Image (10 m Sentinel-2)",
     },
     "vis_moon_hillshade_caption": {
-        "tr": "{ref} — LRO LOLA 5 m/piksel kabartma & r=1 km analiz çemberi ({lat}°, {lon}°)",
-        "en": "{ref} — LRO LOLA 5 m/px hillshade & r=1 km analysis circle ({lat}°, {lon}°)",
+        "tr": "{ref} — 5 m/px LRO LOLA kabartma ({lat}°, {lon}°)",
+        "en": "{ref} — 5 m/px LRO LOLA hillshade ({lat}°, {lon}°)",
     },
     "vis_moon_hazard_caption": {
-        "tr": "{ref} — Açıklayıcı eğim sınıfları (<10° / 10–20° / >20°); iniş güvenliği değerlendirmesi değildir.",
-        "en": "{ref} — Illustrative slope bins (<10° / 10–20° / >20°); not a landing-safety assessment.",
+        "tr": "{ref} — Eğim sınıfları (<10° / 10–20° / >20°)",
+        "en": "{ref} — Slope bins (<10° / 10–20° / >20°)",
     },
     "vis_moon_atlas_source": {
-        "tr": "Yerel 5 m LRO LOLA PGDA atlası (`data/processed/moon_atlas/`). Yalnızca görsel bağlam içindir.",
-        "en": "Local 5 m LRO LOLA PGDA atlas (`data/processed/moon_atlas/`). Visual context only.",
+        "tr": "Yerel 5 m LRO LOLA atlası (görsel bağlam).",
+        "en": "Local 5 m LRO LOLA atlas (visual context only).",
     },
     "vis_earth_s2_caption": {
-        "tr": "{sel} — Sentinel-2 L2A 10 m (5.12×5.12 km) · Tarih: {date} · Yerel bulut: %{cloud} · Sahne: {scene}",
-        "en": "{sel} — Sentinel-2 L2A 10 m (5.12×5.12 km) · Date: {date} · Local cloud: {cloud}% · Scene: {scene}",
+        "tr": "{sel} — Sentinel-2 L2A 10 m · Tarih: {date} · Bulut: %{cloud}",
+        "en": "{sel} — Sentinel-2 L2A 10 m · Date: {date} · Cloud: {cloud}%",
     },
     "vis_earth_s2_source": {
-        "tr": "Yerel ESA Sentinel-2 L2A atlası (`data/processed/earth_atlas/`); sayısal skorlar aşağıdaki tablo veri setlerindendir.",
-        "en": "Local ESA Sentinel-2 L2A atlas (`data/processed/earth_atlas/`); numeric scores come from the datasets listed below.",
+        "tr": "Yerel ESA Sentinel-2 L2A görüntüsü; skorlar aşağıdaki uydu ölçütlerinden hesaplanır.",
+        "en": "Local ESA Sentinel-2 L2A imagery; scores come from the datasets below.",
     },
     "vis_atlas_expander": {
-        "tr": "📐 3 Panelli Ay LOLA Yükselti + Kesit Atlasını Aç",
-        "en": "📐 Open 3-Panel Lunar LOLA Relief & Profile Atlas",
+        "tr": "3 Panelli Ay LOLA Yükselti ve Kesit Atlasını Aç",
+        "en": "Open 3-Panel Lunar LOLA Relief & Profile Atlas",
     },
     "vis_quant_suspended": {
-        "tr": "**Termal:** v1'de askıda (`NaN` — Karar #30)",
-        "en": "**Thermal:** suspended in v1 (`NaN` — Decision #30)",
+        "tr": "**Termal:** bu sürümde kullanılmıyor",
+        "en": "**Thermal:** omitted in this release",
     },
     "vis_wac_caption": {
-        "tr": ("{ref} — LRO WAC ortomozaik (~30×30 km pencere, ~71 m/piksel; "
-               "merkez {lat}°, {lon}°)"),
-        "en": ("{ref} — LRO WAC orthomosaic (~30×30 km window, ~71 m/px; "
-               "centered on {lat}°, {lon}°)"),
+        "tr": "{ref} — LRO WAC (~30×30 km, {lat}°, {lon}°)",
+        "en": "{ref} — LRO WAC (~30×30 km, {lat}°, {lon}°)",
     },
     "vis_wac_error": {
         "tr": "Ay WAC önizlemesi alınamadı ({err}).",
         "en": "Lunar WAC preview unavailable ({err}).",
     },
     "vis_wac_source": {
-        "tr": "Görüntü kaynağı: NASA LRO Geniş Açılı Kamera (WAC), USGS "
-              "Astrogeology WMS servisi.",
-        "en": "Imagery source: NASA LRO Wide Angle Camera (WAC) via USGS "
-              "Astrogeology WMS.",
+        "tr": "Kaynak: NASA LRO WAC (USGS WMS).",
+        "en": "Source: NASA LRO WAC (USGS WMS).",
     },
     "vis_lola_caption": {
-        "tr": "{ref} — LOLA kabartma haritası (~30×30 km pencere; ölçüm "
-              "yarıçapı = {rad} m)",
-        "en": "{ref} — LOLA shaded relief (~30×30 km window; measurement "
-              "radius = {rad} m)",
+        "tr": "{ref} — LOLA kabartma (yarıçap = {rad} m)",
+        "en": "{ref} — LOLA shaded relief (radius = {rad} m)",
     },
     "vis_lola_error": {
         "tr": "Ay LOLA önizlemesi alınamadı ({err}).",
         "en": "Lunar LOLA preview unavailable ({err}).",
     },
     "vis_lola_source": {
-        "tr": ("Kabartma önizleme: NASA LRO LOLA, USGS Astrogeology WMS. "
-               "Sayısal ölçümler aşağıdaki tablodaki kaynaklardandır."),
-        "en": ("Relief preview: NASA LRO LOLA via USGS Astrogeology WMS. "
-               "Numeric measurements come from the sources listed below."),
-    },
-    "vis_moon_only_note": {
-        "tr": ("Canlı Ay Güney Kutbu görüntü servisi yalnızca Ay referans "
-               "sahalarında çalışır."),
-        "en": ("The live lunar South Pole image service applies to Moon "
-               "reference sites only."),
+        "tr": "Kaynak: NASA LRO LOLA (USGS WMS).",
+        "en": "Source: NASA LRO LOLA (USGS WMS).",
     },
     "vis_earth_caption": {
-        "tr": ("{sel} ({lat}°, {lon}°) — ~{km}×{km} km pencere (ölçüm "
-               "yarıçapı = {rad} m)"),
-        "en": ("{sel} ({lat}°, {lon}°) — ~{km}×{km} km window (measurement "
-               "radius = {rad} m)"),
+        "tr": "{sel} ({lat}°, {lon}°) — ~{km}×{km} km",
+        "en": "{sel} ({lat}°, {lon}°) — ~{km}×{km} km",
     },
     "vis_earth_error": {
-        "tr": "Esri uydu görüntüsü alınamadı ({err}).",
-        "en": "Esri imagery preview unavailable ({err}).",
+        "tr": "Uydu önizlemesi alınamadı ({err}).",
+        "en": "Satellite preview unavailable ({err}).",
     },
     "vis_earth_source": {
-        "tr": ("**Optik önizleme kaynağı:** Esri World Imagery (Esri, Maxar, "
-               "Earthstar Geographics). Not: sayısal skorlar bu önizlemeden "
-               "değil, aşağıdaki tabloda listelenen uydu veri setlerinden "
-               "hesaplanır."),
-        "en": ("**Optical preview source:** Esri World Imagery (Esri, Maxar, "
-               "Earthstar Geographics). Note: numeric scores are computed "
-               "from the satellite datasets listed below, not from this "
-               "preview."),
+        "tr": "Önizleme: Esri World Imagery. Sayısal skorlar tabloda verilen veri setlerindendir.",
+        "en": "Preview: Esri World Imagery. Numeric scores come from the datasets below.",
     },
     "vis_link_worldview": {
-        "tr": "🔗 [NASA Worldview'de bölgeyi aç]({url})",
-        "en": "🔗 [Open the region in NASA Worldview]({url})",
+        "tr": "[NASA Worldview'de aç]({url})",
+        "en": "[Open in NASA Worldview]({url})",
     },
     "vis_link_gmaps": {
         "tr": "[Google Maps Uydu]({url})",
         "en": "[Google Maps Satellite]({url})",
     },
     "vis_quant_head": {
-        "tr": "Yukarıdaki görüntüler için sayısal bağlam — ",
-        "en": "Quantitative context for the images above — ",
+        "tr": "Sayısal özet — ",
+        "en": "Quantitative summary — ",
     },
     "vis_quant_line": {
-        "tr": "**{axis}:** {score} (belirsizlik: {lo}–{hi})",
-        "en": "**{axis}:** {score} (uncertainty: {lo}–{hi})",
+        "tr": "**{axis}:** {score} ({lo}–{hi})",
+        "en": "**{axis}:** {score} ({lo}–{hi})",
     },
     "vis_quant_msg": {
-        "tr": ("Görsel benzerlik tek başına yeterli değildir: yukarıdaki "
-               "uydu görüntülerini aşağıdaki sayısal skorlar, belirsizlik "
-               "aralıkları ve ölçüm çözünürlükleriyle birlikte "
-               "değerlendirin."),
-        "en": ("Visual similarity alone is not enough: judge the orbital "
-               "images above together with the numeric scores, uncertainty "
-               "ranges and measurement resolutions below."),
+        "tr": "Görseller bağlam içindir; değerlendirmeyi sayısal skorlar ve çözünürlük tablosuyla birlikte yapın.",
+        "en": "Images provide context only; interpret alongside numeric scores and sensor resolutions.",
     },
     # ── feature gaps table ───────────────────────────────────────────────────
     "gaps_heading": {
@@ -616,18 +414,12 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "No comparable criteria for this site.",
     },
     "gaps_caption": {
-        "tr": ("Fark (σ) büyük → en büyük fiziksel uyuşmazlık (listeyi "
-               "büyükten küçüğe sıralar). Çözünürlük (m): verinin piksel "
-               "boyutu — kaba bir ürün (örn. ~1 km'lik sıcaklık verisi) 500 "
-               "m'lik bir sahayı çözemez; yükseklik verisi 30 m'dir."),
-        "en": ("Large diff (σ) → biggest physical mismatch (the list is "
-               "sorted largest first). Resolution (m): pixel size of the "
-               "data — a coarse product (e.g. ~1 km temperature data) cannot "
-               "resolve a 500 m site; the elevation data is 30 m."),
+        "tr": "Büyük fark (σ) daha yüksek fiziksel uyuşmazlığı gösterir; çözünürlük sütunu piksel boyutunu (m) verir.",
+        "en": "Larger diff (σ) marks bigger physical mismatch; resolution gives pixel size in meters.",
     },
     "scorecard_heading": {
-        "tr": "### 📊 8 Boyutlu Yarışma Kapsam & Sınır Karnesi",
-        "en": "### 📊 8-Dimension Challenge Scope & Limits Scorecard",
+        "tr": "### 8 Boyutlu Kapsam ve Sınır Tablosu",
+        "en": "### 8-Dimension Scope and Limits Scorecard",
     },
 }
 
@@ -636,101 +428,101 @@ DIMENSION_SCORECARD: dict[str, list[dict[str, str]]] = {
     "tr": [
         {
             "Boyut": "1. Topografya & Arazi (slope_mean, slope_p90, roughness, relief)",
-            "v1 Durumu": "✅ Sayısal eksende (Aktif — Mobilite)",
+            "Durum": "Aktif (Mobilite)",
             "Veri Kaynağı & Çözünürlük": "Ay: LRO LOLA PGDA (5 m/px) · Dünya: Copernicus GLO-30 / NASADEM (30 m/px)",
-            "Kapsam & Sınır Notu": "Her ikisinde r = 1000 m ve metrik CRS eğim hesabı; 5 m vs 30 m doğal çözünürlük farkı nedeniyle vekil karşılaştırma.",
+            "Sınır Notu": "Her ikisinde r = 1000 m ve metrik eğim; 5 m vs 30 m çözünürlük farkı.",
         },
         {
             "Boyut": "2. Yüzey Parlaklığı (albedo)",
-            "v1 Durumu": "✅ Sayısal eksende (Aktif — Yüzey)",
-            "Veri Kaynağı & Çözünürlük": "Ay: LRO LOLA 1064 nm ×0.38 geniş bant eşdeğeri (1000 m) · Dünya: MODIS MCD43A3.061 (500 m)",
-            "Kapsam & Sınır Notu": "Geniş bant güneş albedosuna hizalı (×0.38 duyarlılığı belgeli); 500 m–1 km piksel alt-kilometrik yamaları çözmez.",
+            "Durum": "Aktif (Yüzey)",
+            "Veri Kaynağı & Çözünürlük": "Ay: LRO LOLA 1064 nm eşdeğeri (1000 m) · Dünya: MODIS MCD43A3 (500 m)",
+            "Sınır Notu": "Geniş bant güneş albedosuna hizalı; 500 m–1 km piksel.",
         },
         {
-            "Boyut": "3. Sıcaklık Genliği & Termal Atalet (temp_amplitude, thermal_inertia)",
-            "v1 Durumu": "⏸️ v1'de Askıda (NaN — Karar #30)",
-            "Veri Kaynağı & Çözünürlük": "Ay: LRO Diviner PCP (240 m, NaN) · Dünya: MODIS MOD11A2.061 yıllık ort. ΔT (1000 m)",
-            "Kapsam & Sınır Notu": "Ay Diviner ltim dilimleri ile Dünya MODIS yıllık ort. gündüz–gece farkı eşdeğer günlük döngü tanımında olmadığından ve ortak TI ürünü bulunmadığından v1'de askıda.",
+            "Boyut": "3. Sıcaklık Genliği & Termal Atalet",
+            "Durum": "Kullanılmıyor",
+            "Veri Kaynağı & Çözünürlük": "Ay: LRO Diviner (240 m) · Dünya: MODIS MOD11A2 (1000 m)",
+            "Sınır Notu": "Ay–Dünya günlük döngü tanımı eşdeğer olmadığından dışarıda bırakıldı.",
         },
         {
-            "Boyut": "4. Yüzey Litolojisi (lithology_class)",
-            "v1 Durumu": "🏷️ Nitel olarak (Skor dışı)",
-            "Veri Kaynağı & Çözünürlük": "Küratörlü jeoloji haritaları ve saha literatürü (src/earth/sites.py)",
-            "Kapsam & Sınır Notu": "Farklı aygıt spektrumları sayısal skora karıştırılmaz (AGENTS.md §2); tablo ve haritada nitel gösterilir.",
+            "Boyut": "4. Yüzey Litolojisi",
+            "Durum": "Nitel (Skor dışı)",
+            "Veri Kaynağı & Çözünürlük": "Jeoloji haritaları ve literatür",
+            "Sınır Notu": "Mineral spektrumları skora katılmaz; tabloda bilgi amaçlı gösterilir.",
         },
         {
-            "Boyut": "5. Su Buzu / Kalıcı Gölge (PSR) & Permafrost",
-            "v1 Durumu": "🏷️ Nitel olarak (Skor dışı — E8)",
-            "Veri Kaynağı & Çözünürlük": "Doğrulama sahaları için DOI'li literatür envanteri (docs/validation_expectations.md §4)",
-            "Kapsam & Sınır Notu": "Haughton, McMurdo ve Svalbard'da sürekli permafrost/yeraltı buzu var; Ay vakumlu kriyojenik PSR buzu laboratuvarda test edilir.",
+            "Boyut": "5. Su Buzu / Kalıcı Gölge & Permafrost",
+            "Durum": "Nitel (Skor dışı)",
+            "Veri Kaynağı & Çözünürlük": "Doğrulama sahaları literatür envanteri",
+            "Sınır Notu": "Ay vakumlu kriyojenik buzu sahada test edilemez; laboratuvarda doğrulanır.",
         },
         {
             "Boyut": "6. Lav Tüpleri & Yeraltı Boşlukları",
-            "v1 Durumu": "🏷️ Nitel olarak (Skor dışı — v2 SAR yolu)",
-            "Veri Kaynağı & Çözünürlük": "Jeolojik literatür (Lanzarote PANGAEA, Craters of the Moon vb.)",
-            "Kapsam & Sınır Notu": "v1'de nitel; v2'de CSA RADARSAT-1 SAR ve LRO Mini-RF verileriyle sayısal radar ekseni olarak genişletilecek.",
+            "Durum": "Nitel (Skor dışı)",
+            "Veri Kaynağı & Çözünürlük": "Jeolojik literatür",
+            "Sınır Notu": "Yalnızca bilgi amaçlı; sayısal radar verisi sonraki sürüme bırakıldı.",
         },
         {
-            "Boyut": "7. Toz, Rüzgâr & Elektrostatik Toz Davranışı",
-            "v1 Durumu": "🔬 Nitel / Laboratuvar & Simülasyon",
-            "Veri Kaynağı & Çözünürlük": "Saha gözlemleri + vakum/plazma toz odası literatürü",
-            "Kapsam & Sınır Notu": "Dünya'da rüzgâr/nem süreci baskındır; Ay'da UV/plazma kaynaklı elektrostatik toz levitasyonu yalnız vakum odasında üretilir.",
+            "Boyut": "7. Toz, Rüzgar & Elektrostatik Toz",
+            "Durum": "Laboratuvar & Simülasyon",
+            "Veri Kaynağı & Çözünürlük": "Saha gözlemleri + plazma toz odaları",
+            "Sınır Notu": "Ay'daki elektrostatik toz davranışı vakum odası gerektirir.",
         },
         {
             "Boyut": "8. Yerçekimi (1/6 g), Vakum, Radyasyon & 29.5 Günlük Ay Günü",
-            "v1 Durumu": "🔬 Saha Dışı — Laboratuvar & Simülasyon",
-            "Veri Kaynağı & Çözünürlük": "Temel fiziksel sabitler ve görev ortam modelleri",
-            "Kapsam & Sınır Notu": "Hiçbir Dünya sahası bu koşulları doğal olarak üretemez; saha kampanyaları simülatör ve termal-vakum odalarıyla eşlenmelidir.",
+            "Durum": "Laboratuvar & Simülasyon",
+            "Veri Kaynağı & Çözünürlük": "Fiziksel sabitler",
+            "Sınır Notu": "Hiçbir Dünya sahası bu koşulları doğal olarak üretemez.",
         },
     ],
     "en": [
         {
             "Dimension": "1. Topography & Terrain (slope_mean, slope_p90, roughness, relief)",
-            "v1 Status": "✅ Numeric Axis (Active — Mobility)",
+            "Status": "Active (Mobility)",
             "Data Source & Resolution": "Moon: LRO LOLA PGDA (5 m/px) · Earth: Copernicus GLO-30 / NASADEM (30 m/px)",
-            "Scope & Limitation Note": "Uniform r = 1000 m and metric CRS slope calculation; 5 m vs 30 m pixel-scale ratio makes it a proxy comparison.",
+            "Limitation Note": "Uniform r = 1000 m and metric slope; 5 m vs 30 m resolution difference.",
         },
         {
             "Dimension": "2. Surface Brightness (albedo)",
-            "v1 Status": "✅ Numeric Axis (Active — Surface)",
-            "Data Source & Resolution": "Moon: LRO LOLA 1064 nm ×0.38 broadband eq. (1000 m) · Earth: MODIS MCD43A3.061 (500 m)",
-            "Scope & Limitation Note": "Aligned to broadband solar albedo (sensitivity documented); 500 m–1 km pixels do not resolve sub-km patches.",
+            "Status": "Active (Surface)",
+            "Data Source & Resolution": "Moon: LRO LOLA 1064 nm eq. (1000 m) · Earth: MODIS MCD43A3 (500 m)",
+            "Limitation Note": "Aligned to broadband solar albedo; 500 m–1 km pixel footprint.",
         },
         {
-            "Dimension": "3. Temperature Swing & Thermal Inertia (temp_amplitude, thermal_inertia)",
-            "v1 Status": "⏸️ Suspended in v1 (NaN — Decision #30)",
-            "Data Source & Resolution": "Moon: LRO Diviner PCP (240 m, NaN) · Earth: MODIS MOD11A2.061 annual mean ΔT (1000 m)",
-            "Scope & Limitation Note": "Suspended in v1 because lunar Diviner ltim slices and Earth MODIS annual mean day–night ΔT lack an equivalent diurnal definition and no uniform global TI product exists.",
+            "Dimension": "3. Temperature Swing & Thermal Inertia",
+            "Status": "Omitted",
+            "Data Source & Resolution": "Moon: LRO Diviner (240 m) · Earth: MODIS MOD11A2 (1000 m)",
+            "Limitation Note": "Omitted due to non-equivalent lunar vs terrestrial diurnal cycle definitions.",
         },
         {
-            "Dimension": "4. Surface Lithology (lithology_class)",
-            "v1 Status": "🏷️ Qualitative (Unscored)",
-            "Data Source & Resolution": "Curated geologic maps and field literature (src/earth/sites.py)",
-            "Scope & Limitation Note": "Cross-instrument mineral spectra are never mixed into a numeric score (AGENTS.md §2); shown qualitatively in table and map.",
+            "Dimension": "4. Surface Lithology",
+            "Status": "Qualitative (Unscored)",
+            "Data Source & Resolution": "Geologic maps and literature",
+            "Limitation Note": "Mineral spectra are not scored numerically; shown for reference.",
         },
         {
             "Dimension": "5. Water Ice / PSR & Permafrost",
-            "v1 Status": "🏷️ Qualitative (Unscored — E8)",
-            "Data Source & Resolution": "DOI-backed literature inventory for validation sites (docs/validation_expectations.md §4)",
-            "Scope & Limitation Note": "Continuous permafrost/ground ice documented at Haughton, McMurdo, and Svalbard; cryogenic vacuum PSR ice requires lab chambers.",
+            "Status": "Qualitative (Unscored)",
+            "Data Source & Resolution": "Literature inventory for validation sites",
+            "Limitation Note": "Cryogenic lunar vacuum ice requires laboratory chambers.",
         },
         {
             "Dimension": "6. Lava Tubes & Subsurface Cavities",
-            "v1 Status": "🏷️ Qualitative (Unscored — v2 SAR path)",
-            "Data Source & Resolution": "Geologic literature (Lanzarote PANGAEA, Craters of the Moon, etc.)",
-            "Scope & Limitation Note": "Qualitative in v1; planned v2 extension via CSA RADARSAT-1 SAR and LRO Mini-RF backscatter comparison.",
+            "Status": "Qualitative (Unscored)",
+            "Data Source & Resolution": "Geologic literature",
+            "Limitation Note": "Contextual only; numeric SAR comparison planned later.",
         },
         {
-            "Dimension": "7. Dust, Wind & Electrostatic Dust Behavior",
-            "v1 Status": "🔬 Qualitative / Laboratory & Simulation",
-            "Data Source & Resolution": "Field observations + vacuum/plasma dust chamber literature",
-            "Scope & Limitation Note": "Terrestrial dust is wind/moisture driven; UV/plasma electrostatic dust levitation on the Moon requires vacuum chambers.",
+            "Dimension": "7. Dust, Wind & Electrostatic Dust",
+            "Status": "Lab & Simulation",
+            "Data Source & Resolution": "Field records + plasma dust chambers",
+            "Limitation Note": "Lunar electrostatic dust requires vacuum chamber testing.",
         },
         {
             "Dimension": "8. Gravity (1/6 g), Vacuum, Radiation & 29.5-Day Lunar Day",
-            "v1 Status": "🔬 Field-Independent — Laboratory & Simulation",
-            "Data Source & Resolution": "Fundamental physical constants and mission environment models",
-            "Scope & Limitation Note": "No Earth site reproduces these conditions naturally; field campaigns must be paired with simulators and thermal-vacuum chambers.",
+            "Status": "Lab & Simulation",
+            "Data Source & Resolution": "Physical constants",
+            "Limitation Note": "No Earth site reproduces these conditions naturally.",
         },
     ],
 }
@@ -787,7 +579,7 @@ LITHOLOGY_LABELS: dict[str, dict[str, str]] = {
     },
     "basalt": {"tr": "bazalt", "en": "basalt"},
     "pyroclastic_tuff": {
-        "tr": "volkanik tüflü (piroklastik tüf)",
+        "tr": "volkanik tüf",
         "en": "pyroclastic tuff",
     },
     "evaporite": {
@@ -828,3 +620,8 @@ def feature_label(code: str, lang: str = DEFAULT_LANG) -> str:
 def lith_label(code: str, lang: str = DEFAULT_LANG) -> str:
     """Readable name for a lithology class; unknown codes pass through."""
     return LITHOLOGY_LABELS.get(code, {}).get(lang) or code
+
+
+def moon_ref_name(site_id: str, fallback: str = "", lang: str = DEFAULT_LANG) -> str:
+    """Localized crater/region name for a Moon reference site without ROI suffixes."""
+    return MOON_REF_NAMES.get(site_id, {}).get(lang) or fallback or site_id

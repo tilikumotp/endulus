@@ -30,7 +30,6 @@ if str(ROOT / "app") not in sys.path:
 
 from scoring.config import AXES, MISSION_PRESETS  # noqa: E402
 from scoring.display import expanded_interval  # noqa: E402
-from scoring.portfolio import select_portfolio  # noqa: E402
 from scoring.similarity import (  # noqa: E402
     axis_gaps,
     axis_pivot,
@@ -48,55 +47,33 @@ LOGGER = logging.getLogger(__name__)
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Moon <-> Earth Similar Conditions Analysis",
-    page_icon="🌕",
     layout="wide",
 )
 
-UI_THEMES: dict[str, dict[str, str]] = {
-    "moon_grey": {
-        "bg": "#000000",
-        "sidebar_bg": "#07080A",
-        "surface": "#111318",
-        "surface_alt": "#181B22",
-        "border": "#2D313B",
-        "text": "#F3F4F6",
-        "muted": "#9CA3AF",
-        "accent": "#E5E7EB",
-        "accent_strong": "#9CA3AF",
-        "accent_soft": "rgba(209, 213, 219, 0.18)",
-        "bar_mobility": "#9CA3AF",
-        "bar_surface": "#E5E7EB",
-        "ring": "#E5E7EB",
-        "grid": "rgba(156, 163, 175, 0.22)",
-        "grid_subtle": "rgba(156, 163, 175, 0.10)",
-        "tooltip_bg": "#0B0D12",
-        "link": "#D1D5DB",
-    },
-    "earth_blue": {
-        "bg": "#000000",
-        "sidebar_bg": "#020817",
-        "surface": "#061229",
-        "surface_alt": "#0A1C3F",
-        "border": "#1D4ED8",
-        "text": "#EFF6FF",
-        "muted": "#93C5FD",
-        "accent": "#38BDF8",
-        "accent_strong": "#2563EB",
-        "accent_soft": "rgba(56, 189, 248, 0.20)",
-        "bar_mobility": "#2563EB",
-        "bar_surface": "#38BDF8",
-        "ring": "#38BDF8",
-        "grid": "rgba(56, 189, 248, 0.24)",
-        "grid_subtle": "rgba(37, 99, 235, 0.14)",
-        "tooltip_bg": "#030B1D",
-        "link": "#60A5FA",
-    },
+BLACK_THEME: dict[str, str] = {
+    "bg": "#000000",
+    "sidebar_bg": "#090A0D",
+    "surface": "#111318",
+    "surface_alt": "#1A1D24",
+    "border": "#374151",
+    "text": "#FFFFFF",
+    "muted": "#D1D5DB",
+    "accent": "#FFFFFF",
+    "accent_strong": "#9CA3AF",
+    "accent_soft": "rgba(255, 255, 255, 0.14)",
+    "bar_mobility": "#9CA3AF",
+    "bar_surface": "#F3F4F6",
+    "ring": "#E5E7EB",
+    "grid": "rgba(255, 255, 255, 0.20)",
+    "grid_subtle": "rgba(255, 255, 255, 0.08)",
+    "tooltip_bg": "#0B0D12",
+    "link": "#93C5FD",
 }
-ACTIVE_THEME: dict[str, str] = UI_THEMES["moon_grey"]
+ACTIVE_THEME: dict[str, str] = BLACK_THEME
 
 
 def _apply_theme_css(palette: dict[str, str]) -> None:
-    """Apply pure-black base CSS paired with Moon (black-grey) or Earth (blue) accents."""
+    """Apply high-contrast pure-black base CSS."""
     st.markdown(
         f"""
         <style>
@@ -110,7 +87,7 @@ def _apply_theme_css(palette: dict[str, str]) -> None:
         [data-testid="stMainBlockContainer"],
         section.main {{
             background-color: {palette["bg"]} !important;
-            color: {palette["text"]};
+            color: {palette["text"]} !important;
         }}
         [data-testid="stHeader"] {{
             background-color: {palette["bg"]} !important;
@@ -120,6 +97,7 @@ def _apply_theme_css(palette: dict[str, str]) -> None:
         [data-testid="stSidebar"] > div:first-child {{
             background-color: {palette["sidebar_bg"]} !important;
             border-right: 1px solid {palette["border"]};
+            color: {palette["text"]} !important;
         }}
         [data-testid="stAppViewContainer"] .main .block-container {{
             padding-top: 1.75rem;
@@ -127,15 +105,16 @@ def _apply_theme_css(palette: dict[str, str]) -> None:
         }}
         h1 {{
             font-size: 2rem;
-            font-weight: 500;
+            font-weight: 600;
             line-height: 1.15;
-            color: {palette["text"]};
+            color: {palette["text"]} !important;
         }}
-        h2, h3, .stMarkdown p, .stMarkdown li {{
+        h2, h3, h4, p, li, label, span,
+        .stMarkdown p, .stMarkdown li {{
             color: {palette["text"]};
         }}
         h2, h3 {{
-            font-weight: 500;
+            font-weight: 600;
         }}
         a, a:visited {{
             color: {palette["link"]} !important;
@@ -143,7 +122,9 @@ def _apply_theme_css(palette: dict[str, str]) -> None:
         [data-testid="stCaptionContainer"] p {{
             color: {palette["muted"]} !important;
         }}
-        [data-testid="stWidgetLabel"] p {{
+        [data-testid="stWidgetLabel"] p,
+        [data-testid="stCheckbox"] label p,
+        [data-testid="stRadio"] label p {{
             color: {palette["text"]} !important;
         }}
         [data-testid="stTabs"] [data-baseweb="tab-list"] {{
@@ -159,14 +140,16 @@ def _apply_theme_css(palette: dict[str, str]) -> None:
             border-bottom: 2px solid {palette["accent"]} !important;
         }}
         [data-testid="stTabs"] button p {{
-            font-size: 0.875rem;
+            font-size: 0.9rem;
+            font-weight: 500;
         }}
         [data-testid="stExpander"] {{
             background-color: {palette["surface"]} !important;
             border: 1px solid {palette["border"]} !important;
             border-radius: 8px !important;
         }}
-        [data-testid="stExpander"] summary {{
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary p {{
             background-color: {palette["surface"]} !important;
             color: {palette["text"]} !important;
         }}
@@ -189,6 +172,7 @@ def _apply_theme_css(palette: dict[str, str]) -> None:
         [data-baseweb="tag"] {{
             background-color: {palette["accent_soft"]} !important;
             border: 1px solid {palette["border"]} !important;
+            color: {palette["text"]} !important;
         }}
         [data-testid="stAlert"] {{
             background-color: {palette["surface"]} !important;
@@ -379,126 +363,6 @@ def _fmt_interval_tuple(
     if not np.isfinite(score):
         return float("nan"), float("nan"), False
     return expanded_interval(float(score), float(q05), float(q95))
-
-
-def _physical_scatter_chart(
-    result: pd.DataFrame,
-    earth_df: pd.DataFrame,
-    ref_row: pd.Series,
-    ref_disp_name: str,
-) -> go.Figure:
-    """2D physical feature-space scatter (slope_mean vs albedo) for 40 Earth sites + Moon ref."""
-    plot_df = result.merge(
-        earth_df[["site_id", "slope_mean", "roughness", "albedo"]],
-        on="site_id",
-        how="left",
-    )
-    fig = go.Figure()
-    rough_vals = plot_df["roughness"].fillna(5.0).to_numpy(dtype=float)
-    sizes = np.clip(9.0 + np.sqrt(np.maximum(rough_vals, 0.5)) * 2.2, 9.0, 24.0)
-
-    hover_texts = []
-    for _, r in plot_df.iterrows():
-        mob = float(r.get("score_mobility", np.nan))
-        surf = float(r.get("score_surface", np.nan))
-        ovr = float(r.get("score", np.nan))
-        hover_texts.append(
-            f"<b>{r['name']}</b> ({_role_text(str(r['role']))})<br/>"
-            f"{T('col_lith')}: {i18n.lith_label(str(r.get('lithology_class', '')), LANG)}<br/>"
-            f"{T('col_overall')}: {ovr:.2f} · "
-            f"{AXIS_LABELS['mobility']}: {mob:.2f} · {AXIS_LABELS['surface']}: {surf:.2f}"
-        )
-
-    val_ring = "#38BDF8" if ACTIVE_THEME is UI_THEMES["earth_blue"] else "#60A5FA"
-    fig.add_trace(
-        go.Scatter(
-            x=plot_df["slope_mean"],
-            y=plot_df["albedo"],
-            mode="markers",
-            marker=dict(
-                size=sizes,
-                color=plot_df["score"],
-                colorscale="Tealgrn" if ACTIVE_THEME is UI_THEMES["moon_grey"] else "YlGnBu",
-                cmin=0.0,
-                cmax=1.0,
-                colorbar=dict(
-                    title=dict(text=T("scatter_colorbar"), font=dict(color=ACTIVE_THEME["text"])),
-                    thickness=14,
-                    tickfont=dict(color=ACTIVE_THEME["muted"]),
-                ),
-                line=dict(
-                    color=[
-                        val_ring if role == "validation" else ACTIVE_THEME["border"]
-                        for role in plot_df["role"]
-                    ],
-                    width=[2.2 if role == "validation" else 1.0 for role in plot_df["role"]],
-                ),
-                opacity=0.90,
-            ),
-            text=hover_texts,
-            hovertemplate="%{text}<br/>slope_mean: %{x:.2f}° · albedo: %{y:.3f}<extra></extra>",
-            name=T("body_earth"),
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=[float(ref_row.get("slope_mean", np.nan))],
-            y=[float(ref_row.get("albedo", np.nan))],
-            mode="markers+text",
-            marker=dict(
-                symbol="star",
-                size=20,
-                color="#FACC15",
-                line=dict(color=ACTIVE_THEME["text"], width=1.5),
-            ),
-            text=[f"⭐ {ref_disp_name.split('(')[0].strip()}"],
-            textposition="top center",
-            textfont=dict(color="#FACC15", size=12),
-            hovertemplate=(
-                f"<b>⭐ {ref_disp_name} ({T('body_moon')})</b><br/>"
-                "slope_mean: %{x:.2f}° · albedo: %{y:.3f}<extra></extra>"
-            ),
-            name=ref_disp_name,
-        )
-    )
-
-    max_slope = float(
-        np.nanmax(
-            np.append(
-                plot_df["slope_mean"].to_numpy(dtype=float),
-                float(ref_row.get("slope_mean", 25.0)),
-            )
-        )
-    )
-    max_albedo = float(
-        np.nanmax(
-            np.append(
-                plot_df["albedo"].to_numpy(dtype=float),
-                float(ref_row.get("albedo", 0.2)),
-            )
-        )
-    )
-    fig.update_layout(
-        template="plotly_dark",
-        xaxis=dict(
-            title=T("scatter_x"),
-            range=[0, max(30.0, max_slope * 1.12)],
-            gridcolor=ACTIVE_THEME["grid"],
-        ),
-        yaxis=dict(
-            title=T("scatter_y"),
-            range=[0, min(1.0, max(0.45, max_albedo * 1.15))],
-            gridcolor=ACTIVE_THEME["grid"],
-        ),
-        showlegend=False,
-        margin=dict(l=20, r=20, t=24, b=20),
-        height=390,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=ACTIVE_THEME["text"]),
-    )
-    return fig
 
 
 # ── charts ───────────────────────────────────────────────────────────────────
@@ -773,15 +637,6 @@ with st.sidebar:
     LANG = "tr" if lang_display == "Türkçe" else "en"
     AXIS_LABELS = {a: i18n.t(f"axis_{a}", LANG)
                    for a in ("mobility", "thermal", "surface")}
-
-    theme_key = st.radio(
-        T("theme_label"),
-        list(UI_THEMES.keys()),
-        format_func=lambda k: i18n.t(f"theme_{k}", LANG),
-        horizontal=True,
-        key="ui_theme",
-    )
-    ACTIVE_THEME = UI_THEMES[theme_key]
     _apply_theme_css(ACTIVE_THEME)
 
     st.header(T("settings_header"))
@@ -789,9 +644,16 @@ with st.sidebar:
     body = "Moon"
 
     refs = moon_df[moon_df["role"] == "reference"].reset_index(drop=True)
+    ref_ids = refs["site_id"].tolist()
+    ref_fallbacks = dict(zip(refs["site_id"], refs["name"]))
 
-    ref_name = st.selectbox(T("ref_site_label_moon"), refs["name"].tolist())
-    ref_row = refs[refs["name"] == ref_name].iloc[0]
+    ref_site_id = st.selectbox(
+        T("ref_site_label_moon"),
+        ref_ids,
+        format_func=lambda sid: i18n.moon_ref_name(sid, str(ref_fallbacks.get(sid, sid)), LANG),
+    )
+    ref_row = refs[refs["site_id"] == ref_site_id].iloc[0]
+    ref_name = i18n.moon_ref_name(str(ref_row["site_id"]), str(ref_row["name"]), LANG)
     st.caption(
         f"{ref_name} · "
         + T("ref_site_caption",
@@ -815,7 +677,6 @@ with st.sidebar:
 # ── TITLE ────────────────────────────────────────────────────────────────────
 st.title(T("app_title"))
 st.caption(T("subtitle", n=len(earth_df)))
-st.caption(T("thermal_note"))
 
 # ── COMPUTE SCORES (scoring module) ──────────────────────────────────────────
 result, long_scores = score_earth(ref_row, earth_df, mission)
@@ -844,10 +705,9 @@ ref_tbl = pd.DataFrame({
     T("ref_col_res"): [ref_row.get(f"{f}_res_m", np.nan) for f in ref_features],
     T("ref_col_src"): [str(ref_row.get(f"{f}_src", "") or "—") for f in ref_features],
 })
-with st.expander(f"{T('ref_expander')} · {ref_name.split('(')[0].strip()}"):
+with st.expander(f"{T('ref_expander')} · {ref_name}"):
     st.dataframe(ref_tbl, width="stretch", hide_index=True)
     st.caption(T("ref_table_caption"))
-    st.caption(T("temp_note"))
 
 # ── TABS ─────────────────────────────────────────────────────────────────────
 tab_map, tab_radar, tab_terrain, tab_table, tab_validation, tab_breakdown = st.tabs([
@@ -863,13 +723,6 @@ with tab_map:
 
 # ── TAB 2: RADAR / AXIS CHARTS ───────────────────────────────────────────────
 with tab_radar:
-    st.markdown(T("scatter_heading"))
-    st.plotly_chart(
-        _physical_scatter_chart(result, earth_df, ref_row, ref_name),
-        width="stretch",
-    )
-    st.caption(T("scatter_caption"))
-    st.divider()
     st.markdown(T("radar_caption"))
     per_row = 3
     for i in range(0, len(top), per_row):
@@ -965,7 +818,7 @@ with tab_table:
         lith_code = str(r.get("lithology_class", ""))
         lith_txt = i18n.lith_label(lith_code, LANG)
         if ref_lith and lith_code == ref_lith:
-            lith_txt += " ✓"
+            lith_txt += T("lith_match_tag")
         rec = {
             T("col_site"): r["name"],
             T("col_role"): _role_text(r["role"]),
@@ -985,60 +838,8 @@ with tab_table:
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     st.caption(T("table_footer_caption"))
 
-    # ── Compact Visit Portfolio Card (AGENTS.md §8.5) ────────────────────────
-    st.divider()
-    st.subheader(T("portfolio_heading"))
-    st.markdown(T("portfolio_desc"))
-    port_thr = st.slider(
-        T("portfolio_threshold_label"), 0.50, 0.90, 0.70, 0.05, key="port_thr"
-    )
-    active_long = long_scores[long_scores["axis"].isin(active_axes)].copy()
-    picked_ids, uncov_active = select_portfolio(active_long, min_score=port_thr)
-
-    if picked_ids:
-        wide_scores = axis_pivot(active_long).merge(
-            earth_df[["site_id", "name", "role"]], on="site_id", how="left"
-        )
-        port_rows = []
-        for idx_p, sid in enumerate(picked_ids, 1):
-            srow = wide_scores[wide_scores["site_id"] == sid].iloc[0]
-            covered = [
-                AXIS_LABELS[a] for a in active_axes
-                if float(srow.get(f"score_{a}", np.nan)) >= port_thr
-            ]
-            score_txt = " · ".join(
-                f"{AXIS_LABELS[a]} {float(srow.get(f'score_{a}', np.nan)):.2f}"
-                for a in active_axes
-            )
-            port_rows.append({
-                T("portfolio_col_order"): idx_p,
-                T("portfolio_col_site"): str(srow["name"]),
-                T("portfolio_col_role"): _role_text(str(srow["role"])),
-                T("portfolio_col_covered"): ", ".join(covered) or "—",
-                T("portfolio_col_scores"): score_txt,
-            })
-        st.dataframe(pd.DataFrame(port_rows), width="stretch", hide_index=True)
-    else:
-        st.info(T("portfolio_none", thr=port_thr))
-
-    uncov_labels = [AXIS_LABELS[a] for a in uncov_active]
-    if "thermal" not in active_axes:
-        uncov_labels.append(T("portfolio_uncovered_thermal_note"))
-    if not uncov_active:
-        st.caption(T("portfolio_all_active_covered", thr=port_thr))
-    st.warning(f"**{T('portfolio_uncovered_label')}** " + " · ".join(uncov_labels))
-    if "mobility" in uncov_active:
-        best_mob = result.sort_values("score_mobility", ascending=False, na_position="last").iloc[0]
-        st.caption(T(
-            "portfolio_best_mobility_note",
-            site=str(best_mob["name"]),
-            score=f"{float(best_mob['score_mobility']):.2f}",
-        ))
-
-# ── TAB 5: VALIDATION (10-row descriptive rank diagnostic) ───────────────────
+# ── TAB 5: VALIDATION (10-row rank diagnostic) ───────────────────────────────
 with tab_validation:
-    st.markdown(T("val_intro"))
-    st.info(T("val_why_low_note"))
     val = run_blind_validation(long_scores, earth_df)
     val = val[val["axis"].isin(active_axes)].copy()
     val_wide = val.pivot(index="site_id", columns="axis", values="rank")
@@ -1051,14 +852,6 @@ with tab_validation:
         str(sid): idx + 1 for idx, sid in enumerate(overall_sorted["site_id"])
     }
 
-    sort_by = st.radio(
-        T("val_sort_label"),
-        ["mobility", "overall", "surface"],
-        format_func=lambda k: T(f"val_sort_{k}"),
-        horizontal=True,
-        key="val_sort_by",
-    )
-
     val_sites = earth_df[earth_df["role"] == "validation"][["site_id", "name"]]
     diag_rows = []
     for _, vs in val_sites.iterrows():
@@ -1070,8 +863,8 @@ with tab_validation:
         exp_key = exp.get("expected_v1", "none")
         diag_rows.append({
             T("val_col_site"): str(vs["name"]),
-            T("val_col_overall_rank"): int(ovr_raw) if np.isfinite(ovr_raw) else None,
             T("val_col_mob_rank"): int(mob_raw) if np.isfinite(mob_raw) else None,
+            T("val_col_overall_rank"): int(ovr_raw) if np.isfinite(ovr_raw) else None,
             T("val_col_surf_rank"): int(surf_raw) if np.isfinite(surf_raw) else None,
             T("val_col_expected"): T(f"val_exp_{exp_key}"),
             T("val_col_ice"): exp.get("ice_e8" if LANG == "tr" else "ice_e8_en", "—"),
@@ -1079,13 +872,8 @@ with tab_validation:
             T("val_col_source"): exp.get("source_url", ""),
         })
 
-    sort_col_map = {
-        "overall": T("val_col_overall_rank"),
-        "mobility": T("val_col_mob_rank"),
-        "surface": T("val_col_surf_rank"),
-    }
     diag_df = pd.DataFrame(diag_rows).sort_values(
-        [sort_col_map[sort_by], T("val_col_overall_rank"), T("val_col_site")],
+        [T("val_col_mob_rank"), T("val_col_overall_rank"), T("val_col_site")],
         ascending=[True, True, True],
         na_position="last",
     ).reset_index(drop=True)
