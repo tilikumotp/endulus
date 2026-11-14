@@ -85,6 +85,20 @@ def axis_scores(
     return out[OUTPUT_COLS]
 
 
+def axis_pivot(scores_df: pd.DataFrame) -> pd.DataFrame:
+    """Wide site x axis table (score/ci_low/ci_high per axis) for radar charts.
+
+    Column names follow <stat>_<axis>, e.g. score_mobility; one row per site.
+    NaN stays NaN when a site has no finite score for an axis.
+    """
+    pivot = scores_df.pivot(
+        index="site_id", columns="axis", values=["score", "ci_low", "ci_high"]
+    )
+    pivot = pivot[sorted(pivot.columns)]
+    pivot.columns = [f"{stat}_{axis}" for stat, axis in pivot.columns]
+    return pivot.reset_index()
+
+
 def combine_axes(
     scores_df: pd.DataFrame,
     axis_weights: dict[str, float] | None = None,
