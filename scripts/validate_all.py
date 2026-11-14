@@ -1,6 +1,6 @@
 """Run validate_contract on every features_*.parquet under data/processed.
 
-Usage: python scripts/validate_all.py [--include-mock] [--fail-on-mock]
+Usage: python scripts/validate_all.py [--fail-on-mock]
 Exit code 1 if any checked file has contract errors, 0 otherwise.
 """
 from __future__ import annotations
@@ -35,28 +35,18 @@ def _check_dir(directory: Path, fail_on_mock: bool) -> tuple[int, int]:
 
 
 def main() -> int:
-    """Validate all real (and optionally mock) outputs; exit 1 on any error."""
+    """Validate all processed outputs; exit 1 on any error."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--include-mock", action="store_true",
-                        help="data/mock altindaki dosyalari da kontrol et")
-    parser.add_argument("--fail-on-mock", action="store_true",
-                        help="tek bir MOCK satiri bile hata say (final demodan once)")
+    parser.add_argument("--fail-on-mock", action="store_true", default=True,
+                        help="reject any synthetic src == MOCK row")
     args = parser.parse_args()
 
-    total_files, total_errors = 0, 0
     processed = REPO_ROOT / "data" / "processed"
     if not any(processed.glob("features_*.parquet")):
-        print(f"BILGI   {processed.relative_to(REPO_ROOT)} altinda features_*.parquet yok "
-              f"(gercek cikti henuz gelmedi)")
-    files, errors = _check_dir(processed, args.fail_on_mock)
-    total_files, total_errors = total_files + files, total_errors + errors
-    if args.include_mock:
-        files, errors = _check_dir(REPO_ROOT / "data" / "mock", args.fail_on_mock)
-        total_files, total_errors = total_files + files, total_errors + errors
+        print(f"HATA    {processed.relative_to(REPO_ROOT)} altinda features_*.parquet yok")
+        return 1
+    total_files, total_errors = _check_dir(processed, args.fail_on_mock)
 
-    if total_files == 0:
-        print("SONUC: kontrol edilecek dosya yok")
-        return 0
     verdict = "GECTI" if total_errors == 0 else "BASARISIZ"
     print(f"SONUC: {verdict} - {total_files} dosya, {total_errors} hata")
     return 1 if total_errors else 0

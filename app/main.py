@@ -4,8 +4,7 @@ Run:  streamlit run app/main.py
 
 Scores come from the leader's src/scoring/similarity.py (axis_scores,
 axis_pivot, combine_axes, axis_gaps) — this app does NOT compute its own
-scores. Data: data/processed first, falls back to data/mock (MOCK banner
-is shown whenever any *_src column equals "MOCK", AGENTS.md rule 10).
+scores. Data is loaded directly from verified orbital parquets in data/processed/.
 """
 
 from __future__ import annotations
@@ -46,7 +45,6 @@ st.set_page_config(
 )
 
 # ── constants ────────────────────────────────────────────────────────────────
-MOCK_DIR = ROOT / "data" / "mock"
 PROC_DIR = ROOT / "data" / "processed"
 
 AXIS_LABELS = {"mobility": "Mobility", "thermal": "Thermal", "surface": "Surface"}
@@ -85,46 +83,30 @@ VALIDATION_TOP_K = 5  # analogue counts as recovered when its rank <= k
 
 
 # ── data loading ─────────────────────────────────────────────────────────────
-def _is_mock(df: pd.DataFrame) -> bool:
-    """True if any *_src column contains 'MOCK' (AGENTS.md rule 10)."""
-    src_cols = [c for c in df.columns if c.endswith("_src")]
-    return bool(src_cols) and bool((df[src_cols] == "MOCK").any().any())
-
-
 def _load_body(stem: str) -> pd.DataFrame:
     proc = PROC_DIR / f"{stem}.parquet"
-    mock = MOCK_DIR / f"{stem}.parquet"
     if proc.exists():
         return pd.read_parquet(proc)
-    if mock.exists():
-        return pd.read_parquet(mock)
-    st.error(f"Cannot find {stem}.parquet in data/processed/ or data/mock/.")
+    st.error(f"Cannot find {stem}.parquet in data/processed/.")
     st.stop()
 
 
 def _source_mtime(stem: str) -> float:
-    """Mtime of the parquet actually used (processed first, mock fallback)."""
+    """Mtime of the processed parquet file."""
     proc = PROC_DIR / f"{stem}.parquet"
-    mock = MOCK_DIR / f"{stem}.parquet"
-    path = proc if proc.exists() else mock
-    return path.stat().st_mtime if path.exists() else 0.0
+    return proc.stat().st_mtime if proc.exists() else 0.0
 
 
 @st.cache_data
-def load_data(
-    m_moon: float, m_mars: float, m_earth: float
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, bool, bool, bool]:
-    """Load moon/mars/earth parquets + per-body MOCK flags.
+def load_data(m_moon: float, m_earth: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load verified moon and earth parquets from data/processed/.
 
     File mtimes are part of the cache key, so replacing a parquet in
-    data/processed/ (or data/mock/) invalidates the cache automatically.
-    Returns (moon_df, mars_df, earth_df, moon_mock, mars_mock, earth_mock).
+    data/processed/ invalidates the cache automatically.
     """
     moon_df = _load_body("features_moon")
-    mars_df = _load_body("features_mars")
     earth_df = _load_body("features_earth")
-    return (moon_df, mars_df, earth_df,
-            _is_mock(moon_df), _is_mock(mars_df), _is_mock(earth_df))
+    return moon_df, earth_df
 
 
 # ── scoring (leader's module, called as-is) ──────────────────────────────────
@@ -286,9 +268,8 @@ def _safe_fetch_preview_png(url: str) -> tuple[bytes | None, str]:
 # MAIN UI
 # ═══════════════════════════════════════════════════════════════════════════════
 
-moon_df, mars_df, earth_df, moon_mock, mars_mock, earth_mock = load_data(
+moon_df, earth_df = load_data(
     _source_mtime("features_moon"),
-    _source_mtime("features_mars"),
     _source_mtime("features_earth"),
 )
 
@@ -296,18 +277,9 @@ moon_df, mars_df, earth_df, moon_mock, mars_mock, earth_mock = load_data(
 with st.sidebar:
     st.header("⚙️ Settings")
 
-    # ── Option A lock (leader decision) ─────────────────────────────────────
-    # Mars stays hidden unless explicitly opted in via the checkbox at the
-    # bottom of the sidebar, so the jury never lands on a mock Mars view.
-    show_mars_preview = st.session_state.get("show_mars_preview", False)
-    mars_option = "Mars (v2 Mock Preview)" if mars_mock else "Mars"
-    body_options = ["Moon"] + (
-        [mars_option] if (not mars_mock or show_mars_preview) else []
-    )
-    body_choice = st.radio("Reference body", body_options, horizontal=True)
-    body = "Moon" if body_choice.startswith("Moon") else "Mars"
-    ref_df = moon_df if body == "Moon" else mars_df
-    body_mock = moon_mock if body == "Moon" else mars_mock
+    body = "Moon"
+    st.radio("Reference body", ["Moon"], horizontal=True)
+    ref_df = moon_df
 
     refs = ref_df[ref_df["role"] == "reference"].reset_index(drop=True)
 
@@ -332,40 +304,10 @@ with st.sidebar:
         "Portfolio coverage threshold", 0.30, 0.95, 0.70, 0.05,
         help="A site covers an axis when its score >= this value.",
     )
-    if mars_mock:
-        st.divider()
-        st.checkbox(
-            "Show v2 Mars architecture preview (mock)", value=False,
-            key="show_mars_preview",
-            help="Mars parquet is still MOCK; keep this off during the jury "
-                 "demo. Moon & Earth switch to real data automatically.",
-        )
-
-# ── MOCK FLAG for the CURRENT view (selected body + Earth, AGENTS.md rule 10) ─
-any_mock = body_mock or earth_mock
-
-# ── MOCK BANNER (AGENTS.md rule 10) ──────────────────────────────────────────
-if any_mock:
-    mock_parts = []
-    if body_mock:
-        mock_parts.append(f"{body} reference features")
-    if earth_mock:
-        mock_parts.append("Earth candidate features")
-    st.warning(
-        f"🚧 **MOCK DATA — {' + '.join(mock_parts)} are synthetic.**\n\n"
-        "Computed from `data/mock/` placeholder values, not real instrument data. "
-        "For interface testing only; do not present as scientific findings. "
-        "Parts switch to real data automatically as parquets land in "
-        "`data/processed/`.",
-        icon="🚧",
-    )
 
 # ── TITLE ────────────────────────────────────────────────────────────────────
 st.title("🌕 Moon / Mars ↔ Earth Analog Finder")
 st.caption(
-    "NASA Space Apps 2026 · per-axis kernel similarity exp(-distance) [0–1], higher = closer "
-    "· scores via `scoring.similarity.axis_scores` · **current output: MOCK**"
-    if any_mock else
     "NASA Space Apps 2026 · per-axis kernel similarity exp(-distance) [0–1], higher = closer "
     "· scores via `scoring.similarity.axis_scores`"
 )
@@ -387,8 +329,7 @@ ref_tbl = pd.DataFrame({
     "source": [str(ref_row.get(f"{f}_src", "—")) for f in ref_features],
 })
 st.dataframe(ref_tbl, width="stretch", hide_index=True)
-st.caption("`temp_amplitude` = annual diurnal-cycle mean (docs/data_notes.md, "
-           "leader decision 2026-11-14).")
+st.caption("`temp_amplitude` = diurnal-cycle surface temperature range (`docs/data_notes.md`).")
 
 st.divider()
 
@@ -475,13 +416,6 @@ with tab_validation:
     st.metric("Recovered (site × axis) pairs",
               f"{recovered} / {len(val)}")
 
-    if any_mock:
-        st.info(
-            "MOCK note: validation-role sites carry random feature draws, so "
-            "recovery here is random too — meaningful only once real parquets "
-            "land in data/processed/."
-        )
-
     fig = go.Figure()
     for axis in axes:
         sub = val[val["axis"] == axis].dropna(subset=["rank"])
@@ -539,11 +473,6 @@ with tab_portfolio:
             + (", ".join(AXIS_LABELS[a] for a in uncovered)
                if uncovered else "none — all axes covered ✅")
         )
-        if any_mock:
-            st.info(
-                "MOCK note: with synthetic scores this portfolio is an "
-                "interface demo only, not a site recommendation."
-            )
 
 # ── TAB 6: ANALOGY LIMITS ────────────────────────────────────────────────────
 with tab_breakdown:
@@ -560,13 +489,6 @@ with tab_breakdown:
     # Purpose: evidence & exploration only. Imagery never creates or changes
     # a score — the quantitative per-axis scores + CIs below are the basis of
     # every claim (AGENTS.md rule 3: every number carries its *_src).
-    if body_mock:
-        st.warning(
-            "Reference site coordinates/features are currently loaded from "
-            "MOCK data; visual alignment requires verified "
-            "data/processed/features_moon.parquet."
-        )
-
     is_moon_ref = (str(ref_row.get("body", body)).strip().lower() == "moon")
 
     # Earth candidate: geodesic bbox for a ~2x-radius view window (WGS84).
@@ -642,7 +564,7 @@ with tab_breakdown:
             st.info("Live lunar South Pole WMS applies to Moon reference "
                     "sites only.")
         st.caption("Relief preview: NASA LRO LOLA via USGS Astrogeology WMS. "
-                   "Numeric features comes from row `*_src`.")
+                   "Numeric features come from row `*_src`.")
 
     with c_earth_opt:
         st.markdown("**Earth Candidate Optical Context**")
@@ -740,8 +662,4 @@ with tab_breakdown:
 
 # ── FOOTER ───────────────────────────────────────────────────────────────────
 st.divider()
-if any_mock:
-    st.error("🚧 **MOCK DATA** — every score above is synthetic. Replace "
-             "`data/mock/` with `data/processed/` outputs for real results.",
-             icon="🚧")
-st.caption("NASA Space Apps 2026 · Person 4 (app/) · branch: p4-app")
+st.caption("NASA Space Apps 2026 · Moon South Pole ↔ Earth Multi-Axis Analog Scorer")

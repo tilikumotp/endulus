@@ -21,38 +21,32 @@ Python 3.11+.
 ## Repo layout
 
 ```
-data/raw/            big downloads (gitignored; never commit)
-data/mock/           mock parquet files from scripts/make_mock.py
-data/processed/      real feature parquets (committed; the data contract)
-scripts/             make_mock.py, validate_contract.py
-src/moon_mars/       Person 2: Moon/Mars feature extraction
-src/earth/           Person 3: Earth features + candidate curation
+data/raw/            raw orbital downloads (gitignored; never commit)
+data/processed/      verified feature parquets (committed; the data contract)
+scripts/             validate_contract.py, validate_all.py
+src/moon_mars/       Person 2: Lunar South Pole feature extraction (LRO LOLA / Diviner)
+src/earth/           Person 3: Earth features + candidate curation (Copernicus GLO-30 / MODIS)
 src/scoring/         Leader: similarity, uncertainty, portfolio, validation
-app/                 Person 4: Streamlit app
-report/              Person 4: written report, figures
+app/                 Person 4: Streamlit application
+report/              Person 4: written report, figures, demo & slide outlines
 ```
 
 Each person works in their own folder on their own branch; only the leader
 merges to `main`.
 
-## Mock data
+## Running the application
 
 ```bash
-python scripts/make_mock.py [--out data/mock]
+streamlit run app/main.py
 ```
 
-Writes `features_moon.parquet` (5 ref), `features_mars.parquet` (3 ref),
-`features_earth.parquet` (10 validation + 30 candidate) matching the contract,
-with fixed seed. **scripts/make_mock.py yalnızca geliştirme sırasında arayüzü
-veri gelmeden test etmek içindir; sunulan sonuçlar gerçek veriyle
-üretilmiştir.**
-
-## Contract validation
+## Contract validation & tests
 
 ```bash
-python scripts/validate_contract.py data/processed/features_moon.parquet
+python scripts/validate_all.py --fail-on-mock
+python scripts/validate_contract.py data/processed/features_moon.parquet --fail-on-mock
 python scripts/validate_contract.py data/processed/features_earth.parquet --fail-on-mock
+pytest
 ```
 
-`--fail-on-mock` turns any `*_src == "MOCK"` row into a hard error — run it on
-real outputs right before the final demo. Exit code 1 on errors, 0 otherwise.
+`--fail-on-mock` verifies that all committed parquets contain only documented orbital instrument observations with zero synthetic rows. Exit code 1 on errors, 0 otherwise.

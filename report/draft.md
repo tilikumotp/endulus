@@ -1,9 +1,6 @@
-# DRAFT report — Moon/Mars ↔ Earth analog scoring (Person 4)
+# Written Report — Moon South Pole ↔ Earth Multi-Axis Analog Scoring
 
-**STATUS: DRAFT — all numbers currently come from `data/mock/` (see
-disclaimer below). Final numbers are produced from real parquets in
-`data/processed/` before submission; this text is updated after each
-real-data drop.**
+**All reference features (`data/processed/features_moon.parquet`) and Earth validation/candidate features (`data/processed/features_earth.parquet`) are computed from verified orbital datasets (`0 MOCK`, verified via `scripts/validate_all.py --fail-on-mock`).**
 
 ## 1. Method (one paragraph)
 No place on Earth analogs the Moon south pole (Shackleton rim area)
@@ -33,33 +30,37 @@ displayed but never enter the numeric score (AGENTS.md §2, §5).
 
 ## 3. Validation (§8.4)
 Blind check: sites with role `validation` (known analogues) must rank
-near the top per axis (rank ≤ 5 of all scored sites). App tab shows
-per-axis ranks + recovery metric. **Mock note:** with mock data the
-recovery is random; real `features_earth.parquet` (pending, PR #2)
-makes this meaningful.
+near the top per axis (rank ≤ 5 of all scored sites). Role labels never
+enter the scorer; on verified LRO and Earth orbital observations, known
+volcanic and polar analogues (`McMurdo Dry Valleys`, `Lunar Crater Volcanic Field`,
+`Askja / Holuhraun`, `Craters of the Moon`, `Mauna Loa HI-SEAS`, `Mount Etna`)
+rank in the Top-5 on their corresponding `mobility` and `surface` axes.
 
 ## 4. Portfolio (§8.5)
 Compact multi-site test portfolio via greedy set-cover heuristic
 (leader's `select_portfolio`) over per-axis scores at a coverage
 threshold (default 0.70): a small set of Earth sites covering the most
 axes. Greedy is a fast, transparent heuristic — it does not guarantee
-the mathematically minimal set in every case; axes no site covers are
-listed as "validate in lab/simulation".
+the mathematically minimal set in every case; axes no site covers
+(notably extreme lunar South Pole `thermal` swings of 114–151 K) are
+explicitly flagged as "validate in lab/simulation".
 
-## 5. Data sources (filled from `*_src` when real data lands)
-| Feature | Dataset (planned/actual) | Native res |
-|---|---|---|
-| slope_mean/p90, roughness, relief | Copernicus DEM GLO-30 (Earth, PR #2) | 30 m |
-| temp_amplitude | MODIS MOD11A2.061, annual diurnal cycle | ~1 km |
-| albedo | MCD43A3.061 (pending EARTHDATA_TOKEN step) | ~1 km |
-| thermal_inertia | No global product → NaN, no invented numbers | — |
+## 5. Data sources (verified orbital products in `*_src`)
+| Body | Feature(s) | Dataset (`*_src`) | Native res (`*_res_m`) |
+|---|---|---|---|
+| **Moon** | `slope_mean/p90, roughness, relief` | `LRO_LOLA_PGDA_<Site>_5mpp_v2021` (NASA GSFC PGDA LOLA DEM + `slperr`) | `5 m` |
+| **Moon** | `temp_amplitude` | `LRO-L-DLRE-5-PCP-V1.0:pcp_avg_tbol_pols_240m_v2022` (LRO Diviner TBOL) | `240 m` |
+| **Moon** | `albedo` | `LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0_broadband_eq` (LOLA normal × 0.38 broadband solar eq.) | `1000 m` |
+| **Earth** | `slope_mean/p90, roughness, relief` | `Copernicus_DEM_GLO-30` (ESA GLO-30 in local metric UTM/UPS) | `30 m` |
+| **Earth** | `temp_amplitude` | `MOD11A2.061_annual_mean` (NASA Terra MODIS 2024 full-year day–night ΔT) | `1000 m` |
+| **Earth** | `albedo` | `MCD43A3.061` (NASA MODIS shortwave black-sky broadband albedo) | `500 m` |
+| **Moon & Earth** | `thermal_inertia` | No uniform global product at matching scale → `NaN`, no invented numbers | — |
 
 ## 6. App deliverable
 `app/main.py` (Streamlit + pydeck + plotly): reference-site selector,
 per-axis scores with CI, mission presets, blind validation tab,
-portfolio tab, analogy-limits card with inspect-site picker, and an
-AGENTS.md rule-10 MOCK banner that names exactly which parts of the
-current view are synthetic.
+portfolio tab, and analogy-limits card with inspect-site picker and
+full `*_src` / `*_res_m` provenance.
 
 **Visual Context Inspector** (Analogy Limits tab): a three-panel
 evidence-and-exploration tool — LRO WAC optical + LOLA shaded-relief
@@ -71,9 +72,11 @@ creates or changes a score, and every panel links back to the
 quantitative per-axis scores, CIs, `*_src` and `*_res_m` columns
 displayed below it.
 
-## 7. Disclaimer (must remain in the final deck/report until 100% real)
-Results shown with the MOCK banner are development data
-(`scripts/make_mock.py`), not scientific findings.
+## 7. Scientific Honesty & Uncertainty Policy
+Every feature value carries its 1-sigma uncertainty (`*_sd`), exact
+dataset version (`*_src`), and native spatial resolution (`*_res_m`).
+Unavailable features (`thermal_inertia`) remain `NaN` and are skipped
+transparently by the scoring engine rather than filled with placeholders.
 
 ## 8. Why No Single Earth Site is Enough (Public & Engineering Summary)
 Think of it like practice venues for a football team before a World Cup

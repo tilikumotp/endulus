@@ -1,8 +1,7 @@
 # Pitch slides outline (6–7 slides, Person 4)
 
 Rule: every number on a slide carries its source (`*_src`) and, where
-relevant, its native resolution. MOCK-banner screenshots stay labelled
-"mock" until real-data versions replace them.
+relevant, its native resolution (`*_res_m`).
 
 ---
 
