@@ -26,13 +26,13 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
         "site_id": "earth_etna_cisternazza",
         "name": "Mount Etna (Cisternazza / Piano del Lago)",
         "role": "validation",
-        "lat": 37.7450,
-        "lon": 15.0060,
+        "lat": 37.7257,
+        "lon": 15.0084,
         "radius_m": 1000.0,
         "lithology_class": "basalt",
         "citation": (
             "Wedler et al. (2017) ROBEX & Schuster et al. (2020) ARCHES lunar analog "
-            "rover campaigns, Cisternazza / Piano del Lago, Mt. Etna (~2600 m)."
+            "rover campaigns, Cisternazza crater rim, Mt. Etna (OSM verified, ~2565 m, 37°43'33\"N, 15°00'30\"E)."
         ),
     },
     {
@@ -316,13 +316,13 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
         "site_id": "earth_pinacate_el_elegante",
         "name": "Sierra del Pinacate Volcanic Field (El Elegante Maar Rim, Sonora, Mexico)",
         "role": "candidate",
-        "lat": 31.7950,
-        "lon": -113.3900,
+        "lat": 31.8403,
+        "lon": -113.3951,
         "radius_m": 1000.0,
         "lithology_class": "basalt",
         "citation": (
             "Gutmann (2002, GSA Special Paper 365) & Greeley et al. (1985), "
-            "Pinacate arid basaltic maar and cinder cone field, Gran Desierto de Altar (31°47'42\"N, 113°23'24\"W)."
+            "Pinacate arid basaltic maar crater south rim (Crater El Elegante, OSM verified, 31°50'25\"N, 113°23'42\"W)."
         ),
     },
     {
@@ -406,15 +406,15 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
     },
     {
         "site_id": "earth_suphan_south_apron",
-        "name": "Mount Süphan (Adilcevaz Basalt-Andesite Lava Apron, Bitlis)",
+        "name": "Mount Süphan (Lower Adilcevaz Basalt-Andesite Lava Apron, Bitlis)",
         "role": "candidate",
-        "lat": 38.9000,
-        "lon": 42.8200,
+        "lat": 38.8650,
+        "lon": 42.8300,
         "radius_m": 1000.0,
         "lithology_class": "basalt",
         "citation": (
             "Özdemir et al. (2011, Lithos 127:68-85) & Yılmaz et al. (1998, JVGR 85:173-210), "
-            "Mount Süphan Quaternary stratovolcano basaltic-trachyandesitic flank flows (38°54'00\"N, 42°49'12\"E)."
+            "Mount Süphan southern basaltic-trachyandesitic lower apron ~6.9 km S of summit (~2233 m, 38°51'54\"N, 42°49'48\"E)."
         ),
     },
     {
@@ -432,15 +432,15 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
     },
     {
         "site_id": "earth_agri_dogubayazit_flow",
-        "name": "Mount Ararat / Ağrı Dağı (Western Basalt Plateau, Ağrı)",
+        "name": "Mount Ararat / Ağrı Dağı (Western Basalt Lava Flank, Doğubayazıt)",
         "role": "candidate",
         "lat": 39.6800,
-        "lon": 43.9200,
+        "lon": 44.1400,
         "radius_m": 1000.0,
         "lithology_class": "basalt",
         "citation": (
             "Yılmaz et al. (1998, JVGR 85:173-210) & Pearce et al. (1990, JVGR 44:189-229), "
-            "Mount Ararat (Ağrı) western flank Quaternary basalt lava plateau (39°40'48\"N, 43°55'12\"E)."
+            "Mount Ararat (Ağrı) lower western flank Quaternary basaltic lava flow above Doğubayazıt (~1764 m, 39°40'48\"N, 44°08'24\"E)."
         ),
     },
     {

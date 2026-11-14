@@ -14,6 +14,8 @@ import numpy as np
 import pyproj
 import requests
 from rasterio.io import MemoryFile
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 MOD11A2_SRC = "MOD11A2.061_annual_mean"
 MCD43A3_SRC = "MCD43A3.061"
@@ -40,22 +42,45 @@ def _load_dotenv_token(key: str = "EARTHDATA_TOKEN") -> str | None:
     return None
 
 
+def _make_retrying_session() -> requests.Session:
+    """Create a requests.Session configured with bounded exponential backoff retries."""
+    retry = Retry(
+        total=5,
+        connect=5,
+        read=5,
+        backoff_factor=0.8,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+        raise_on_status=False,
+    )
+    sess = requests.Session()
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=16, pool_maxsize=16)
+    sess.mount("https://", adapter)
+    sess.mount("http://", adapter)
+    return sess
+
+
 def _process_single_composite(
     item: dict[str, Any],
     sas_token: str,
     lat: float,
     lon: float,
+    sess: requests.Session | None = None,
 ) -> dict[str, Any] | None:
     """Download and extract valid 3x3 pixel day/night LST pairs from one MOD11A2.061 composite with QC_Day/QC_Night mask."""
+    http = sess if sess is not None else _make_retrying_session()
     try:
         day_url = f"{item['assets']['LST_Day_1km']['href']}?{sas_token}"
         night_url = f"{item['assets']['LST_Night_1km']['href']}?{sas_token}"
         qc_d_url = f"{item['assets']['QC_Day']['href']}?{sas_token}"
         qc_n_url = f"{item['assets']['QC_Night']['href']}?{sas_token}"
-        b_day = requests.get(day_url, timeout=25).content
-        b_night = requests.get(night_url, timeout=25).content
-        b_qcd = requests.get(qc_d_url, timeout=25).content
-        b_qcn = requests.get(qc_n_url, timeout=25).content
+        r_day = http.get(day_url, timeout=25)
+        r_night = http.get(night_url, timeout=25)
+        r_qcd = http.get(qc_d_url, timeout=25)
+        r_qcn = http.get(qc_n_url, timeout=25)
+        for resp in (r_day, r_night, r_qcd, r_qcn):
+            resp.raise_for_status()
+        b_day, b_night, b_qcd, b_qcn = r_day.content, r_night.content, r_qcd.content, r_qcn.content
 
         with (
             MemoryFile(b_day) as m_d,
@@ -110,7 +135,8 @@ def _process_single_composite(
                     "shape": shape_tuple,
                     "res": res_tuple,
                 }
-    except Exception:
+    except Exception as exc:
+        print(f"  [WARN] MOD11A2 composite {item.get('id', '?')} failed: {exc}", flush=True)
         return None
 
 
@@ -134,7 +160,7 @@ def fetch_mod11a2_temp_amplitude(
     v_idx = int((9.0 * MODIS_SINU_TILE_M - y_s) // MODIS_SINU_TILE_M)
     tile_id = f"h{h_idx:02d}v{v_idx:02d}"
 
-    sess = requests.Session()
+    sess = _make_retrying_session()
     sas_resp = sess.get(PC_MODIS_SAS_URL, timeout=15)
     sas_resp.raise_for_status()
     sas_token = sas_resp.json()["token"]
@@ -178,7 +204,7 @@ def fetch_mod11a2_temp_amplitude(
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = [
-            pool.submit(_process_single_composite, it, sas_token, lat, lon)
+            pool.submit(_process_single_composite, it, sas_token, lat, lon, sess)
             for it in terra_items
         ]
         for fut in futures:
@@ -236,8 +262,10 @@ def fetch_mcd43a4_nbar_albedo_liang2001(
     v_idx = int((9.0 * MODIS_SINU_TILE_M - y_s) // MODIS_SINU_TILE_M)
     tile_id = f"h{h_idx:02d}v{v_idx:02d}"
 
-    sess = requests.Session()
-    sas_token = sess.get(PC_MODIS_SAS_URL, timeout=15).json()["token"]
+    sess = _make_retrying_session()
+    sas_resp = sess.get(PC_MODIS_SAS_URL, timeout=15)
+    sas_resp.raise_for_status()
+    sas_token = sas_resp.json()["token"]
 
     south_summer = "2024-01-01/2024-02-28"
     windows = [south_summer, datetime_range] if lat < -45.0 else [datetime_range, south_summer]
@@ -363,7 +391,8 @@ def fetch_mcd43a4_nbar_albedo_liang2001(
 
 def check_mcd43a3_access() -> tuple[bool, str]:
     """Check whether MCD43A3.061 is accessible via Planetary Computer or EARTHDATA_TOKEN."""
-    r_pc = requests.get(
+    sess = _make_retrying_session()
+    r_pc = sess.get(
         "https://planetarycomputer.microsoft.com/api/stac/v1/collections/modis-43A3-061",
         timeout=10,
     )
@@ -511,7 +540,7 @@ def fetch_mcd43a3_albedo(
     south_summer = "2024-01-01T00:00:00Z,2024-02-28T23:59:59Z"
     windows = [south_summer, temporal] if lat < -45.0 else [temporal, south_summer]
 
-    sess = requests.Session()
+    sess = _make_retrying_session()
     vals: list[float] = []
     granule_ids: list[str] = []
     used_temporal = windows[0]
