@@ -10,3 +10,5 @@ pydeck
 plotly
 pyarrow
 shap
+pyproj
+requests
