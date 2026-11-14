@@ -10,7 +10,8 @@ buraya lider onayı olmadan girmez.
 |---|---|---|
 | Eğim hesabı | Yerel metrik CRS (UTM zon; lat>=84 → EPSG:3413, lat<=-80 → EPSG:3031), 30 m native grid, `np.gradient` → atan. Derece tabanlı eğim yasak. | Aktif (p3 uyguluyor) |
 | slope_mean/p90 belirsizliği | Radius içi piksellerin 200 çekiliş bootstrap'ı; mean/p90 bootstrap std'si = 1-sigma. | Aktif (p3 uyguluyor) |
-| roughness detrend yöntemi | Radius içi elevasyona planar fit (en küçük kareler) uygulanıp artıkların std'si. | TODO(verify) — p3 önerisi, lider onayı bekleniyor |
+| roughness detrend yöntemi | Radius içi elevasyona planar fit (en küçük kareler) uygulanıp artıkların std'si (ddof=1). | Aktif — p3 uygulaması (lstsq planar fit) onaylandı 2026-11-14 |
+| temp_amplitude mevsimsellik | Yıllık çevrim ortalaması tercih edilir (mevsimsel pencere Earth'ü yaz tarafına önyargılı yapar); mevsimsel pencere kaçınılmazsa `_src` etiketlenir (ör. `MOD11A2.061_summer_2025`). | Karar: yıllık — p3'e iletildi, uygulama bekleniyor |
 | temp_amplitude | Gündüz-gece LST farkı (MOD11A2.061, DN x 0.02 K); yıllık çevre ortalaması kullanılırsa `_src`'e `..._annual_mean` eklenir. | Aktif |
 | albedo | MCD43A3.061 shortwave (BSA/WSA seçimi için not: BSA, sabit güneş açısı analoguna daha yakın — lider kararı TODO(verify)). | TODO(verify) |
 | thermal_inertia (Earth) | Doğrudan küresel ürün yok; ATI (apparent thermal inertia) türetmesi kalibrasyon gerektiriyor. | Onaysız sayı yasak → NaN |
