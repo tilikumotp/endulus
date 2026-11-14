@@ -34,7 +34,6 @@ from scoring.similarity import (  # noqa: E402
     axis_scores_with_draws,
     combine_axes_with_uncertainty,
 )
-from scoring.portfolio import select_portfolio  # noqa: E402
 from scoring.validation import run_blind_validation  # noqa: E402
 
 import i18n  # noqa: E402
@@ -43,7 +42,7 @@ LOGGER = logging.getLogger(__name__)
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Moon/Mars <-> Earth Analog Finder",
+    page_title="Moon <-> Earth Similar Conditions Analysis",
     page_icon="🌕",
     layout="wide",
 )
@@ -82,9 +81,11 @@ FEATURE_UNITS = {
 
 VALIDATION_TOP_K = 5  # descriptive rank threshold, not a pass/fail criterion
 
-# Türkiye bounding box for the region filter (Karacadağ sites live inside).
-TURKEY_LAT = (35.5, 43.0)
-TURKEY_LON = (25.5, 45.0)
+# Continent buckets for the table filter, resolved from site coordinates.
+REGION_OPTIONS = [
+    "all", "europe", "asia", "africa", "north_america",
+    "south_america", "oceania", "antarctica",
+]
 
 # Active language + shorthand resolver (updated in the sidebar).
 LANG = i18n.DEFAULT_LANG
@@ -151,10 +152,18 @@ def score_earth(
 
 
 def _region_of(lat: float, lon: float) -> str:
-    """Coarse region tag for the table filter ('turkey' or 'other')."""
-    in_box = (TURKEY_LON[0] <= lon <= TURKEY_LON[1]
-              and TURKEY_LAT[0] <= lat <= TURKEY_LAT[1])
-    return "turkey" if in_box else "other"
+    """Continent bucket resolved from site coordinates (rules checked in order)."""
+    if lat < -60:
+        return "antarctica"
+    if lat < 0 and lon > 110:
+        return "oceania"
+    if lon < -30:
+        return "south_america" if lat < 15 else "north_america"
+    if -20 <= lon < 35 and lat < 37:
+        return "africa"
+    if lon > 26:
+        return "asia"
+    return "europe"
 
 
 def _role_text(role: str) -> str:
@@ -373,10 +382,6 @@ with st.sidebar:
     top_n = st.slider(
         T("top_n_label"), 1, max(2, len(earth_df)), min(6, len(earth_df))
     )
-    min_score = st.slider(
-        T("min_score_label"), 0.30, 0.95, 0.70, 0.05,
-        help=T("min_score_help"),
-    )
 
 # ── TITLE ────────────────────────────────────────────────────────────────────
 st.title(T("app_title"))
@@ -408,9 +413,9 @@ with st.expander(f"{T('ref_expander')} · {ref_name.split('(')[0].strip()}"):
     st.caption(T("temp_note"))
 
 # ── TABS ─────────────────────────────────────────────────────────────────────
-tab_map, tab_radar, tab_table, tab_validation, tab_portfolio, tab_breakdown = st.tabs([
+tab_map, tab_radar, tab_table, tab_validation, tab_breakdown = st.tabs([
     T("tab_map"), T("tab_radar"), T("tab_table"),
-    T("tab_validation"), T("tab_portfolio"), T("tab_breakdown"),
+    T("tab_validation"), T("tab_breakdown"),
 ])
 
 # ── TAB 1: MAP ───────────────────────────────────────────────────────────────
@@ -446,24 +451,16 @@ with tab_radar:
 # ── TAB 3: SCORE TABLE ───────────────────────────────────────────────────────
 with tab_table:
     st.markdown(T("table_caption"))
-    role_filter = st.multiselect(
-        T("filter_role"), ["validation", "candidate"],
-        default=["validation", "candidate"],
-        format_func=lambda k: _role_text(k),
-        help=T("filter_role_help"),
-    )
     lith_opts = sorted(set(result["lithology_class"].dropna().astype(str)))
     lith_filter = st.multiselect(
         T("filter_lith"), lith_opts,
         format_func=lambda c: i18n.lith_label(c, LANG),
     )
     region_filter = st.selectbox(
-        T("filter_region"), ["all", "turkey", "other"],
+        T("filter_region"), REGION_OPTIONS,
         format_func=lambda k: T(f"region_{k}"),
     )
     shown = result
-    if role_filter:
-        shown = shown[shown["role"].isin(role_filter)]
     if lith_filter:
         shown = shown[shown["lithology_class"].astype(str).isin(lith_filter)]
     if region_filter != "all":
@@ -471,7 +468,7 @@ with tab_table:
 
     def _fmt(score: float, lo: float, hi: float) -> str:
         if np.isnan(score):
-            return "—"
+            return ""
         if np.isnan(lo) or np.isnan(hi):
             return f"{score:.2f}"
         return f"{score:.2f} [{lo:.2f}–{hi:.2f}]"
@@ -511,79 +508,53 @@ with tab_validation:
     top_k_count = int(val["in_top_k"].sum())
     st.metric(
         T("val_metric_label"), f"{top_k_count} / {len(val)}",
-        help=T("val_metric_help", a=top_k_count, b=len(val)),
+        help=T("val_metric_help"),
     )
 
-    fig = go.Figure()
-    for axis in axes:
-        sub = val[val["axis"] == axis].dropna(subset=["rank"])
-        fig.add_trace(go.Bar(
-            y=sub["name"], x=sub["rank"], orientation="h",
-            name=AXIS_LABELS[axis],
-        ))
+    # Simple summary chart: one bar per criterion, counting how many of the
+    # 10 comparisons had a known analogue inside the top 5.
+    per_axis = [
+        int(val[val["axis"] == a]["in_top_k"].sum()) for a in axes
+    ]
+    n_val_sites = int((val["axis"] == axes[0]).sum())
+    fig = go.Figure(go.Bar(
+        x=[AXIS_LABELS[a] for a in axes],
+        y=per_axis,
+        marker_color=["#8A5A18", "#66838A", "#7B8088"][: len(axes)],
+        text=[f"{c} / {n_val_sites}" for c in per_axis],
+        textposition="outside",
+        cliponaxis=False,
+    ))
     fig.update_layout(
         template="plotly_white",
-        barmode="group",
-        xaxis=dict(
-            autorange="reversed",
-            title=T("val_rank_axis"),
+        yaxis=dict(
+            range=[0, max(n_val_sites, max(per_axis) + 1)],
+            dtick=max(n_val_sites // 5, 1),
             gridcolor="rgba(55,48,38,0.14)",
             zeroline=False,
         ),
-        yaxis=dict(gridcolor="rgba(55,48,38,0.10)"),
-        margin=dict(l=10, r=10, t=10, b=10),
-        height=320,
-        legend=dict(orientation="h", y=1.12),
-        colorway=["#8A5A18", "#66838A", "#7B8088"],
+        margin=dict(l=10, r=10, t=30, b=10),
+        height=340,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#2C2923"),
     )
     st.plotly_chart(fig, width="stretch")
+    st.caption(T("val_chart_caption"))
 
-    val_tbl = val[["name", "axis", "rank", "n_sites", "in_top_k"]].copy()
+    val_tbl = val[["name", "axis", "rank", "in_top_k"]].copy()
     val_tbl["axis"] = val_tbl["axis"].map(lambda a: AXIS_LABELS.get(a, a))
-    val_tbl["in_top_k"] = val_tbl["in_top_k"].map(
-        lambda b: T("val_yes") if b else T("val_no"))
+    val_tbl["verdict"] = val_tbl["in_top_k"].map(
+        lambda b: T("val_verdict_yes") if b else T("val_verdict_no"))
+    val_tbl = val_tbl.drop(columns=["in_top_k"])
     val_tbl.columns = [
         T("val_col_site"), T("val_col_axis"), T("val_col_rank"),
-        T("val_col_nsites"), T("val_col_topk"),
+        T("val_col_verdict"),
     ]
     st.dataframe(val_tbl.sort_values(
-        [T("val_col_site"), T("val_col_axis")]), width="stretch", hide_index=True)
+        [T("val_col_axis"), T("val_col_rank")]), width="stretch", hide_index=True)
 
-# ── TAB 5: PORTFOLIO (greedy set-cover heuristic) ────────────────────────────
-with tab_portfolio:
-    st.markdown(T("port_intro"))
-    selected_ids, uncovered = select_portfolio(long_scores, min_score, axes=axes)
-    if not selected_ids:
-        st.info(T("port_empty"))
-    else:
-        rows = []
-        for sid in selected_ids:
-            grp = long_scores[
-                (long_scores["site_id"] == sid) & long_scores["score"].notna()
-            ]
-            covered = [AXIS_LABELS[a] for a, s in zip(grp["axis"], grp["score"])
-                       if s >= min_score]
-            name = earth_df.loc[earth_df["site_id"] == sid, "name"].iloc[0]
-            rows.append({
-                T("port_col_pick"): len(rows) + 1,
-                T("port_col_site"): name,
-                T("port_col_covers"): ", ".join(covered),
-            })
-        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-
-        if uncovered:
-            uncovered_txt = ", ".join(AXIS_LABELS[a] for a in uncovered)
-            st.markdown(
-                T("port_uncovered", list=uncovered_txt) + " "
-                + T("port_uncovered_note")
-            )
-        else:
-            st.markdown(T("port_all_covered"))
-
-# ── TAB 6: ANALOGY LIMITS ────────────────────────────────────────────────────
+# ── TAB 5: ANALOGY LIMITS ────────────────────────────────────────────────────
 with tab_breakdown:
     st.markdown(T("breakdown_notes"))
     st.divider()
