@@ -35,7 +35,6 @@ MOON_GEOD_PROJ4 = "+proj=longlat +R=1737400 +no_defs"
 ALBEDO_SRC = "LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0_broadband_eq"
 BROADBAND_ALBEDO_FACTOR = 0.38  # Zero-phase 1064nm normal to broadband solar hemispherical albedo (Vasavada et al. 2012; Hayne et al. 2017)
 DIVINER_SRC = "LRO-L-DLRE-5-PCP-V1.0:pcp_avg_tbol_pols_240m_v2022"
-LITHOLOGY_SRC = "LRO_LOLA_Diviner_SouthPole_Regolith_Zuber2012_Spudis2008"
 
 DEFAULT_RADIUS_M = 1000.0
 
@@ -149,11 +148,11 @@ VERIFIED_MOON_SITES: list[MoonSiteSpec] = [
 
 
 def ordered_columns() -> list[str]:
-    """Return all 37 contract columns in exact AGENTS.md section 5 order."""
+    """Return all 36 contract columns in exact AGENTS.md section 5 order."""
     cols = list(IDENTITY_COLS)
     for feat in FEATURES:
         cols += [feat, f"{feat}_sd", f"{feat}_src", f"{feat}_res_m"]
-    cols += ["lithology_class", "lithology_class_src"]
+    cols += ["lithology_class"]
     return cols
 
 
@@ -270,6 +269,9 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
     slp_err, _, _, _, _ = fetch_pgda_window(
         site["site_id"], site["pgda_site"], "slperr", x0_m, y0_m, buffer_m=radius_m + 100.0
     )
+    toterr, _, _, _, _ = fetch_pgda_window(
+        site["site_id"], site["pgda_site"], "toterr", x0_m, y0_m, buffer_m=radius_m + 100.0
+    )
 
     if dx_m < 0.5 or dx_m > 10000.0:
         raise ValueError(f"Projeksiyon birimi metre degil! dx={dx_m}")
@@ -286,6 +288,7 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
 
     site_slopes = slope_deg[mask]
     site_errs = slp_err[mask & np.isfinite(slp_err)]
+    site_toterr = toterr[mask & np.isfinite(toterr) & (toterr > 0.0)]
     site_elev = elev[mask]
     dx_local = xx[mask] - x0_m
     dy_local = yy[mask] - y0_m
@@ -301,22 +304,26 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
 
     # 200-draw bootstrap (docs/data_notes.md section 1) + PGDA RMS uncertainty (Barker et al. 2021)
     rng = np.random.default_rng(42)
-    b_means, b_p90s, b_rough = [], [], []
+    b_means, b_p90s, b_rough, b_relief = [], [], [], []
     for _ in range(200):
         idx = rng.integers(0, n_pix, size=n_pix)
         b_means.append(np.mean(site_slopes[idx]))
         b_p90s.append(np.percentile(site_slopes[idx], 90.0))
         b_rough.append(np.std(residuals[idx], ddof=1))
+        b_relief.append(float(np.max(site_elev[idx]) - np.min(site_elev[idx])))
 
     boot_mean_sd = float(np.std(b_means, ddof=1))
     boot_p90_sd = float(np.std(b_p90s, ddof=1))
     boot_rough_sd = float(np.std(b_rough, ddof=1))
+    boot_relief_sd = float(np.std(b_relief, ddof=1))
     rms_model_sd = float(np.nanmedian(site_errs)) if len(site_errs) > 0 else boot_mean_sd
+    vert_rms_m = float(np.nanmedian(site_toterr)) if len(site_toterr) > 0 else 0.35
 
     return {
         "x0_m": float(x0_m),
         "y0_m": float(y0_m),
         "n_pixels": n_pix,
+        "vert_rms_m": vert_rms_m,
         "elev_min_m": float(np.min(site_elev)),
         "elev_max_m": float(np.max(site_elev)),
         "slope_min_deg": float(np.min(site_slopes)),
@@ -326,9 +333,9 @@ def extract_site_topography(site: MoonSiteSpec) -> dict[str, object]:
         "slope_p90": slope_p90,
         "slope_p90_sd": float(math.hypot(rms_model_sd, boot_p90_sd)),
         "roughness": roughness_m,
-        "roughness_sd": float(math.hypot(0.35, boot_rough_sd)),
+        "roughness_sd": float(math.hypot(vert_rms_m, boot_rough_sd)),
         "relief": relief_m,
-        "relief_sd": 0.50,
+        "relief_sd": float(math.hypot(math.sqrt(2.0) * vert_rms_m, boot_relief_sd)),
         "elev_win": elev,
         "slope_win": slope_deg,
         "xs_m": xs,
@@ -471,7 +478,7 @@ def save_sanity_plot(site_results: list[tuple[MoonSiteSpec, dict[str, object]]],
 
 
 def build_contract_dataframe(rows: list[dict[str, object]]) -> pd.DataFrame:
-    """Create the Moon reference DataFrame with all 37 contract columns in exact AGENTS.md order."""
+    """Create the Moon reference DataFrame with all 36 contract columns in exact AGENTS.md order."""
     df = pd.DataFrame(rows)
     for feat in FEATURES:
         df[feat] = df[feat].astype("float64")
@@ -479,7 +486,6 @@ def build_contract_dataframe(rows: list[dict[str, object]]) -> pd.DataFrame:
         df[f"{feat}_res_m"] = df[f"{feat}_res_m"].astype("float64")
         df[f"{feat}_src"] = df[f"{feat}_src"].fillna("").astype("string")
     df["lithology_class"] = df["lithology_class"].fillna("").astype("string")
-    df["lithology_class_src"] = df["lithology_class_src"].fillna("").astype("string")
     return df[ordered_columns()]
 
 
@@ -561,12 +567,11 @@ def main() -> int:
             row["albedo_res_m"] = float(NATIVE_RES_M["albedo"])
 
         row["lithology_class"] = site["lithology_class"]
-        row["lithology_class_src"] = LITHOLOGY_SRC
         rows.append(row)
 
         print(
             f"[{site['site_id']}] ({site['lat']:.4f}°, {site['lon']:.4f}°) -> "
-            f"X={float(stats['x0_m']):.1f}m, Y={float(stats['y0_m']):.1f}m | n_pix={stats['n_pixels']}"
+            f"X={float(stats['x0_m']):.1f}m, Y={float(stats['y0_m']):.1f}m | n_pix={stats['n_pixels']} | vert_rms={float(stats['vert_rms_m']):.4f}m"
         )
         print(
             f"   slope_mean={float(stats['slope_mean']):.4f}±{float(stats['slope_mean_sd']):.4f}° | "
