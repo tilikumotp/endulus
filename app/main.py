@@ -288,6 +288,8 @@ ref_tbl = pd.DataFrame({
     "sd": [round(float(ref_row.get(f"{f}_sd", np.nan)), 3) for f in ref_features],
 })
 st.dataframe(ref_tbl, width="stretch", hide_index=True)
+st.caption("`temp_amplitude` = annual diurnal-cycle mean (docs/data_notes.md, "
+           "leader decision 2026-11-14).")
 
 st.divider()
 
