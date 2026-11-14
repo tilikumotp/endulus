@@ -28,13 +28,39 @@ src/moon_mars/       Person 2: Lunar South Pole feature extraction (LRO LOLA / D
 src/earth/           Person 3: Earth features + candidate curation (Copernicus GLO-30 / MODIS)
 src/scoring/         Leader: similarity, uncertainty, portfolio, validation
 app/                 Person 4: Streamlit application
+web/                 React + Vite interactive observatory (Leaflet GIS + 3D DEM)
 report/              Person 4: written report, figures, demo & slide outlines
 ```
 
 Each person works in their own folder on their own branch; only the leader
 merges to `main`.
 
-## Running the application
+## Running the Web Observatory (React / Vite)
+
+Requires Node.js 18+.
+
+```bash
+git pull origin main
+cd web
+npm install
+npm run dev          # opens http://127.0.0.1:5173
+```
+
+To test the production build locally:
+
+```bash
+cd web
+npm run build
+npm run preview      # serves dist/ at http://127.0.0.1:4173
+```
+
+To regenerate static JSON/figure assets from `data/processed/`:
+
+```bash
+python web/scripts/export_web_data.py
+```
+
+## Running the Streamlit application
 
 ```bash
 streamlit run app/main.py
