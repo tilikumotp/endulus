@@ -18,7 +18,11 @@ from rasterio.merge import merge
 from rasterio.warp import calculate_default_transform, reproject
 from rasterio.windows import Window, from_bounds as window_from_bounds
 
-from src.earth.modis_pipeline import check_mcd43a3_access, fetch_mod11a2_temp_amplitude
+from src.earth.modis_pipeline import (
+    check_mcd43a3_access,
+    fetch_mcd43a3_albedo,
+    fetch_mod11a2_temp_amplitude,
+)
 from src.earth.sites import VERIFIED_EARTH_SITES, SiteSpec
 
 COPERNICUS_DEM_SRC = "Copernicus_DEM_GLO-30"
@@ -474,7 +478,8 @@ def save_sanity_html(
             f"{d['site_id']} ({d['dst_crs']})<br>"
             f"slope={d['slope_mean']:.2f}° (p90={d['slope_p90']:.2f}°), "
             f"rough={d['roughness']:.1f}m, relief={d['relief']:.1f}m, "
-            f"ΔT={d.get('temp_amplitude', float('nan')):.1f}K"
+            f"ΔT={d.get('temp_amplitude', float('nan')):.1f}K, "
+            f"alb={d.get('albedo', float('nan')):.3f}"
             for d in diagnostics
         ],
     )
@@ -529,7 +534,7 @@ def run_task2(
     rows: list[dict[str, Any]] = []
     diagnostics: list[dict[str, Any]] = []
 
-    print("=== EARTH PIPELINE: COPERNICUS DEM GLO-30 & MODIS MOD11A2.061 ===")
+    print("=== EARTH PIPELINE: COPERNICUS DEM GLO-30, MOD11A2.061 & MCD43A3.061 ===")
     for s in target_sites:
         sid = s["site_id"]
         lat = s["lat"]
@@ -543,18 +548,24 @@ def run_task2(
             dem_m, transform, lat, lon, dst_crs=dst_crs, radius_m=radius_m
         )
         modis_lst = fetch_mod11a2_temp_amplitude(sid, lat, lon)
+        modis_alb = fetch_mcd43a3_albedo(sid, lat, lon)
 
+        alb_str = (
+            f"{modis_alb['albedo']:.4f}±{modis_alb['albedo_sd']:.4f} ({modis_alb['tile_id']})"
+            if modis_alb is not None
+            else "NaN"
+        )
         print(
             f"[{sid}] DEM dst={summary['dst_shape']} ({summary['dst_crs']}) | "
-            f"MODIS native={tuple(modis_lst['native_shape'])} res={tuple(modis_lst['native_res_m'])}m"
+            f"MOD11A2={tuple(modis_lst['native_shape'])} res={tuple(modis_lst['native_res_m'])}m"
         )
         print(
             f"   slope_mean={stats['slope_mean']:.3f}±{stats['slope_mean_sd']:.3f}° | "
             f"slope_p90={stats['slope_p90']:.3f}±{stats['slope_p90_sd']:.3f}° | "
             f"roughness={stats['roughness']:.2f}±{stats['roughness_sd']:.2f}m | "
             f"relief={stats['relief']:.2f}±{stats['relief_sd']:.2f}m | "
-            f"temp_amp={modis_lst['temp_amplitude']:.2f}±{modis_lst['temp_amplitude_sd']:.2f}K "
-            f"(Day={modis_lst['lst_day_mean_k']:.1f}K, Night={modis_lst['lst_night_mean_k']:.1f}K)"
+            f"temp_amp={modis_lst['temp_amplitude']:.2f}±{modis_lst['temp_amplitude_sd']:.2f}K | "
+            f"albedo={alb_str}"
         )
 
         row = make_empty_contract_row(
@@ -577,6 +588,12 @@ def run_task2(
         row["temp_amplitude_src"] = modis_lst["temp_amplitude_src"]
         row["temp_amplitude_res_m"] = 1000.0
 
+        if modis_alb is not None:
+            row["albedo"] = modis_alb["albedo"]
+            row["albedo_sd"] = modis_alb["albedo_sd"]
+            row["albedo_src"] = modis_alb["albedo_src"]
+            row["albedo_res_m"] = 500.0
+
         rows.append(row)
         diagnostics.append(
             {
@@ -584,6 +601,7 @@ def run_task2(
                 "dst_crs": dst_crs,
                 "radius_m": radius_m,
                 "temp_amplitude": modis_lst["temp_amplitude"],
+                "albedo": modis_alb["albedo"] if modis_alb is not None else float("nan"),
                 **stats,
             }
         )

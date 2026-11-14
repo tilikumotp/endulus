@@ -13,7 +13,7 @@ buraya lider onayı olmadan girmez.
 | roughness detrend yöntemi | Radius içi elevasyona planar fit (en küçük kareler) uygulanıp artıkların std'si (ddof=1). | Aktif — p3 uygulaması (lstsq planar fit) onaylandı 2026-11-14 |
 | temp_amplitude mevsimsellik | Yıllık çevrim ortalaması tercih edilir (mevsimsel pencere Earth'ü yaz tarafına önyargılı yapar); mevsimsel pencere kaçınılmazsa `_src` etiketlenir (ör. `MOD11A2.061_summer_2025`). | Aktif — p3 yıllık çevrime geçti (`2024-01-01/2024-12-31`, `max_composites=24`) |
 | temp_amplitude | Gündüz-gece LST farkı (MOD11A2.061, DN x 0.02 K); yıllık çevrim ortalaması kullanılırsa `_src`'e `MOD11A2.061_annual_mean` eklenir (`temp_amplitude_sd` v0'da 3x3 piksel + granül birleşik std, `ddof=1`). | Aktif |
-| albedo | MCD43A3.061 shortwave (BSA/WSA seçimi için not: BSA, sabit güneş açısı analoguna daha yakın — lider kararı TODO(verify)). | TODO(verify) |
+| albedo | MCD43A3.061 shortwave (`Albedo_BSA_shortwave`, DN x 0.001, 500 m Sinusoidal grid; `albedo_sd` 5x5 piksel + çoklu granül birleşik std, `ddof=1`). | Aktif (p3 uyguladı) |
 | thermal_inertia (Earth) | Doğrudan küresel ürün yok; ATI (apparent thermal inertia) türetmesi kalibrasyon gerektiriyor. | Onaysız sayı yasak → NaN |
 
 ## 2. NaN gerekçeleri (hiçbir 0 yer tutucu kullanılmıyor)
