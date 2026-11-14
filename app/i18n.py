@@ -118,6 +118,7 @@ TEXTS: dict[str, dict[str, str]] = {
     # ── tabs ─────────────────────────────────────────────────────────────────
     "tab_map": {"tr": "🗺️ Harita", "en": "🗺️ Map"},
     "tab_radar": {"tr": "📡 Radar Grafikleri", "en": "📡 Radar Charts"},
+    "tab_terrain": {"tr": "⛰️ 3D Arazi", "en": "⛰️ 3D Terrain"},
     "tab_table": {"tr": "📊 Skor Tablosu", "en": "📊 Score Table"},
     "tab_validation": {"tr": "✅ Doğrulama", "en": "✅ Validation"},
     "tab_portfolio": {"tr": "🧭 Ziyaret Portföyü", "en": "🧭 Visit Portfolio"},
@@ -178,6 +179,62 @@ TEXTS: dict[str, dict[str, str]] = {
     "axis_mobility": {"tr": "Mobilite", "en": "Mobility"},
     "axis_thermal": {"tr": "Termal", "en": "Thermal"},
     "axis_surface": {"tr": "Yüzey", "en": "Surface"},
+    # ── 3D terrain tab ───────────────────────────────────────────────────────
+    "body_earth": {"tr": "Dünya", "en": "Earth"},
+    "terrain_intro": {
+        "tr": ("Seçili Ay bölgesi ile seçili Dünya sahasının arazisi yan "
+               "yana 3D yüzey olarak gösterilir. Renk, arazi "
+               "gölgelendirmesinden gelir. Uydu görüntüleri için Analojinin "
+               "Sınırları sekmesindeki 2D kartlara bakın."),
+        "en": ("The terrain of the selected Moon region and the selected "
+               "Earth site are shown side by side as 3D surfaces. Colour "
+               "comes from terrain shading. For satellite imagery see the "
+               "2D cards on the Limits of the Analogy tab."),
+    },
+    "terrain_pick": {
+        "tr": "Sağ tarafta gösterilecek Dünya sahası",
+        "en": "Earth site shown on the right",
+    },
+    "terrain_exag_label": {
+        "tr": "Dikey abartı (×)",
+        "en": "Vertical exaggeration (×)",
+    },
+    "terrain_exag_note": {
+        "tr": "Dikey ölçek abartılı gösteriliyor",
+        "en": "Vertical scale is exaggerated",
+    },
+    "terrain_orbit_label": {
+        "tr": "Kamera yörünge açısı (derece)",
+        "en": "Camera orbit angle (degrees)",
+    },
+    "terrain_hover": {
+        "tr": ("Sağa: %{x:.2f} km<br/>İleri: %{y:.2f} km"
+               "<br/>Yükselti: %{z:.0f} m<extra></extra>"),
+        "en": ("Right: %{x:.2f} km<br/>Forward: %{y:.2f} km"
+               "<br/>Elevation: %{z:.0f} m<extra></extra>"),
+    },
+    "terrain_card_source": {
+        "tr": ("Kaynak: {src} · Çözünürlük: {res} m/piksel · "
+               "Pencere: {km} km · Yükselti verisi"),
+        "en": ("Source: {src} · Resolution: {res} m/pixel · "
+               "Window: {km} km · elevation data"),
+    },
+    "terrain_card_stub": {
+        "tr": ("Örnek arazi verisi · istatistik kaynağı: {src} · "
+               "Çözünürlük: {res} m/piksel · Pencere: {km} km"),
+        "en": ("Generated sample terrain · stats source: {src} · "
+               "Resolution: {res} m/pixel · Window: {km} km"),
+    },
+    "terrain_stub_note": {
+        "tr": ("Bu 3D kartlarda örnek arazi verisi kullanılıyor. Örnek "
+               "arazi, sahaların gerçek ölçüm istatistiklerinden (eğim, "
+               "pürüz, yükselti farkı) üretilir; gerçek yükselti paftaları "
+               "geldiğinde kartlar otomatik olarak gerçeğe döner."),
+        "en": ("These 3D cards use generated sample terrain. The sample is "
+               "built from the sites' real measured statistics (slope, "
+               "roughness, relief); the cards switch to real elevation "
+               "tiles automatically once they arrive."),
+    },
     # ── score table ──────────────────────────────────────────────────────────
     "table_caption": {
         "tr": ("Her Dünya sahası için görev ağırlıklı genel benzerlik ve "

@@ -33,3 +33,14 @@ MODIS MOD11A2.061, NASA MODIS MCD43A3.061).
   one-bar-per-criterion summary chart (count of known analogues reaching
   the top 5 out of 10 comparisons per criterion, labels on bars) plus a
   plain-language table with Saha / Ölçüt / Sıralama / Değerlendirme columns.
+
+- `27_3d_terrain_stub.jpeg`: New "3D Arazi" tab: side-by-side Plotly 3D
+  surfaces (left Moon reference, right selected Earth site) coloured by
+  hillshade (NW light, 45° altitude), with an honest vertical-exaggeration
+  slider (1×–4×, default 2×, "Dikey ölçek abartılı gösteriliyor" note), a
+  0–360° camera orbit slider and an r=1 km measurement ring. Until the real
+  DEM tiles land (M6/E7), each card uses generated sample terrain shaped by
+  the site's own measured slope/roughness/relief statistics and is labelled
+  "Örnek arazi verisi" with its stats source + resolution + window in one
+  line; cards switch to real tiles automatically when
+  `data/processed/dem_tiles/{site_id}.npz` appears.
