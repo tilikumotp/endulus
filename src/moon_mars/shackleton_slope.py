@@ -561,14 +561,20 @@ def build_contract_dataframe(rows: list[dict[str, object]]) -> pd.DataFrame:
 
 
 def main() -> int:
-    """Run LOLA DEM (+ Diviner & Albedo in stage 2) extraction for all 5 Lunar South Pole reference sites."""
+    """Run LOLA DEM and broadband Albedo extraction for all 5 Lunar South Pole reference sites."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--stage",
         type=int,
         choices=[1, 2],
         default=2,
-        help="1: DEM mobility features only; 2: Full DEM + Diviner temp_amplitude + LOLA albedo",
+        help="1: DEM mobility features only; 2: DEM + LOLA broadband albedo (thermal NaN per Gate 0/1 decision)",
+    )
+    parser.add_argument(
+        "--include-v2-thermal",
+        action="store_true",
+        default=False,
+        help="Populate experimental Diviner temp_amplitude / 1D TI (disabled by default per Leader Decision #30)",
     )
     args = parser.parse_args()
 
@@ -585,11 +591,12 @@ def main() -> int:
             LDAM_LBL_FILENAME,
             500,
         )
-        pcp_tab_path = ensure_downloaded(
-            f"https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/diurnal/ltim/pols/{DIVINER_PCP_FILENAME}",
-            DIVINER_PCP_FILENAME,
-            1_000_000,
-        )
+        if args.include_v2_thermal:
+            pcp_tab_path = ensure_downloaded(
+                f"https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/diurnal/ltim/pols/{DIVINER_PCP_FILENAME}",
+                DIVINER_PCP_FILENAME,
+                1_000_000,
+            )
 
     print(f"=== AY GUNEY KUTBU REFERANS PIPELINE (ASAMA {args.stage}, CRS: {MOON_STEREO_PROJ4}) ===")
     rows: list[dict[str, object]] = []
@@ -620,30 +627,33 @@ def main() -> int:
             row[f"{topo_feat}_src"] = site["dem_src"]
             row[f"{topo_feat}_res_m"] = float(NATIVE_RES_M[topo_feat])
 
-        if args.stage >= 2 and ldam_lbl_path is not None and pcp_tab_path is not None:
-            temp_amp, temp_amp_sd = extract_diviner_temp_metrics(
-                site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
-            )
-            ti_val, ti_sd = extract_diviner_thermal_inertia_1d(
-                site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
-            )
+        if args.stage >= 2 and ldam_lbl_path is not None:
             albedo_val, albedo_sd = extract_albedo_metrics(
                 ldam_lbl_path, float(stats["x0_m"]), float(stats["y0_m"]), site["radius_m"]
             )
-            row["temp_amplitude"] = float(temp_amp)
-            row["temp_amplitude_sd"] = float(temp_amp_sd)
-            row["temp_amplitude_src"] = DIVINER_SRC
-            row["temp_amplitude_res_m"] = float(NATIVE_RES_M["temp_amplitude"])
-
-            row["thermal_inertia"] = float(ti_val)
-            row["thermal_inertia_sd"] = float(ti_sd)
-            row["thermal_inertia_src"] = DIVINER_TI_SRC
-            row["thermal_inertia_res_m"] = float(NATIVE_RES_M["thermal_inertia"])
-
             row["albedo"] = float(albedo_val)
             row["albedo_sd"] = float(albedo_sd)
             row["albedo_src"] = ALBEDO_SRC
             row["albedo_res_m"] = float(NATIVE_RES_M["albedo"])
+
+            # Gate 0 Option (b) & Gate 1 (Leader Decision #30): thermal_inertia and temp_amplitude remain NaN
+            # in v1 because Diviner 29.5-day polar cycle vs Earth 24h MODIS MOD11A2.061 definitions differ.
+            if args.include_v2_thermal and pcp_tab_path is not None:
+                temp_amp, temp_amp_sd = extract_diviner_temp_metrics(
+                    site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
+                )
+                ti_val, ti_sd = extract_diviner_thermal_inertia_1d(
+                    site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
+                )
+                row["temp_amplitude"] = float(temp_amp)
+                row["temp_amplitude_sd"] = float(temp_amp_sd)
+                row["temp_amplitude_src"] = DIVINER_SRC
+                row["temp_amplitude_res_m"] = float(NATIVE_RES_M["temp_amplitude"])
+
+                row["thermal_inertia"] = float(ti_val)
+                row["thermal_inertia_sd"] = float(ti_sd)
+                row["thermal_inertia_src"] = DIVINER_TI_SRC
+                row["thermal_inertia_res_m"] = float(NATIVE_RES_M["thermal_inertia"])
 
         row["lithology_class"] = site["lithology_class"]
         rows.append(row)

@@ -147,21 +147,19 @@ def test_moon_visual_atlas_files_and_sizes() -> None:
 
 
 def test_moon_thermal_and_albedo_bounds() -> None:
-    """Verify Diviner temp_amplitude, 1D Hayne (2017) thermal_inertia (50-500 TIU), and broadband LOLA albedo."""
+    """Verify Gate 0(b)/Gate 1 suspended thermal NaN contract and broadband LOLA albedo bounds."""
     df = pd.read_parquet(PROCESSED_PATH)
-    assert df["temp_amplitude"].between(50.0, 300.0).all()
-    assert (df["temp_amplitude_sd"] >= 2.5).all()
-    assert (df["temp_amplitude_res_m"] == 240.0).all()
+    # Gate 0 Option (b) & Gate 1 (Leader Decision #30): both thermal features and their SD/src are suspended (NaN / "")
+    for col in ("temp_amplitude", "thermal_inertia"):
+        assert df[col].isna().all(), f"{col} must be NaN per Leader Decision #30"
+        assert df[f"{col}_sd"].isna().all(), f"{col}_sd must be NaN"
+        assert (df[f"{col}_src"] == "").all(), f"{col}_src must be empty string"
+        assert (df[f"{col}_res_m"] == 240.0).all(), f"{col}_res_m must match native 240 m grid"
 
     assert df["albedo"].between(0.05, 0.30).all()
     assert (df["albedo_sd"] > 0.0).all()
     assert (df["albedo_res_m"] == 1000.0).all()
     assert (df["albedo_src"] == "LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0_broadband_eq").all()
-
-    assert df["thermal_inertia"].between(50.0, 500.0).all()
-    assert (df["thermal_inertia_sd"] > 0.0).all()
-    assert (df["thermal_inertia_src"] == "LRO-L-DLRE-5-PCP-V1.0:1D_Hayne2017_polar_TI_v1").all()
-    assert (df["thermal_inertia_res_m"] == 240.0).all()
 
 
 def test_albedo_sensitivity_runs() -> None:
