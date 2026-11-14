@@ -27,20 +27,16 @@ if str(SRC) not in sys.path:
 if str(ROOT / "app") not in sys.path:
     sys.path.insert(0, str(ROOT / "app"))
 
-from i18n import (  # noqa: E402
-    AXIS_LABELS_ALL,
-    BREAKDOWN,
-    I18N,
-    MISSION_LABELS_ALL,
-    ROLE_LABELS,
-)
+from i18n import BREAKDOWN, I18N, ROLE_LABELS  # noqa: E402
+from i18n import AXIS_LABELS as AXIS_LABELS_ALL  # noqa: E402
+from i18n import MISSION_LABELS as MISSION_LABELS_ALL  # noqa: E402
 
 from scoring.config import AXES, MISSION_PRESETS  # noqa: E402
 from scoring.similarity import (  # noqa: E402
     axis_gaps,
     axis_pivot,
-    axis_scores,
-    combine_axes,
+    axis_scores_with_draws,
+    combine_axes_with_uncertainty,
 )
 from scoring.portfolio import select_portfolio  # noqa: E402
 from scoring.validation import run_blind_validation  # noqa: E402
@@ -98,7 +94,7 @@ MISSION_LABELS = {
     "radar_calibration": "Subsurface radar calibration",
 }
 
-VALIDATION_TOP_K = 5  # analogue counts as recovered when its rank <= k
+VALIDATION_TOP_K = 5  # descriptive rank threshold, not a pass/fail criterion
 
 
 # ── data loading ─────────────────────────────────────────────────────────────
@@ -132,14 +128,15 @@ def load_data(m_moon: float, m_earth: float) -> tuple[pd.DataFrame, pd.DataFrame
 def score_earth(
     ref_row: pd.Series, earth_df: pd.DataFrame, mission: str
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Run axis_scores + pivot + weighted combine.
+    """Run per-axis scoring and weighted combination with uncertainty draws.
 
-    Returns (result, long_scores) — long_scores is the raw axis_scores
-    output needed by the validation and portfolio tabs.
+    Returns the ranked result and per-axis scores used by validation/portfolio.
     """
-    long_scores = axis_scores(ref_row, earth_df)
+    long_scores, score_draws = axis_scores_with_draws(ref_row, earth_df)
     wide = axis_pivot(long_scores)
-    overall = combine_axes(long_scores, MISSION_PRESETS[mission])
+    overall = combine_axes_with_uncertainty(
+        long_scores, score_draws, MISSION_PRESETS[mission]
+    ).rename(columns={"q05": "q05_overall", "q95": "q95_overall"})
 
     result = (
         earth_df[["site_id", "name", "role", "lat", "lon", "lithology_class"]]
@@ -153,11 +150,11 @@ def score_earth(
 
 # ── charts ───────────────────────────────────────────────────────────────────
 def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
-    """Plotly radar of per-axis scores with CI low/high lines for one site."""
+    """Plotly radar of per-axis scores with 5th/95th percentile lines."""
     labels = [AXIS_LABELS[a] for a in axes]
     vals = [float(row.get(f"score_{a}", np.nan)) for a in axes]
-    lo = [float(row.get(f"ci_low_{a}", np.nan)) for a in axes]
-    hi = [float(row.get(f"ci_high_{a}", np.nan)) for a in axes]
+    lo = [float(row.get(f"q05_{a}", np.nan)) for a in axes]
+    hi = [float(row.get(f"q95_{a}", np.nan)) for a in axes]
 
     def _closed(xs: list[float]) -> list[float]:
         return xs + [xs[0]]
@@ -174,12 +171,12 @@ def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
     fig.add_trace(go.Scatterpolar(
         r=_closed(hi), theta=labels_c,
         line=dict(color="#8A847A", width=1, dash="dash"),
-        name=S["ci_high"], hoverinfo="skip",
+        name=S["q95"], hoverinfo="skip",
     ))
     fig.add_trace(go.Scatterpolar(
         r=_closed(lo), theta=labels_c,
         line=dict(color="#8A847A", width=1, dash="dot"),
-        name=S["ci_low"], hoverinfo="skip",
+        name=S["q05"], hoverinfo="skip",
     ))
     fig.update_layout(
         polar=dict(
@@ -210,7 +207,10 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     colour encode the mission-weighted score.
     """
     map_df = result.head(top_n)[
-        ["site_id", "name", "role", "lat", "lon", "score", "lithology_class"]
+        [
+            "site_id", "name", "role", "lat", "lon", "score",
+            "q05_overall", "q95_overall", "lithology_class",
+        ]
     ].copy()
 
     def _color(score: float) -> list[int]:
@@ -221,7 +221,18 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
 
     map_df["color"] = map_df["score"].apply(_color)
     map_df["radius"] = (map_df["score"].fillna(0.3) * 150_000 + 40_000).astype(int)
-    map_df["score_txt"] = (map_df["score"] * 100).round(1).astype(str) + "%"
+    map_df["score_txt"] = map_df["score"].map(
+        lambda value: f"{value:.3f}" if np.isfinite(value) else "—"
+    )
+    map_df["interval_txt"] = map_df.apply(
+        lambda row: (
+            f"[{row['q05_overall']:.3f}, {row['q95_overall']:.3f}]"
+            if np.isfinite(row["q05_overall"])
+            and np.isfinite(row["q95_overall"])
+            else S["uncertainty_unavailable"]
+        ),
+        axis=1,
+    )
     map_df["color_val"] = [[60, 130, 255, 220]] * len(map_df)
     map_df["role_disp"] = map_df["role"].map(
         lambda r: ROLE_LABELS[LANG].get(r, r))
@@ -229,6 +240,7 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     tooltip = {
         "html": f"<b>{{name}}</b><br/>{S['tt_role']}: {{role_disp}}"
                 f"<br/>{S['tt_score']}: {{score_txt}}"
+                f"<br/>{S['score_interval']}: {{interval_txt}}"
                 f"<br/>{S['tt_lith']}: {{lithology_class}}",
         "style": {"background": "#2C2923", "color": "white",
                   "font-size": "13px", "padding": "6px"},
@@ -353,6 +365,7 @@ with st.sidebar:
 # ── TITLE ────────────────────────────────────────────────────────────────────
 st.title(S["app_title"])
 st.caption(S["app_caption"])
+st.caption(S["thermal_data_note"])
 
 # ── COMPUTE SCORES (leader's module) ─────────────────────────────────────────
 result, long_scores = score_earth(ref_row, earth_df, mission)
@@ -393,8 +406,16 @@ with tab_radar:
         for col, (_, row) in zip(cols, chunk.iterrows()):
             with col:
                 st.plotly_chart(_radar_chart(row, axes), width="stretch")
+                q05 = row.get("q05_overall", np.nan)
+                q95 = row.get("q95_overall", np.nan)
+                interval = (
+                    f"{q05:.2f}–{q95:.2f}"
+                    if np.isfinite(q05) and np.isfinite(q95)
+                    else S["uncertainty_unavailable"]
+                )
                 st.caption(S["radar_overall"].format(
-                    score=row["score"], n=row["n_axes_used"],
+                    score=row["score"], interval=interval,
+                    n=row["n_axes_used"],
                     lith=row.get("lithology_class", "—")))
 
 # ── TAB 3: SCORE TABLE ───────────────────────────────────────────────────────
@@ -426,26 +447,29 @@ with tab_table:
                 S["matches_ref"].format(lith=lith)
                 if ref_lith and lith == ref_lith else lith
             ),
-            S["col_overall"]: "—" if np.isnan(r["score"]) else f"{r['score']:.3f}",
+            S["col_overall"]: _fmt(
+                r["score"], r.get("q05_overall", np.nan),
+                r.get("q95_overall", np.nan),
+            ),
         }
         for a in axes:
             rec[AXIS_LABELS[a]] = _fmt(
                 r.get(f"score_{a}", np.nan),
-                r.get(f"ci_low_{a}", np.nan),
-                r.get(f"ci_high_{a}", np.nan),
+                r.get(f"q05_{a}", np.nan),
+                r.get(f"q95_{a}", np.nan),
             )
         rows.append(rec)
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     st.caption(S["table_caption"])
 
-# ── TAB 4: VALIDATION (blind recovery of known analogues) ────────────────────
+# ── TAB 4: VALIDATION (blind ranking diagnostic) ────────────────────────────
 with tab_validation:
     st.markdown(S["val_intro"].format(k=VALIDATION_TOP_K, n=len(earth_df)))
     val = run_blind_validation(long_scores, earth_df, top_k=VALIDATION_TOP_K)
     val = val.merge(earth_df[["site_id", "name"]], on="site_id", how="left")
 
-    recovered = int(val["in_top_k"].sum())
-    st.metric(S["val_metric"], f"{recovered} / {len(val)}")
+    top_k_count = int(val["in_top_k"].sum())
+    st.metric(S["val_metric"], f"{top_k_count} / {len(val)}")
 
     fig = go.Figure()
     for axis in axes:
@@ -528,7 +552,7 @@ with tab_breakdown:
 
     # ── Visual & topographic context inspector (evidence panel) ─────────────
     # Purpose: evidence & exploration only. Imagery never creates or changes
-    # a score — the quantitative per-axis scores + CIs below are the basis of
+    # a score — the quantitative per-axis scores + percentiles below are the basis of
     # every claim (AGENTS.md rule 3: every number carries its *_src).
     is_moon_ref = (str(ref_row.get("body", body)).strip().lower() == "moon")
 
@@ -646,12 +670,18 @@ with tab_breakdown:
         )
 
     # Scientific context: imagery must be judged against the numbers.
-    ci_lines = [
-        f"**{AXIS_LABELS[a]}:** "
-        f"{float(inspected.get(f'score_{a}', np.nan)):.2f} "
-        f"({S['quant_range'].format(lo=float(inspected.get(f'ci_low_{a}', np.nan)), hi=float(inspected.get(f'ci_high_{a}', np.nan)))})"
-        for a in AXIS_LABELS
-    ]
+    ci_lines = []
+    for axis in AXIS_LABELS:
+        score = float(inspected.get(f"score_{axis}", np.nan))
+        q05 = float(inspected.get(f"q05_{axis}", np.nan))
+        q95 = float(inspected.get(f"q95_{axis}", np.nan))
+        score_text = f"{score:.2f}" if np.isfinite(score) else "—"
+        interval = (
+            S["quant_range"].format(lo=q05, hi=q95)
+            if np.isfinite(q05) and np.isfinite(q95)
+            else S["uncertainty_unavailable"]
+        )
+        ci_lines.append(f"**{AXIS_LABELS[axis]}:** {score_text} ({interval})")
     st.info(S["quant_head"] + " · ".join(ci_lines) + S["quant_tail"])
 
     st.markdown(S["gaps_head"].format(cand=sel_name, ref=ref_name))
