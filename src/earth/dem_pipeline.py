@@ -19,6 +19,7 @@ from rasterio.warp import calculate_default_transform, reproject
 from rasterio.windows import Window, from_bounds as window_from_bounds
 
 from src.earth.modis_pipeline import (
+    _make_retrying_session,
     check_mcd43a3_access,
     fetch_mcd43a3_albedo,
     fetch_mod11a2_temp_amplitude,
@@ -26,6 +27,14 @@ from src.earth.modis_pipeline import (
 from src.earth.sites import VERIFIED_EARTH_SITES, SiteSpec
 
 COPERNICUS_DEM_SRC = "Copernicus_DEM_GLO-30"
+NASADEM_DEM_SRC = "NASADEM_HGT_v001"
+PC_STAC_SEARCH_URL = "https://planetarycomputer.microsoft.com/api/stac/v1/search"
+PC_SAS_NASADEM_URL = "https://planetarycomputer.microsoft.com/api/sas/v1/token/nasadem"
+
+
+def get_dem_source(tif_path: Path) -> str:
+    """Return the exact DEM product identifier encoded by the cached patch filename."""
+    return NASADEM_DEM_SRC if "_nasadem30_wgs84" in tif_path.name else COPERNICUS_DEM_SRC
 
 IDENTITY_COLS: list[str] = [
     "site_id",
@@ -118,12 +127,16 @@ def _read_cog_window_via_range(
     south: float,
     east: float,
     north: float,
+    session: requests.Session | None = None,
 ) -> tuple[np.ndarray, rasterio.Affine, rasterio.crs.CRS] | None:
     """Fetch only the intersecting internal TIFF tiles via HTTP Range requests, with /vsicurl/ fallback."""
+    sess = session or _make_retrying_session()
+    r_hdr = sess.get(url, headers={"Range": "bytes=0-16383"}, timeout=15)
+    if r_hdr.status_code in (403, 404):
+        return None
+    if r_hdr.status_code not in (200, 206):
+        r_hdr.raise_for_status()
     try:
-        r_hdr = requests.get(url, headers={"Range": "bytes=0-16383"}, timeout=15)
-        if r_hdr.status_code not in (200, 206):
-            return None
         hdr = bytearray(r_hdr.content)
         if hdr[:4] != b"II*\x00":
             return _vsicurl_fallback(url, west, south, east, north)
@@ -181,7 +194,7 @@ def _read_cog_window_via_range(
         for idx in sorted(needed_indices):
             t_off = orig_offsets[idx]
             t_cnt = orig_counts[idx]
-            resp = requests.get(
+            resp = sess.get(
                 url, headers={"Range": f"bytes={t_off}-{t_off + t_cnt - 1}"}, timeout=20
             )
             resp.raise_for_status()
@@ -203,6 +216,35 @@ def _read_cog_window_via_range(
         return _vsicurl_fallback(url, west, south, east, north)
 
 
+def _fetch_nasadem_cog_urls(
+    west: float,
+    south: float,
+    east: float,
+    north: float,
+    session: requests.Session | None = None,
+) -> list[str]:
+    """Query Planetary Computer STAC nasadem collection only as fallback when Copernicus DEM is missing."""
+    sess = session or _make_retrying_session()
+    stac_resp = sess.post(
+        PC_STAC_SEARCH_URL,
+        json={"collections": ["nasadem"], "bbox": [west, south, east, north], "limit": 8},
+        timeout=20,
+    )
+    stac_resp.raise_for_status()
+    features = stac_resp.json().get("features", [])
+    if not features:
+        return []
+    tok_resp = sess.get(PC_SAS_NASADEM_URL, timeout=15)
+    tok_resp.raise_for_status()
+    tok = tok_resp.json()["token"]
+    urls: list[str] = []
+    for feat in features:
+        elev_href = feat.get("assets", {}).get("elevation", {}).get("href")
+        if elev_href:
+            urls.append(f"{elev_href}?{tok}")
+    return urls
+
+
 def fetch_dem_patch(
     site_id: str,
     lat: float,
@@ -210,11 +252,14 @@ def fetch_dem_patch(
     radius_m: float = 1000.0,
     raw_dir: Path = Path("data/raw/earth"),
 ) -> Path:
-    """Download a small windowed DEM patch around (lat, lon) from Copernicus GLO-30 COG into data/raw/earth/."""
+    """Download a windowed DEM patch from Copernicus GLO-30 COG, falling back to NASADEM_HGT_v001 only if missing."""
     raw_dir.mkdir(parents=True, exist_ok=True)
-    out_tif = raw_dir / f"{site_id}_copdem30_wgs84.tif"
-    if out_tif.exists() and out_tif.stat().st_size > 0:
-        return out_tif
+    out_cop = raw_dir / f"{site_id}_copdem30_wgs84.tif"
+    out_nasa = raw_dir / f"{site_id}_nasadem30_wgs84.tif"
+    if out_cop.exists() and out_cop.stat().st_size > 0:
+        return out_cop
+    if out_nasa.exists() and out_nasa.stat().st_size > 0:
+        return out_nasa
 
     buffer_m = radius_m * 2.5
     dlat = buffer_m / 111_320.0
@@ -223,15 +268,38 @@ def fetch_dem_patch(
 
     lat_tiles = range(math.floor(south), math.floor(north) + 1)
     lon_tiles = range(math.floor(west), math.floor(east) + 1)
+    sess = _make_retrying_session()
 
     memfiles: list[MemoryFile] = []
     datasets = []
+    out_tif = out_cop
     try:
-        for lt in lat_tiles:
-            for ln in lon_tiles:
-                res = _read_cog_window_via_range(
-                    copernicus_tile_url(lt, ln), west, south, east, north
-                )
+        cop_urls = [copernicus_tile_url(lt, ln) for lt in lat_tiles for ln in lon_tiles]
+        for tile_url in cop_urls:
+            res = _read_cog_window_via_range(tile_url, west, south, east, north, session=sess)
+            if res is None:
+                continue
+            data, win_transform, crs = res
+            profile = {
+                "driver": "GTiff",
+                "height": data.shape[0],
+                "width": data.shape[1],
+                "transform": win_transform,
+                "crs": crs,
+                "dtype": "float32",
+                "count": 1,
+                "nodata": np.nan,
+            }
+            mem = MemoryFile()
+            dst_mem = mem.open(**profile)
+            dst_mem.write(data, 1)
+            memfiles.append(mem)
+            datasets.append(dst_mem)
+
+        if not datasets:
+            nasa_urls = _fetch_nasadem_cog_urls(west, south, east, north, session=sess)
+            for nasa_url in nasa_urls:
+                res = _read_cog_window_via_range(nasa_url, west, south, east, north, session=sess)
                 if res is None:
                     continue
                 data, win_transform, crs = res
@@ -250,9 +318,16 @@ def fetch_dem_patch(
                 dst_mem.write(data, 1)
                 memfiles.append(mem)
                 datasets.append(dst_mem)
+            if datasets:
+                out_tif = out_nasa
+                print(
+                    f"[INFO] [{site_id}] Copernicus DEM GLO-30 unavailable; "
+                    f"using {NASADEM_DEM_SRC} fallback -> {out_tif.name}",
+                    flush=True,
+                )
 
         if not datasets:
-            raise RuntimeError(f"Failed to fetch Copernicus DEM tiles for {site_id}")
+            raise RuntimeError(f"Failed to fetch Copernicus DEM or NASADEM tiles for {site_id}")
 
         if len(datasets) == 1:
             mosaic = datasets[0].read(1)
@@ -546,6 +621,7 @@ def run_task2(
         dst_crs = get_metric_crs(lat, lon)
 
         tif_path = fetch_dem_patch(sid, lat, lon, radius_m=radius_m)
+        dem_src = get_dem_source(tif_path)
         dem_m, transform, summary = reproject_dem_to_metric(tif_path, dst_crs=dst_crs, res_m=30.0)
         stats = compute_slope_in_radius(
             dem_m, transform, lat, lon, dst_crs=dst_crs, radius_m=radius_m
@@ -559,7 +635,7 @@ def run_task2(
             else "NaN"
         )
         print(
-            f"[{sid}] DEM dst={summary['dst_shape']} ({summary['dst_crs']}) | "
+            f"[{sid}] DEM={dem_src} dst={summary['dst_shape']} ({summary['dst_crs']}) | "
             f"MOD11A2={tuple(modis_lst['native_shape'])} res={tuple(modis_lst['native_res_m'])}m"
         )
         print(
@@ -583,7 +659,7 @@ def run_task2(
         for feat in ("slope_mean", "slope_p90", "roughness", "relief"):
             row[feat] = stats[feat]
             row[f"{feat}_sd"] = stats[f"{feat}_sd"]
-            row[f"{feat}_src"] = COPERNICUS_DEM_SRC
+            row[f"{feat}_src"] = dem_src
             row[f"{feat}_res_m"] = 30.0
 
         row["temp_amplitude"] = modis_lst["temp_amplitude"]
