@@ -1,6 +1,7 @@
-"""Unit tests for the Lunar South Pole reference feature pipeline and broadband albedo sensitivity."""
+"""Unit tests for the Lunar South Pole reference feature pipeline, visual atlas, and broadband albedo sensitivity."""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -16,10 +17,12 @@ for p in (SRC_DIR, SCRIPTS_DIR):
         sys.path.insert(0, str(p))
 
 from moon_mars.albedo_sensitivity import FACTORS, NOMINAL_FACTOR, run_albedo_sensitivity  # noqa: E402
+from moon_mars.moon_visual_atlas import ATLAS_DIR, METADATA_PATH  # noqa: E402
 from moon_mars.shackleton_slope import (  # noqa: E402
     MOON_GEOD_PROJ4,
     MOON_STEREO_PROJ4,
     PROCESSED_PATH,
+    VERIFIED_MOON_SITES,
     ordered_columns,
 )
 from validate_contract import validate  # noqa: E402
@@ -57,7 +60,7 @@ def test_moon_crs_and_coordinates() -> None:
         assert 1000.0 < dist_from_pole_m < 100_000.0
 
 
-def test_moon_topography_and_toterr_bounds() -> None:
+def test_moon_toterr_uncertainty_not_constant() -> None:
     """Verify LOLA 5 m/px topography metrics and PGDA _toterr.tif pixel-based SDs are finite and non-constant."""
     df = pd.read_parquet(PROCESSED_PATH)
     for col in ("slope_mean", "slope_p90", "roughness", "relief"):
@@ -68,10 +71,34 @@ def test_moon_topography_and_toterr_bounds() -> None:
         assert (df[f"{col}_res_m"] == 5.0).all()
 
     assert (df["slope_p90"] > df["slope_mean"]).all()
-    # relief_sd and roughness_sd must come from site-specific _toterr.tif + bootstrap, not a constant 0.50
     assert df["relief_sd"].nunique() == len(df)
     assert df["roughness_sd"].nunique() == len(df)
     assert not np.allclose(df["relief_sd"].to_numpy(dtype=float), 0.50)
+
+
+def test_moon_visual_atlas_files_and_sizes() -> None:
+    """Verify 5-site visual atlas PNGs and metadata exist, each PNG < 120 KB, total < 1.2 MB, and hazard % sum to 100."""
+    assert METADATA_PATH.exists(), f"Missing {METADATA_PATH}"
+    meta_list = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
+    assert len(meta_list) == len(VERIFIED_MOON_SITES)
+
+    total_bytes = METADATA_PATH.stat().st_size
+    for item in meta_list:
+        sid = item["site_id"]
+        pct_sum = (
+            float(item["safe_landing_pct_lt10deg"])
+            + float(item["rover_traversable_pct_10_20deg"])
+            + float(item["steep_hazard_pct_gt20deg"])
+        )
+        assert np.isclose(pct_sum, 100.0, atol=0.15), f"{sid} hazard pct sum={pct_sum}"
+        for suffix in ("hillshade", "hazard", "atlas"):
+            png_path = ATLAS_DIR / f"{sid}_{suffix}.png"
+            assert png_path.exists(), f"Missing {png_path}"
+            sz = png_path.stat().st_size
+            assert 5_000 < sz <= 120 * 1024, f"{png_path.name} size {sz / 1024:.1f} KB exceeds 120 KB limit"
+            total_bytes += sz
+
+    assert total_bytes < int(1.2 * 1024 * 1024), f"Total atlas size {total_bytes / 1024:.1f} KB exceeds 1.2 MB"
 
 
 def test_moon_thermal_and_albedo_bounds() -> None:
@@ -113,10 +140,11 @@ if __name__ == "__main__":
     for fn in (
         test_moon_parquet_contract_36_cols,
         test_moon_crs_and_coordinates,
-        test_moon_topography_and_toterr_bounds,
+        test_moon_toterr_uncertainty_not_constant,
+        test_moon_visual_atlas_files_and_sizes,
         test_moon_thermal_and_albedo_bounds,
         test_albedo_sensitivity_runs,
     ):
         fn()
         print(f"PASS: {fn.__name__}")
-    print("ALL 5 MOON PIPELINE UNIT TESTS PASSED")
+    print("ALL 6 MOON PIPELINE UNIT TESTS PASSED")

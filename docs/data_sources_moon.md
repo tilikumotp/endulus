@@ -67,7 +67,9 @@ Projeksiyon: Metrik **Ay Güney Kutbu Polar Stereografik CRS** (`+proj=stere +la
 
 ---
 
-## 5. Geniş Bant Albedo Aktarım Hassasiyeti Analizi (Broadband Albedo Sensitivity Analysis)
+## 5. Geniş Bant Albedo Aktarım Hassasiyeti Analizi ve Görsel Atlas Özeti
+
+### 5.1. Geniş Bant Albedo Aktarım Hassasiyeti Analizi (`src/moon_mars/albedo_sensitivity.py`)
 
 LRO LOLA `LDAM_50S_1000M_FLOAT.IMG` aktif lazer reflektometresi sıfır faz açısında ($\alpha = 0^\circ$, karşıtlık parlaması / *opposition surge* dahil) monokromatik 1064 nm normal albedo ($\sim 0.358 - 0.387$) ölçer. Dünya'daki pasif güneş reflektansı tabanlı MODIS `MCD43A3.061` (`Albedo_BSA_shortwave`) ile aynı fiziksel birime getirmek için kullanılan $c = 0.38$ dönüşüm katsayısının (*Vasavada et al., 2012; Hayne et al., 2017; Lucey et al., 2014*) faz integrali ve spektral eğim belirsizliği aralığındaki ($c \in [0.30, 0.34, 0.38, 0.42, 0.46]$) etkisi `src/moon_mars/albedo_sensitivity.py` ile tüm 5 referans sahası ve 28 Dünya sahası üzerinde test edilmiştir:
 
@@ -91,6 +93,18 @@ LRO LOLA `LDAM_50S_1000M_FLOAT.IMG` aktif lazer reflektometresi sıfır faz aç�
 | **`moon_faustini_rim`** | **`0.38` (Baz)** | **`0.1362`** | **`0.0000`** | **`0.0000`** | **`1.0000`** | `earth_salda_terrace` | `earth_salda_terrace, earth_karacadag_summit, earth_tendurek_shield` |
 | **`moon_faustini_rim`** | `0.42` | `0.1505` | `0.1172` | `0.0391` | `0.8916` | `earth_kula_divlit` | `earth_kula_divlit, earth_salda_terrace, earth_acigol_guneydag` |
 
-### Fiziksel Yorum ve Kararlılık Sonucu
+**Fiziksel Yorum ve Kararlılık Sonucu:**
 1. **Yakın Belirsizlik Bandında ($c \in [0.34, 0.42]$, $\pm 10.5\%$):** Tüm 5 Ay Güney Kutbu referans sahasında genel sıralama Spearman korelasyonu **$\rho = 0.854 - 0.944$** aralığında kalmakta ve ortalama genel skor değişimi yalnızca **$\pm 0.034 - 0.042$** düzeyindedir.
 2. **Aday Havuzu Kararlılığı:** `c = 0.34`'te daha koyu bazaltik kalkanlar (`earth_karacadag_summit`, `earth_deccan_mahabaleshwar`, `earth_kula_divlit`), `c = 0.42`'de ise biraz daha açık tonlu volkanik/piroklastik yüzeyler (`earth_hasandagi_kecekalecik`, `earth_erciyes_kojugedigi`, `earth_puna_campo_piedra_pomez`) üst sıraları paylaşmakta; Anadolu aday sahaları (`Karacadağ`, `Kula Divlit`, `Hasandağ`, `Erciyes`, `Salda`) tüm çarpan aralığında Top-3 portföy çekirdeğini korumaktadır.
+
+### 5.2. 5 m/piksel LRO LOLA Görsel, Eğim Tehlike ve Kesit Atlası (`data/processed/moon_atlas/`)
+
+`src/moon_mars/moon_visual_atlas.py` modülü, 5 Ay Güney Kutbu referans sahasının her biri için `2.2 × 2.2 km` yerel pencerede (`5 m/px` çözünürlük, `r = 1000 m` analiz çemberi) kutupsal rölyef (`<site_id>_hillshade.png`), Artemis/rover eğim tehlike haritası (`<site_id>_hazard.png`), 3 panelli kesit özeti (`<site_id>_atlas.png`) ve `atlas_metadata.json` dosyalarını üretir:
+
+| `site_id` | Türkçe Saha Adı (`name_tr`) | Güvenli İniş (`<10°`) | Dikkatli Rover (`10°–20°`) | Dik Yamaç / Tehlike (`>20°`) | Görsel Atlas Dosyaları (`data/processed/moon_atlas/`) |
+|---|---|---|---|---|---|
+| **`moon_shackleton_rim`** | `Shackleton Krateri Kenarı (Saha 04 ROI)` | **`%17.94`** | `%40.74` | `%41.33` | `moon_shackleton_rim_{hillshade,hazard,atlas}.png` |
+| **`moon_connecting_ridge`** | `Bağlantı Sırtı (Shackleton–de Gerlache, Saha 01 ROI)` | **`%54.49`** | `%44.18` | `%1.33` | `moon_connecting_ridge_{hillshade,hazard,atlas}.png` |
+| **`moon_de_gerlache_rim`** | `de Gerlache Krateri Kenarı (Saha 11 ROI)` | **`%47.58`** | `%45.39` | `%7.03` | `moon_de_gerlache_rim_{hillshade,hazard,atlas}.png` |
+| **`moon_shackleton_peak`** | `Shackleton Yakını Zirve (Saha 07 ROI)` | **`%73.09`** | `%25.28` | `%1.63` | `moon_shackleton_peak_{hillshade,hazard,atlas}.png` |
+| **`moon_faustini_rim`** | `Faustini Krateri Kenarı A (PGDA LM7 Merkezi)` | **`%94.75`** | `%5.24` | `%0.01` | `moon_faustini_rim_{hillshade,hazard,atlas}.png` |
