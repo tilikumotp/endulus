@@ -27,13 +27,9 @@ if str(SRC) not in sys.path:
 if str(ROOT / "app") not in sys.path:
     sys.path.insert(0, str(ROOT / "app"))
 
-from i18n import (  # noqa: E402
-    AXIS_LABELS_ALL,
-    BREAKDOWN,
-    I18N,
-    MISSION_LABELS_ALL,
-    ROLE_LABELS,
-)
+from i18n import BREAKDOWN, I18N, ROLE_LABELS  # noqa: E402
+from i18n import AXIS_LABELS as AXIS_LABELS_ALL  # noqa: E402
+from i18n import MISSION_LABELS as MISSION_LABELS_ALL  # noqa: E402
 
 from scoring.config import AXES, MISSION_PRESETS  # noqa: E402
 from scoring.similarity import (  # noqa: E402
