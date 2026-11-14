@@ -83,3 +83,33 @@ def axis_scores(
     ]
     out = pd.concat(frames, ignore_index=True)
     return out[OUTPUT_COLS]
+
+
+def combine_axes(
+    scores_df: pd.DataFrame,
+    axis_weights: dict[str, float] | None = None,
+) -> pd.DataFrame:
+    """Combine per-axis scores into one weighted score per site; NaN axes skipped.
+
+    Axes missing from axis_weights default to weight 1.0; weight 0 excludes an
+    axis. Cheap enough to call per mission change without re-running bootstraps.
+    """
+    if scores_df.empty:
+        return pd.DataFrame(columns=["site_id", "score", "n_axes_used"])
+    rows = []
+    for sid in pd.unique(scores_df["site_id"]):
+        grp = scores_df[scores_df["site_id"] == sid]
+        w = grp["axis"].map(
+            lambda a: float(axis_weights.get(a, 1.0)) if axis_weights else 1.0
+        )
+        valid = grp["score"].notna() & (w > 0.0)
+        w_sum = float(w[valid].sum())
+        if w_sum <= 0.0:
+            rows.append({"site_id": sid, "score": np.nan, "n_axes_used": 0})
+        else:
+            rows.append({
+                "site_id": sid,
+                "score": float((grp["score"][valid] * w[valid]).sum() / w_sum),
+                "n_axes_used": int(valid.sum()),
+            })
+    return pd.DataFrame(rows)[["site_id", "score", "n_axes_used"]]
