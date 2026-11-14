@@ -17,14 +17,30 @@ def _axis_scores(
     n_boot: int,
     rng: np.random.Generator,
 ) -> pd.DataFrame:
-    """Score one axis: standardized Euclidean distance, exp(-d), bootstrapped CI."""
+    """Score one axis: standardized Euclidean distance, exp(-d), bootstrapped CI.
+
+    Standardization (mean/std) uses the pool of candidates PLUS the reference:
+    when the reference sits far outside the candidate distribution (e.g. lunar
+    temp_amplitude vs Earth sites), a candidates-only sigma turns that into a
+    huge z and collapses every score to ~exp(-22). Pooling the reference in
+    saturates z at ~sqrt((k+1)/k), keeping scores in a meaningful range while
+    preserving candidate ordering. Bootstrap noise perturbs candidates with
+    THEIR own *_sd and the reference with its *_sd (NaN sd -> 0, honest fallback).
+    """
     mean: dict[str, float] = {}
     std: dict[str, float] = {}
     for f in features:
         vals = pd.to_numeric(cands[f], errors="coerce").to_numpy(dtype=float)
         vals = vals[np.isfinite(vals)]
-        mean[f] = float(np.mean(vals)) if vals.size else float("nan")
-        std[f] = float(np.std(vals)) if vals.size else float("nan")
+        ref_val = float(pd.to_numeric(ref[f], errors="coerce"))
+        if np.isfinite(ref_val) and vals.size:
+            pool = np.append(vals, ref_val)
+        elif np.isfinite(ref_val):
+            pool = np.array([ref_val])
+        else:
+            pool = vals
+        mean[f] = float(np.mean(pool)) if pool.size else float("nan")
+        std[f] = float(np.std(pool)) if pool.size else float("nan")
 
     rows: list[dict[str, float]] = []
     for i in range(len(cands)):
@@ -41,15 +57,21 @@ def _axis_scores(
         cvals = np.array([float(cands[f].iat[i]) for f in used])
         rvals = np.array([float(ref[f]) for f in used])
         # NaN uncertainty means "unknown"; perturbing with 0 is the honest fallback.
-        sd = np.array([float(ref[f"{f}_sd"]) if pd.notna(ref[f"{f}_sd"]) else 0.0
-                       for f in used])
-        sd = np.where(np.isfinite(sd), sd, 0.0)
+        c_sd = np.array([
+            float(pd.to_numeric(cands[f"{f}_sd"].iat[i], errors="coerce"))
+            if pd.notna(cands[f"{f}_sd"].iat[i]) else 0.0
+            for f in used
+        ])
+        c_sd = np.where(np.isfinite(c_sd), c_sd, 0.0)
+        r_sd = np.array([float(ref[f"{f}_sd"]) if pd.notna(ref[f"{f}_sd"]) else 0.0
+                         for f in used])
+        r_sd = np.where(np.isfinite(r_sd), r_sd, 0.0)
         mu = np.array([mean[f] for f in used])
         sigma = np.array([std[f] for f in used])
         zc, zr = (cvals - mu) / sigma, (rvals - mu) / sigma
         point = float(np.exp(-float(np.sqrt(np.mean((zc - zr) ** 2)))))
-        eps_c = rng.normal(0.0, sd, size=(n_boot, len(used)))
-        eps_r = rng.normal(0.0, sd, size=(n_boot, len(used)))
+        eps_c = rng.normal(0.0, c_sd, size=(n_boot, len(used)))
+        eps_r = rng.normal(0.0, r_sd, size=(n_boot, len(used)))
         d_boot = np.sqrt(np.mean(
             (((cvals + eps_c) - mu) / sigma - ((rvals + eps_r) - mu) / sigma) ** 2, axis=1))
         ci_low, ci_high = np.percentile(np.exp(-d_boot), [5.0, 95.0])
@@ -133,7 +155,9 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
     """Per-feature reference-vs-candidate comparison for the 'breakdown' card.
 
     One row per (site, feature) where both values are finite; diff is in the
-    feature's native unit, z_diff is diff normalized by the candidate sd.
+    feature's native unit, z_diff is diff normalized by the same reference-
+    inclusive pool std used in axis_scores (keeps the card consistent with the
+    scores).
     """
     axis_of = {f: a for a, feats in AXES.items() for f in feats}
     feats = list(axis_of)
@@ -143,8 +167,15 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
     for f in feats:
         vals = cvals[f].to_numpy(dtype=float)
         vals = vals[np.isfinite(vals)]
-        stats[f] = (float(np.mean(vals)) if vals.size else float("nan"),
-                    float(np.std(vals)) if vals.size else float("nan"))
+        rv0 = float(rvals[f]) if pd.notna(rvals[f]) else float("nan")
+        if np.isfinite(rv0) and vals.size:
+            pool = np.append(vals, rv0)
+        elif np.isfinite(rv0):
+            pool = np.array([rv0])
+        else:
+            pool = vals
+        stats[f] = (float(np.mean(pool)) if pool.size else float("nan"),
+                    float(np.std(pool)) if pool.size else float("nan"))
     rows = []
     for i in range(len(candidates_df)):
         for f in feats:

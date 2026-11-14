@@ -38,15 +38,16 @@ def test_diff_and_z_diff_values() -> None:
     gaps = axis_gaps(ref, cands)
     sm = gaps[(gaps["site_id"] == "x") & (gaps["feature"] == "slope_mean")]
     assert abs(sm["diff"].iat[0] - 0.5) < 1e-12
-    # NaN in y's slope_mean filters it out -> single value -> sd 0 -> z NaN
-    assert np.isnan(sm["z_diff"].iat[0])
+    # pool = [10.5, 10.0] (candidates + ref): population sd 0.25 -> z = 2.0
+    assert abs(sm["z_diff"].iat[0] - 2.0) < 1e-12
     sp = gaps[(gaps["site_id"] == "x") & (gaps["feature"] == "slope_p90")]
-    # population sd of [30.0, 20.0] is 5.0; diff 10.0
+    # pool = [30.0, 20.0, 20.0]: population sd sqrt(600/27); diff 10.0
     assert abs(sp["diff"].iat[0] - 10.0) < 1e-12
-    assert abs(sp["z_diff"].iat[0] - 10.0 / 5.0) < 1e-12
-    # identical values give diff 0
+    assert abs(sp["z_diff"].iat[0] - 10.0 / np.sqrt(600 / 27)) < 1e-12
+    # identical values give diff 0 and degenerate (zero-sd) pool -> z NaN
     ro = gaps[(gaps["site_id"] == "x") & (gaps["feature"] == "roughness")]
     assert ro["diff"].iat[0] == 0.0
+    assert np.isnan(ro["z_diff"].iat[0])
 
 
 def test_axis_column_mapped() -> None:
