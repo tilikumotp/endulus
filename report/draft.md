@@ -7,16 +7,18 @@ No place on Earth analogs the Moon south pole (Shackleton rim area)
 in every respect, so we score Earth sites **per axis** — mobility
 (slope, roughness, relief), thermal (temp amplitude, thermal inertia),
 surface (albedo) — using the leader's standardized-distance kernel
-similarity `exp(-distance)` [0–1] with bootstrap 5–95% CIs attached to
-every score (leader's `src/scoring/similarity.py`; the app writes no
-scoring math of its own). Scores are combined with mission-weighted
-presets, known analogues are recovered blind (role labels never enter
-the scorer), and a greedy set-cover heuristic recommends a compact
-multi-site test portfolio of Earth sites. Within-axis z-score
-differences are capped at ±3σ (`Z_CAP = 3.0`, outlier clipping) so a
-single anomalous feature cannot dominate a comparison. Qualitative
-factors (lithology class, ice/PSR, lava tubes, electrostatic dust) are
-displayed but never enter the numeric score (AGENTS.md §2, §5).
+similarity index `exp(-D)` [0–1], where `D` is the RMS of the uncapped
+standardized feature differences. The standardization uses the current
+Earth candidate pool plus the reference, so index values are
+pool-dependent and are not calibrated probabilities. Uncertainty is
+propagated through 200 independent Gaussian Monte Carlo draws using the
+candidate and reference `*_sd` values; reported bounds are the 5th and
+95th percentiles, not bootstrap confidence intervals. Unknown uncertainty
+is not treated as zero, and mission-weighted total ranges are computed
+from the same axis draws. Role labels do not enter scoring. The app also
+offers a greedy set-cover portfolio heuristic. Qualitative factors
+(lithology class, ice/PSR, lava tubes, electrostatic dust) are displayed
+but never enter the numeric score (AGENTS.md §2, §5).
 
 ## 2. Where the analogy breaks down
 - Gravity: Moon ~1/6 g, Mars ~3/8 g — regolith mechanics, dust settling.
@@ -29,21 +31,28 @@ displayed but never enter the numeric score (AGENTS.md §2, §5).
   columns are shown per feature in the app's Analogy Limits tab.
 
 ## 3. Validation (§8.4)
-Blind check: sites with role `validation` (known analogues) must rank
-near the top per axis (rank ≤ 5 of all scored sites). Role labels never
-enter the scorer; on verified LRO and Earth orbital observations, known
-volcanic and polar analogues (`McMurdo Dry Valleys`, `Lunar Crater Volcanic Field`,
-`Askja / Holuhraun`, `Craters of the Moon`, `Mauna Loa HI-SEAS`, `Mount Etna`)
-rank in the Top-5 on their corresponding `mobility` and `surface` axes.
+The current blind-ranking screen is a **descriptive diagnostic**, not a
+pass/fail validation: it compares every validation site with every axis,
+although a known analogue is not expected to match every axis. For the
+default `moon_shackleton_rim` reference, 4 of 30 site×axis pairs rank in
+the top five (mobility 1/10, thermal 2/10, surface 1/10). The scorer does
+not see role labels, but this aggregate does not establish predictive
+validity. Before making a validation claim, define expected
+site–axis pairs from cited evidence before inspecting rankings; do not
+tune the formula to this validation set. The current thermal ranking uses
+`temp_amplitude` only because no `thermal_inertia` values are available.
 
 ## 4. Portfolio (§8.5)
 Compact multi-site test portfolio via greedy set-cover heuristic
 (leader's `select_portfolio`) over per-axis scores at a coverage
-threshold (default 0.70): a small set of Earth sites covering the most
-axes. Greedy is a fast, transparent heuristic — it does not guarantee
-the mathematically minimal set in every case; axes no site covers
+threshold (default 0.70 similarity-index value): a small set of Earth
+sites covering the most axes. This threshold is an interface heuristic,
+not a calibrated likelihood of a match. Greedy is fast and transparent,
+and for this v1's three axes its maximum-new-axes choice gives the exact
+minimum number of sites; ties are broken by score and then `site_id`.
+For more than three axes it is only a heuristic. Axes no site covers
 (notably extreme lunar South Pole `thermal` swings of 114–151 K) are
-explicitly flagged as "validate in lab/simulation".
+flagged for lab/simulation validation.
 
 ## 5. Data sources (verified orbital products in `*_src`)
 | Body | Feature(s) | Dataset (`*_src`) | Native res (`*_res_m`) |
@@ -58,9 +67,9 @@ explicitly flagged as "validate in lab/simulation".
 
 ## 6. App deliverable
 `app/main.py` (Streamlit + pydeck + plotly): reference-site selector,
-per-axis scores with CI, mission presets, blind validation tab,
-portfolio tab, and analogy-limits card with inspect-site picker and
-full `*_src` / `*_res_m` provenance.
+per-axis scores with Monte Carlo percentiles, mission presets, blind-ranking
+diagnostic tab, portfolio tab, and analogy-limits card with inspect-site
+picker and full `*_src` / `*_res_m` provenance.
 
 **Visual Context Inspector** (Analogy Limits tab): a three-panel
 evidence-and-exploration tool — LRO WAC optical + LOLA shaded-relief
@@ -69,7 +78,7 @@ south-pole stereographic EPSG:32761) beside an Esri World Imagery
 optical preview (Esri, Maxar, Earthstar Geographics) of the Earth
 candidate. It is **context, not a scoring channel**: imagery never
 creates or changes a score, and every panel links back to the
-quantitative per-axis scores, CIs, `*_src` and `*_res_m` columns
+quantitative per-axis scores, Monte Carlo percentiles, `*_src` and `*_res_m` columns
 displayed below it.
 
 ## 7. Scientific Honesty & Uncertainty Policy
@@ -77,6 +86,12 @@ Every feature value carries its 1-sigma uncertainty (`*_sd`), exact
 dataset version (`*_src`), and native spatial resolution (`*_res_m`).
 Unavailable features (`thermal_inertia`) remain `NaN` and are skipped
 transparently by the scoring engine rather than filled with placeholders.
+If any scored feature lacks a valid standard deviation, its point score
+remains available but its uncertainty interval is omitted; the same rule
+applies to a total score if a positively weighted axis has incomplete
+uncertainty. Negative or infinite standard deviations are rejected as
+invalid inputs. Candidate, reference, feature and axis errors are treated
+as independent; pooled standardization statistics stay fixed across draws.
 
 ## 8. Why No Single Earth Site is Enough (Public & Engineering Summary)
 Think of it like practice venues for a football team before a World Cup
@@ -95,25 +110,19 @@ plus an honest list of the skills that can only be rehearsed in
 simulators, because Earth simply cannot imitate them.
 
 ## 9. Candidate vs. Confirmed Analog Strategy (Karacadağ Case Study)
-Our method is validated, not assumed: when the scorer is run **blind**
-(role labels hidden), the classic analogues — Atacama, Mauna Loa/Etna,
-Haughton Crater — rank near the top, which is exactly what decades of
-planetary-field literature predicts. Lesser-studied terrains play a
-different role. The Karacadağ basalt plateau in SE Turkey, for
-example, is a young, flat, relatively undissected basalt field —
-mechanically interesting for **mobility** (basalt regolith, low
-relief, pitted surface) and plausibly useful for **surface/albedo**
-analogy, which is why it can score high on those axes. But a high
-per-axis score is a *hypothesis*, not a title: until a literature
-check and (ideally) fieldwork confirm that its regolith behaviour and
-surface processes genuinely track a specific lunar environment, we
-label it a **candidate** — recommended as a low-cost *test site* for
-named axes only, never advertised as a "confirmed Moon analog". The
-app enforces this distinction visually (blue = validated analogue,
-green→red = candidate) and the report keeps the claim scoped to the
-axes that earned it. This is also our answer to the "novel discovery"
-temptation: novelty in a candidate is a *reason to test it*, not
-evidence.
+The current method is **not yet validated**: the blind diagnostic
+compares all validation sites against all axes and recovers only 4/30
+site×axis pairs in the top five for the default Shackleton reference.
+This is not a fair per-analogue pass/fail score without a cited,
+pre-registered expected-axis matrix, and we will not tune the method to
+force known sites upward. Lesser-studied terrains play a different role.
+Karacadağ remains a **candidate**, not a confirmed analog. In the
+current default-reference ranking, its candidate entries score more
+favorably on the surface axis than on mobility; this is a relative
+index result, not evidence of matching geology or regolith mechanics.
+Any site-specific claim requires a source-backed literature check and,
+ideally, field validation. The app preserves the candidate label; novelty
+is a reason to test a site, not evidence that it is analogous.
 
 ## 10. Future Work (v2 Extensions)
 - **Subsurface lava tubes:** compare CSA RADARSAT-1 open SAR archive

@@ -16,7 +16,8 @@
   respect — Atacama wins on dryness, Iceland on lava mobility, Dry
   Valleys on cold. A single blended score hides that."
 - Point at the radar captions: "So we score **per axis** — mobility,
-  thermal, surface — and attach an uncertainty band to every number."
+  thermal, surface — and show 5th–95th Monte Carlo uncertainty percentiles.
+  These are not confidence intervals, and the scores are not probabilities."
 
 ## Step 2 — Live map + mission re-weighting
 - Switch mission to **Rover Mobility Test**: rankings visibly reorder —
@@ -41,13 +42,14 @@
 - One line on the qualitative list: "Ice/PSR, lava tubes, electrostatic
   dust are tracked — never silently mixed into the score."
 
-## Step 4 — Blind validation + portfolio
-- **Validation tab:** "Run blind — the scorer never sees roles. Known
-  analogues (Etna, Atacama, Haughton, McMurdo) rank in the top-5 per axis.
-  This is the self-check that keeps us honest."
+## Step 4 — Blind ranking diagnostic + portfolio
+- **Validation tab:** "The scorer never sees roles. For Shackleton, 4/30
+  site×axis pairs are in the top five. This is a descriptive diagnostic,
+  not validation; we need cited expected site–axis pairs before claiming
+  predictive success."
 - **Portfolio tab:** "Greedy set-cover heuristic at the 0.70 threshold
-  gives a compact portfolio of Earth sites covering the most axes —
-  plus the axes no
+  gives a compact portfolio of Earth sites covering the most axes — the
+  threshold is a similarity-index setting, not a probability — plus axes no
   Earth site can cover: those go to lab/simulation."
 - Close: "Per-axis scores, honest uncertainty, blind validation, a
   compact multi-site test portfolio — and an explicit list of what

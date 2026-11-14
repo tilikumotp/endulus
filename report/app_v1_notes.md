@@ -5,7 +5,8 @@ Status: Production v1 — runs end-to-end on verified orbital datasets in
 
 ## Feature Summary
 - **Core scoring integration:** ref-site selector, two-layer pydeck map
-  (blue ring = validation analogues, green→red = candidates), radar + 95% CI,
+  (blue ring = validation analogues, green→red = candidates), radar + 5th–95th
+  Monte Carlo uncertainty percentiles,
   score table with role filter; scores come 100% from leader's `src/scoring/`
   (`axis_scores` → `axis_pivot` → `combine_axes`; `axis_gaps` for the breakdown card).
 - **Validation & Portfolio:** Validation tab (`run_blind_validation`: rank table +

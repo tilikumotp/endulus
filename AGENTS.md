@@ -77,7 +77,7 @@ Rules:
 11. After each task: run it once end to end, report what ran, what did not, and what assumptions you made.
 
 ## 7. Roles
-- **Leader:** methodology, `src/scoring/` (per-axis similarity, bootstrap uncertainty, portfolio selection, blind validation), integration, final story. Owns merges.
+- **Leader:** methodology, `src/scoring/` (per-axis similarity, Monte Carlo uncertainty propagation, portfolio selection, blind validation), integration, final story. Owns merges.
 - **Person 2 (Moon/Mars data):** DEM-derived slope/roughness/relief, temperature products, albedo for the reference sites; writes `features_moon.parquet`.
 - **Person 3 (Earth data + candidates):** the SAME features for Earth validation sites and a curated list of 30 to 50 candidate sites (each with a verified source, e.g. a paper or geology map); writes `features_earth.parquet`. Also a literature check on each Turkish candidate so we never claim novelty falsely.
 - **Person 4 (App + report + pitch):** Streamlit app built on `data/processed/`; per-site radar chart; "where the analogy breaks down" card; live orbital visual context inspector; mission use-case mapping; written report; slides; demo script.

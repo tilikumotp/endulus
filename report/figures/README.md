@@ -10,4 +10,5 @@ MODIS MOD11A2.061, NASA MODIS MCD43A3.061).
   Site 04 ROI: LRO WAC orthomosaic with dark PSR floor and illuminated rim +
   LOLA shaded relief via USGS Astrogeology WMS) alongside McMurdo Dry Valleys
   (`earth_mcmurdo_wright_valley`, Esri World Imagery) and quantitative per-axis
-  similarity scores with 95% bootstrap confidence intervals.
+  similarity indices with 5th–95th Monte Carlo uncertainty percentiles
+  (not confidence intervals).

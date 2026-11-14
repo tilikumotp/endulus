@@ -12,10 +12,11 @@ relevant, its native resolution (`*_res_m`).
 🖼 *Screenshot: title + Map tab (blue validation ring vs green→red candidates).*
 
 ## Slide 2 — The method
-- Standardized-distance kernel similarity `exp(-distance)`, 0–1, per axis.
-- Bootstrap 5–95% CI attached to every score; roles never enter the scorer.
+- Uncapped RMS standardized-distance similarity index `exp(-D)`, 0–1, per axis.
+- 200 independent Gaussian Monte Carlo draws; show 5th–95th percentiles,
+  not confidence intervals. Roles never enter the scorer.
 - Mission presets re-weight axes (rover mobility vs ISRU-ice vs radar).
-🖼 *Screenshot: Radar Charts tab with CI bands (CI high green dashed / low red dotted).*
+🖼 *Screenshot: Radar Charts tab with 5th/95th percentile lines (upper dashed / lower dotted).*
 
 ## Slide 3 — Where the analogy breaks down
 - Physics Earth can't reproduce: 1/6 g, vacuum, radiation, 29.5-day day.
@@ -23,17 +24,21 @@ relevant, its native resolution (`*_res_m`).
 - Resolution honesty: ~1 km thermal vs 30 m DEM — shown per feature.
 🖼 *Screenshot: Analogy Limits tab — Visual Context Inspector (LRO WAC/LOLA + Esri imagery) with Karacadağ selected, src/res columns visible.*
 
-## Slide 4 — Validated, not assumed (blind check)
-- Scorer runs blind; known analogues (Etna, Atacama, Haughton) must
-  rank top-5 per axis.
-- Candidates ≠ confirmed analogues: high axis score = hypothesis to test.
-- Karacadağ case study: strong mobility/surface *test candidate* — scoped claim.
+## Slide 4 — Blind ranking diagnostic (not yet validation)
+- Scorer runs blind; current all-site/all-axis diagnostic is 4/30 top-5
+  for Shackleton and is not a pass/fail validation.
+- Define citation-backed expected site–axis pairs before any validation claim.
+- Candidates ≠ confirmed analogues: a high index is a hypothesis to test.
+- Karacadağ stays a candidate; current default ranking is stronger on
+  surface than mobility, not a confirmed cross-axis match.
 🖼 *Screenshot: Validation tab (ranks + "Recovered X/Y").*
 
 ## Slide 5 — The compact portfolio
-- Greedy set-cover heuristic: a compact portfolio covering the most
-  axes at the 0.70 threshold (heuristic, not a guaranteed minimum).
-- Within-axis z-diffs clipped at ±3σ (`Z_CAP = 3.0`) before ranking.
+- Greedy set-cover portfolio: exact minimum site count for the current
+  three axes; heuristic for larger axis sets.
+- The 0.70 coverage threshold is a similarity-index setting, not calibrated.
+- No per-feature z clipping; feature gaps and ranking use the same raw
+  standardized differences.
 - Output = shopping list + uncovered-axes list (→ lab/simulation).
 🖼 *Screenshot: Portfolio tab (pick order, covered axes, uncovered list).*
 
@@ -41,6 +46,8 @@ relevant, its native resolution (`*_res_m`).
 - Live Streamlit app: reference selector, mission re-weighting, radar,
   validation, portfolio, breakdown card.
 - Every feature column carries `source` + `res_m` + uncertainty `sd`.
+- Thermal inertia is unavailable in current Moon/Earth data; thermal
+  scores use `temp_amplitude` only.
 - Data contract (AGENTS.md §5) makes Moon/Mars/Earth numbers comparable.
 🖼 *Screenshot: Score Table tab (role filter + Lithology ✓ column).*
 
