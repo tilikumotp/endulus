@@ -85,13 +85,18 @@ def test_nan_feature_is_skipped_and_reported() -> None:
 def test_reference_far_outside_pool_does_not_collapse_scores() -> None:
     """Regression: candidates-only sigma gave exp(-22) ~ 1e-10 thermal scores.
 
-    With the reference pooled into the standardization and +-3 sigma cap,
-    scores stay in a usable positive range.
+    With the reference pooled into the standardization and the +-3 sigma z-cap,
+    |zc - zr| <= 6 by construction, so scores are bounded below by exp(-6) at
+    ANY pool size and stay strictly ordered in the candidate value.
     """
     moon, earth = _load()
     scores = axis_scores(moon.iloc[0], earth)
-    thermal = scores[scores["axis"] == "thermal"]["score"]
-    assert (thermal > 0.02).all(), thermal.tolist()
+    thermal = scores[scores["axis"] == "thermal"].merge(
+        earth[["site_id", "temp_amplitude"]], on="site_id"
+    )
+    assert (thermal["score"] >= float(np.exp(-6.0))).all(), thermal["score"].tolist()
+    ordered = thermal.sort_values("temp_amplitude")["score"].to_numpy()
+    assert np.all(np.diff(ordered) > 0), ordered
 
 
 def test_scores_stable_as_candidate_pool_grows() -> None:
