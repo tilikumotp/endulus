@@ -4,82 +4,109 @@
 
 ## 1. Method (one paragraph)
 No place on Earth analogs the Moon south pole (Shackleton rim area)
-in every respect, so we score Earth sites **per axis** — mobility
-(slope, roughness, relief), thermal (temp amplitude, thermal inertia),
-surface (albedo) — using the leader's standardized-distance kernel
+in every respect, so we score Earth sites **per axis** — **mobility**
+(slope mean/p90, roughness, relief) and **surface** (albedo) as active v1
+numeric axes, while **thermal** (`temp_amplitude`, `thermal_inertia`) is
+intentionally suspended (`NaN` on Moon per `Karar #30` until diurnal PDS
+definition alignment) — using the leader's standardized-distance kernel
 similarity index `exp(-D)` [0–1], where `D` is the RMS of the uncapped
-standardized feature differences. The standardization uses the current
-Earth candidate pool plus the reference, so index values are
-pool-dependent and are not calibrated probabilities. Uncertainty is
-propagated through 200 independent Gaussian Monte Carlo draws using the
-candidate and reference `*_sd` values; reported bounds are the 5th and
-95th percentiles, not bootstrap confidence intervals. Unknown uncertainty
-is not treated as zero, and mission-weighted total ranges are computed
-from the same axis draws. Role labels do not enter scoring. The app also
-offers a greedy set-cover portfolio heuristic. Qualitative factors
-(lithology class, ice/PSR, lava tubes, electrostatic dust) are displayed
-but never enter the numeric score (AGENTS.md §2, §5).
+standardized feature differences. Standardization uses all 40 Earth
+sites plus the Moon reference, so index values are pool-dependent and are
+not calibrated probabilities. Uncertainty is propagated through 200
+independent Gaussian Monte Carlo draws using candidate and reference `*_sd`
+values; reported bounds are the 5th and 95th percentiles, not bootstrap
+confidence intervals. Unknown uncertainty is not treated as zero, and
+mission-weighted total ranges are computed from the same axis draws. Role
+labels do not enter scoring. Qualitative factors (lithology class, E8
+water ice/permafrost, lava tubes, electrostatic dust) are displayed for
+mission context and never enter the numeric score (`AGENTS.md` §2, §5).
+
+## 1b. Scope & Rationale (Moon South Pole First in v1, Mars Path in v2)
+The NASA Space Apps challenge asks teams to evaluate terrestrial analogues for
+**Moon or Mars** exploration. In v1, we focus deliberately on the **Lunar South
+Pole** (5 NASA Artemis III candidate regions: Shackleton Crater Rim,
+Shackleton–de Gerlache Connecting Ridge, de Gerlache Crater Rim, Peak Near
+Shackleton, and Faustini Crater Rim) so every row carries high-resolution
+(`5 m/px` LRO LOLA DEM, `30 m/px` Copernicus GLO-30 / NASADEM) audited orbital
+provenance rather than a shallow multi-body prototype. Both the data contract
+(`AGENTS.md` §5) and `src/scoring/` are body-agnostic (`body in {"moon", "mars", "earth"}`);
+extending v2 to Mars requires only ingesting MGS MOLA topography and Odyssey
+THEMIS / TES thermal-albedo products into `data/processed/features_mars.parquet`.
 
 ## 2. Where the analogy breaks down
 - Gravity: Moon ~1/6 g, Mars ~3/8 g — regolith mechanics, dust settling.
 - Vacuum / thin atmosphere; radiation; 29.5-day lunar day.
 - Regolith composition and mineralogy.
-- Qualitative v1 factors: water ice / PSR, lava tubes / subsurface
-  caves, electrostatic dust — tracked in the app, not scored.
-- Resolution honesty: thermal products (~1 km, MODIS-class) cannot
-  resolve a 500 m site; DEM features are 30 m. `*_src` / `*_res_m`
-  columns are shown per feature in the app's Analogy Limits tab.
+- Qualitative v1 factors: E8 water ice / permafrost, lava tubes /
+  subsurface caves, electrostatic dust — tracked qualitatively in the app,
+  not scored numerically.
+- Thermal suspension & resolution honesty (`Karar #30`): Moon thermal
+  metrics remain `NaN` in v1 rather than mixing non-comparable local-time
+  products (`docs/data_notes.md`); DEM features compare `5 m` LOLA (Moon)
+  against `30 m` Copernicus GLO-30 / NASADEM (Earth), and albedo compares
+  `1000 m` LOLA against `500 m` MODIS, all labeled via `*_src` / `*_res_m`
+  in the app's Limits of the Analogy tab.
 
-## 3. Validation (§8.4)
-The current blind-ranking screen is a **descriptive diagnostic**, not a
-pass/fail validation: it compares every validation site with every axis,
-although a known analogue is not expected to match every axis. For the
-default `moon_shackleton_rim` reference, 4 of 30 site×axis pairs rank in
-the top five (mobility 1/10, thermal 2/10, surface 1/10). The scorer does
-not see role labels, but this aggregate does not establish predictive
-validity. Before making a validation claim, define expected
-site–axis pairs from cited evidence before inspecting rankings; do not
-tune the formula to this validation set. The current thermal ranking uses
-`temp_amplitude` only because no `thermal_inertia` values are available.
+## 3. Descriptive Rank Diagnostic (§8.4)
+The Rank Diagnostic tab (`🧭 Sıra Tanısı (Doğrulama)`) is a **descriptive
+diagnostic**, not an independent holdout validation (`bağımsız holdout
+doğrulaması değildir`), because all 40 Earth sites contribute to the pooled
+standard deviation scaling. It pairs the 10 blind-scored `validation` sites
+with pre-registered DOI-backed expectations (`docs/validation_expectations.md`,
+reproduced in `app/expectations.py`): 8 sites expected on `mobility`,
+McMurdo Dry Valleys expected on `thermal_only` (suspended in v1) while
+nonetheless aligning on bright snow-covered `surface` (`#2 / 40`), and
+Svalbard Bockfjorden expected `none` on active v1 numeric axes (relevant
+qualitatively via E8 permafrost). Under `moon_shackleton_rim` (`Balanced`),
+Mount Etna ranks **#3 / 40** on `mobility` (`#1` among validation sites) and
+only `2/20` active site×axis pairs fall inside the overall top 5 (`etna` on
+mobility, `mcmurdo` on surface) — confirming why per-site expected-axis
+criteria matter far more than an all-site/all-axis top-k count.
 
-## 4. Portfolio (§8.5)
+## 4. Compact Portfolio Card (§8.5)
 Compact multi-site test portfolio via greedy set-cover heuristic
-(leader's `select_portfolio`) over per-axis scores at a coverage
-threshold (default 0.70 similarity-index value): a small set of Earth
-sites covering the most axes. This threshold is an interface heuristic,
-not a calibrated likelihood of a match. Greedy is fast and transparent,
-and for this v1's three axes its maximum-new-axes choice gives the exact
-minimum number of sites; ties are broken by score and then `site_id`.
-For more than three axes it is only a heuristic. Axes no site covers
-(notably extreme lunar South Pole `thermal` swings of 114–151 K) are
-flagged for lab/simulation validation.
+(`src/scoring/portfolio.py::select_portfolio`) integrated directly under the
+Score Table (`📊 Skor & Portföy`) at a configurable similarity threshold
+(default `0.70`): a small set of Earth sites covering the active axes, plus
+explicit uncovered axes routed to simulator/lab testing. This `0.70` value
+is an interface heuristic, not a calibrated physical sufficiency limit. For
+example, under `moon_shackleton_rim` at `0.70`, no single Earth site clears
+both active axes (`mobility` remains uncovered alongside suspended `thermal`),
+whereas for `moon_connecting_ridge` a 2-site portfolio (`earth_karapinar_meke` +
+`earth_puna_campo_piedra_pomez`) covers both active axes (`mobility` and
+`surface`), leaving only suspended `thermal` uncovered.
 
 ## 5. Data sources (verified orbital products in `*_src`)
 | Body | Feature(s) | Dataset (`*_src`) | Native res (`*_res_m`) |
 |---|---|---|---|
 | **Moon** | `slope_mean/p90, roughness, relief` | `LRO_LOLA_PGDA_<Site>_5mpp_v2021` (NASA GSFC PGDA LOLA DEM + `slperr`) | `5 m` |
-| **Moon** | `temp_amplitude` | `LRO-L-DLRE-5-PCP-V1.0:pcp_avg_tbol_pols_240m_v2022` (LRO Diviner TBOL) | `240 m` |
 | **Moon** | `albedo` | `LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0_broadband_eq` (LOLA normal × 0.38 broadband solar eq.) | `1000 m` |
-| **Earth** | `slope_mean/p90, roughness, relief` | `Copernicus_DEM_GLO-30` (ESA GLO-30 in local metric UTM/UPS) | `30 m` |
-| **Earth** | `temp_amplitude` | `MOD11A2.061_annual_mean` (NASA Terra MODIS 2024 full-year day–night ΔT) | `1000 m` |
+| **Moon** | `temp_amplitude, thermal_inertia` | Suspended in v1 (`NaN` per `Karar #30` / `docs/data_notes.md`) | — |
+| **Earth** | `slope_mean/p90, roughness, relief` | `Copernicus_DEM_GLO-30` (39 sites) + `NASADEM_HGT_v001` (`earth_agri_dogubayazit_flow`) | `30 m` |
+| **Earth** | `temp_amplitude` | `MOD11A2.061_annual_mean` (NASA Terra MODIS 2024 full-year day–night ΔT; retained on Earth for v2) | `1000 m` |
 | **Earth** | `albedo` | `MCD43A3.061` (NASA MODIS shortwave black-sky broadband albedo) | `500 m` |
-| **Moon & Earth** | `thermal_inertia` | No uniform global product at matching scale → `NaN`, no invented numbers | — |
+| **Earth** | `thermal_inertia` | No uniform global product at matching scale → `NaN` | — |
+| **Moon & Earth (visual + 3D)** | `moon_3d/` (`5 m`), `earth_3d_grids.npz` (`30 m`), `moon_atlas/` (`5 m` LOLA hillshade/hazard), `earth_atlas/` (`10 m` Sentinel-2 L2A WebP) | Visual & 3D inspection only — never scored numerically | `5–30 m` |
 
 ## 6. App deliverable
-`app/main.py` (Streamlit + pydeck + plotly): reference-site selector,
-per-axis scores with Monte Carlo percentiles, mission presets, blind-ranking
-diagnostic tab, portfolio tab, and analogy-limits card with inspect-site
-picker and full `*_src` / `*_res_m` provenance.
+`app/main.py` (Streamlit + pydeck + plotly, TR default / EN toggle, pure-black
+`#000000` canvas with user-selectable **Moon black–grey** and **Earth blue**
+themes): reference-site selector, mission re-weighting (with explicit
+`isru_ice` `(no ice data in v1)` note), **2D physical feature-space scatter**
+(`slope_mean` vs `albedo` across all 40 sites + Moon star) paired with active
+axis uncertainty charts (`expanded_interval`, `📡 Eksen Grafikleri`), real 3D
+Moon/Earth DEM terrain (`⛰️ 3D Arazi`), unified Score Table + **Compact
+Portfolio Card** (`📊 Skor & Portföy`), pre-registered 10-row numeric
+**Rank Diagnostic** (`🧭 Sıra Tanısı` with `val_sort_by`), and **Limits of the
+Analogy** (`⚠️ Analojinin Sınırları` with the **8-Dimension Challenge Scorecard**).
 
-**Visual Context Inspector** (Analogy Limits tab): a three-panel
-evidence-and-exploration tool — LRO WAC optical + LOLA shaded-relief
-previews of the Moon reference (NASA LRO via USGS Astrogeology WMS,
-south-pole stereographic EPSG:32761) beside an Esri World Imagery
-optical preview (Esri, Maxar, Earthstar Geographics) of the Earth
-candidate. It is **context, not a scoring channel**: imagery never
-creates or changes a score, and every panel links back to the
-quantitative per-axis scores, Monte Carlo percentiles, `*_src` and `*_res_m` columns
-displayed below it.
+**Visual Context Inspector** (`⚠️ Analojinin Sınırları` tab): an offline-first
+three-panel evidence tool rendered from committed assets — local `5 m/px`
+LRO LOLA hillshade and slope-hazard maps (`data/processed/moon_atlas/`, plus
+optional full-context expander) beside local `10 m/px` Sentinel-2 L2A WebP
+imagery (`data/processed/earth_atlas/` with `metadata.json` capture date and
+cloud cover), with remote WMS/Esri kept solely as fallback. It is **context,
+not a scoring channel**: imagery never creates or modifies a score.
 
 ## 7. Scientific Honesty & Uncertainty Policy
 Every feature value carries its 1-sigma uncertainty (`*_sd`), exact
@@ -110,21 +137,33 @@ plus an honest list of the skills that can only be rehearsed in
 simulators, because Earth simply cannot imitate them.
 
 ## 9. Candidate vs. Confirmed Analog Strategy (Karacadağ Case Study)
-The current method is **not yet validated**: the blind diagnostic
-compares all validation sites against all axes and recovers only 4/30
-site×axis pairs in the top five for the default Shackleton reference.
-This is not a fair per-analogue pass/fail score without a cited,
-pre-registered expected-axis matrix, and we will not tune the method to
-force known sites upward. Lesser-studied terrains play a different role.
-Karacadağ remains a **candidate**, not a confirmed analog. In the
-current default-reference ranking, its candidate entries score more
-favorably on the surface axis than on mobility; this is a relative
-index result, not evidence of matching geology or regolith mechanics.
-Any site-specific claim requires a source-backed literature check and,
-ideally, field validation. The app preserves the candidate label; novelty
-is a reason to test a site, not evidence that it is analogous.
+The method in v1 is evaluated **descriptively rather than as an independent
+validation**: across 40 Earth sites under `moon_shackleton_rim` with thermal
+suspended (`20` active site×axis validation pairs), `2/20` pairs fall in
+the overall top five (Mount Etna `#3 / 40` on mobility, McMurdo Wright Valley
+`#2 / 40` on surface), and we intentionally do not tune weights or thresholds
+to force known analogues higher. Lesser-studied terrains play a complementary
+discovery role. Under `moon_shackleton_rim` (`Balanced`), Anatolian candidate
+**Karapınar Meke Crater** leads the default balanced ranking (`0.528
+[0.406–0.569]`, driven strongly by `surface 0.903`, `mobility 0.153`), while
+**Hasandağı Keçikaleçik** leads under **Rover Mobility** (`0.446`); meanwhile
+**Karacadağ** remains a **candidate** (`Karacadağ Summit 0.419`: `surface
+0.736`, `mobility 0.103`; `Karacadağ Ovabağ 0.349`), not a confirmed analog.
+A high surface or balanced index is a screening hypothesis reflecting measured
+broadband albedo and coarse DEM statistics — never proof of matching regolith
+mechanics or geology — and always requires field and literature verification.
 
-## 10. Future Work (v2 Extensions)
+## 10. Challenge Prompt ↔ Deliverable Alignment Matrix
+| Challenge Prompt Requirement | v1 Implementation & Deliverable |
+|---|---|
+| *"Identify what is similar, how similar it is, and what is different"* | Per-axis `exp(-D)` index (`0–1`) + 200-draw Monte Carlo `q05–q95` intervals (`scoring.display.expanded_interval`) + standardized `axis_gaps` feature diffs |
+| *"Remember Earth's limitations"* | Dedicated `Limits of the Analogy` tab + **8-Dimension Challenge Scorecard** separating field-testable axes (`Mobility`, `Surface`) from `1/6 g`, vacuum, radiation, `29.5`-day cycles, and suspended `Thermal` |
+| *"Look beyond well-known analogs / surprise us"* | `30` curated candidate sites evaluated alongside `10` classic validation analogues (`40` Earth sites total) without feeding role labels into scoring |
+| *"Use multiple datasets & consider scale"* | Multi-sensor orbital fusion (`5 m` LOLA DEM, `1000 m` LOLA albedo, `30 m` Copernicus GLO-30 / NASADEM, `500 m` MCD43A3, `10 m` Sentinel-2 L2A) on `r = 1000 m` metric windows with explicit `5 m` vs `30 m` scale disclosures |
+| *"Connect the analogy to exploration"* | Mission selector (`Balanced`, `Rover mobility test`, `ISRU / ice prospect (no ice data in v1)`, `Subsurface radar calibration`) + **Compact Portfolio Card** (`select_portfolio`) |
+| *"Go beyond visual similarity"* | Offline `moon_atlas/`, `earth_atlas/`, 2D scatter, and 3D DEMs serve strictly as evidence/context and never enter the numeric score |
+
+## 11. Future Work (v2 Extensions)
 - **Subsurface lava tubes:** compare CSA RADARSAT-1 open SAR archive
   detections of terrestrial lava-tube candidates against LRO Mini-RF
   radar returns of lunar tubes (e.g., Marius Hills region), so the

@@ -14,14 +14,14 @@
 ## 2. Yaklaşım (1 dakika)
 
 **Söyle:**
-> "Önce görevin içindeki kritik cümleyi okuduk: 'Hiçbir Dünya yeri Ay'ı kusursuz yeniden üretemez.' Doğru — Dünya'da Ay'ın yerçekimi, vakumu ve radyasyonu yok. O yüzden 'en benzer TEK yer' diye aramadık. Her sahayı üç konuda AYRI AYRI puanladık:
-> 1. **Arazi** — eğim, pürüzlülük, yükseklik farkı (rover gidip gidemeyeceği; Ay 5 m/px, Dünya 30 m/px DEM)
-> 2. **Sıcaklık** — yüzey sıcaklık genliği (*mevcut sürümde Ay tanımı PDS doğrulaması beklediği için geçici durumda*)
-> 3. **Yüzey** — geniş bant albedo / parlaklık (zemin malzemesinin ipucu)
+> "Önce görevin içindeki kritik cümleyi okuduk: 'Hiçbir Dünya yeri Ay'ı kusursuz yeniden üretemez.' Doğru — Dünya'da Ay'ın yerçekimi, vakumu ve radyasyonu yok. O yüzden 'en benzer TEK yer' diye aramadık. Her sahayı üç başlıklı çerçevede AYRI AYRI ele aldık:
+> 1. **Arazi (Mobilite)** — eğim, pürüzlülük, yükseklik farkı (rover gidip gidemeyeceği; Ay `5 m/px` LOLA, Dünya `30 m/px` GLO-30 DEM) — **v1'de aktif**
+> 2. **Yüzey** — geniş bant albedo / parlaklık (zemin malzemesinin ipucu) — **v1'de aktif**
+> 3. **Sıcaklık (Termal)** — yüzey sıcaklık genliği (`Karar #30` gereği v1'de PDS tam-gün döngüsü hizalaması yapılana kadar **askıda / `NaN`**, sayısal skora katılmıyor)
 >
-> Her puana ölçüm hatasını da ekledik — yani sadece tek bir sayı demiyoruz, belirsizlik aralığını da gösteriyoruz."
+> Aktif iki eksendeki her puana ölçüm hatasını da ekledik — yani sadece tek bir sayı demiyoruz, P5–P95 Monte Carlo belirsizlik aralığını da gösteriyoruz."
 
-**Uygulamada:** Ayarlar paneli gösterilir — üç ölçütün listesi görünsün.
+**Uygulamada:** Ayarlar paneli ve Eksen Grafikleri sekmesi gösterilir — Mobilite ve Yüzey aktif çubukları, Sıcaklık ise açıkça **askıda (`NaN`)** notuyla görünsün.
 
 ---
 
@@ -31,37 +31,37 @@
 **Uygulamada:** Sol panelden **"Shackleton Krateri Kenarı"** seç. (Ay güney kutbu, NASA'nın Artemis görevinin iniş bölgesi.)
 
 **Söyle:**
-> "Referansımız Ay güney kutbundan gerçek NASA bölge adayları — Artemis III'ün iniş için incelediği ROI'ler. Yani Ay tarafı uydurmadır değil; NASA'nın kendisinin baktığı koordinatlardır."
+> "Referansımız Ay güney kutbundan gerçek NASA bölge adayları — Artemis III'ün iniş için incelediği ROI'ler. Yani Ay tarafı uydurma değil; NASA'nın kendisinin baktığı koordinatlar."
 
-### Adım 2 — Skorlara ve Portföy Kartına bak
-**Uygulamada:** Skorlar tablosu aç. En üst satırı ve hemen altındaki kompakt Portföy Kartı'nı göster.
-
-**Söyle:**
-> "Mevcut taramada en üst satırda örneğin Bitlis'teki az bilinen bir volkanik saha olan **Süphan Dağı** (~0.37) öne çıkıyor; Etna ve Atacama gibi klasik sahalar da listede. Ancak burada iki şeye özellikle dikkat çekiyoruz: birincisi, mevcut sürümde Ay sıcaklık genliği tanımı doğrulama sürecinde olduğundan bunu kesinleşmiş 'en yakın Ay analogu' değil, daha yakından incelenecek aday havuzu çıktısı olarak okuyoruz. İkincisi, tablonun altındaki **Portföy Kartı** tek bir saha yerine farklı eksenleri tamamlayan kompakt saha grubunu gösteriyor; açıkta kalan koşullar ise laboratuvar/simülasyona bırakılıyor."
-
-### Adım 3 — Harita
-**Uygulamada:** Harita sekmesine geç.
+### Adım 2 — Skorlara, Görev Re-weighting'e ve Portföy Kartına bak
+**Uygulamada:** **📊 Skor & Portföy** sekmesini aç. Dengeli modda en üst satırı ve tablonun hemen altındaki kompakt **Portföy Kartı**'nı göster; ardından sol panelden **Rover Hareket Testi**'ne geçirip sıranın değişimini göster.
 
 **Söyle:**
-> "40 Dünya sahası haritada. Nokta boyutu ve rengi mevcut görev ağırlıklı benzerlik indeksini yansıtıyor; aday havuzunda Anadolu volkanik sahaları ve Antarktika çevresi üst sıralarda öne çıkıyor."
+> "Dengeli ağırlıkta 40 Dünya sahası içinde ilk sırada **Karapınar Meke Krateri (`0.528`, P5–P95: `0.406–0.569`)** var, ancak gücü esasen **Yüzey (`0.903`)** ekseninden geliyor, **Mobilite (`0.153`)** düşük. Sol menüden görevi **Rover Hareket Testi**'ne çektiğimizde ise **Hasandağı Keçikaleçik (`0.446`)** öne geçiyor — çünkü artık aynı sahaları seçtiğimiz ekipmanın ihtiyacına göre ağırlıklandırıyoruz. Tablonun hemen altındaki **Portföy Kartı** da tek bir yer yerine aktif eksenleri en az sahayla tamamlayan grubu ve Dünya'da kapatılamayan ya da v1'de askıda kalan (`Termal`) eksenleri açıkça simülasyon/laboratuvara yönlendiriyor."
 
-### Adım 4 — Neden benzer / neden değil
-**Uygulamada:** Görsel Karşılaştırma / Eksen çubuk kartlarını göster.
+### Adım 3 — Harita ve Gerçek 3D Arazi
+**Uygulamada:** Önce **🗺️ Harita** sekmesine geç (mavi dış halka = 10 doğrulama sahası, yeşil–kırmızı dolgu = skor), ardından kısaca **⛰️ 3D Arazi** sekmesini aç.
 
 **Söyle:**
-> "Bir sahanın hangi eksende güçlü, hangisinde zayıf kaldığını ayrı ayrı gösteriyoruz. Örneğin bu saha yüzey parlaklığında yüksek (0.85), arazi eğimi/pürüzlülüğünde orta, sıcaklıkta ise çok düşük çıkabiliyor. İki sınırımızı açıkça yazıyoruz: (1) Ay'daki DEM 5 m/px iken Dünya GLO-30 30 m/px çözünürlüktedir; (2) Ay sıcaklık genliği için PDS ürün dilimi doğrulaması sürdüğünden termal eksen şimdilik **geçici tanım** uyarısıyla sunuluyor."
+> "40 Dünya sahasının tamamı haritada: mavi halkalı 10 saha literatürdeki bilinen analoglar, dolgu rengi ise aktif skoru gösteriyor. **3D Arazi** sekmesinde ise yapay örnek yüzey yerine doğrudan taahhüt edilmiş gerçek **5 m/px LOLA** Ay yükselti gridini ve **30 m/px Copernicus GLO-30** Dünya topografyasını (`~2.2 km` pencere) yan yana inceliyoruz."
+
+### Adım 4 — Neden benzer / neden değil & Çevrimdışı Görsel Karşılaştırma
+**Uygulamada:** **📡 Eksen Grafikleri** veya **⚠️ Analojinin Sınırları** sekmesinden sahayı (ör. **Karacadağ** veya **Karapınar Meke**) seç; 3 panelli görseli ve alttaki özellik fark tablosunu göster.
+
+**Söyle:**
+> "Bir sahanın hangi eksende güçlü, hangisinde zayıf kaldığını ayrı ayrı gösteriyoruz; termal eksen `Karar #30` ile v1'de bilinçli olarak **askıda (`NaN`)** bırakıldığı için uyumsuz gündüz–gece verilerini puanın içine zorla sokmuyoruz. Görsel inceleyicide ise internet kesilse bile çalışan yerel **5 m LOLA kabartma**, **LOLA eğim-tehlike haritası** ve **10 m Sentinel-2 L2A** uydu görüntüsünü bulutluluk ve çekim tarihiyle gösteriyoruz — görseller yalnızca nitel bağlamdır, asla sayısal skora girmez."
 
 ### Adım 5 — Analojinin Sınırları
-**Uygulamada:** "⚠️ Analojinin Sınırları" sekmesi.
+**Uygulamada:** **⚠️ Analojinin Sınırları** sekmesinin alt bölümü.
 
 **Söyle:**
-> "Bu sekme, Dünya'da sahadan ASLA test edilemeyecek şeyleri listeliyor: yerçekimi (1.62 m/s²), vakum, radyasyon, 29 günlük Ay gün–gece çevrimi. Bunlar sahadan değil, laboratuvardan doğrulanır. Yani sistemimiz 'burada test edin' dediği şeyi, 'burada test edemezsiniz' diye de sınırlıyor."
+> "Bu bölüm, Dünya'da sahadan ASLA test edilemeyecek şeyleri listeliyor: yerçekimi (1.62 m/s²), vakum, radyasyon, 29.5 günlük Ay gün–gece çevrimi ve nitel su buzu / lav tüpü / elektrostatik toz faktörleri. Yani sistemimiz 'burada test edin' dediği şeyi, 'burada test edemezsiniz' diye de sınırlıyor."
 
 ### Adım 6 — Betimsel Sıra Tanısı (Doğrulama sekmesi)
-**Uygulamada:** Betimsel Sıra Tanısı (Doğrulama) sekmesi — beklenen eksen, gerekçe ve kaynak tablosu.
+**Uygulamada:** **🧭 Sıra Tanısı (Doğrulama)** sekmesi — 10 doğrulama sahası için kaynaklı beklenen eksen, nitel E8 buz/permafrost durumu ve tıklanabilir DOI tablosu.
 
 **Söyle:**
-> "Burada literatürden bilinen 10 Dünya analogunu — Etna, Atacama, Haughton Krateri gibi — skorlayıcıya rol etiketi vermeden aynı havuz içinde puanladık ve kaynaklı beklenen eksenleriyle karşılaştırdık. Önemli bir dürüstlük notu: 40 Dünya sahasının tamamı Z-ölçeklemesine katıldığı için bu ekran **bağımsız bir holdout doğrulaması değildir**; yöntemin bilinen sahaları beklendiği eksenlerde yukarı taşıyıp taşımadığını ve hangi fiziksel koşullarda kırıldığını gösteren bir **betimsel sıra tanısıdır**."
+> "Burada literatürden bilinen 10 Dünya analogunu — Etna, Atacama, McMurdo, Haughton Krateri gibi — skorlayıcıya rol etiketi vermeden aynı 40 sahalık havuz içinde puanladık ve `docs/validation_expectations.md` içinde önceden kaydettiğimiz DOI kaynaklı beklenen eksenlerle karşılaştırdık. Örnek olarak Etna mobilitede **#3 / 40**, McMurdo Wright Vadisi yüzey parlaklığında **#2 / 40** çıkıyor. Önemli bir dürüstlük notu: 40 Dünya sahasının tamamı Z-ölçeklemesine katıldığı için bu ekran **bağımsız bir holdout doğrulaması değildir**; yöntemin bilinen sahaları beklendiği eksenlerde yukarı taşıyıp taşımadığını ve hangi fiziksel koşullarda kırıldığını gösteren bir **betimsel sıra tanısıdır**."
 
 ---
 
@@ -69,9 +69,9 @@
 
 **Söyle:**
 > "Üç katmanlı şeffaflık:
-> 1. **Her sayının kaynağı ve çözünürlüğü yazılı.** Eğim puanı hangi uydu DEM'inden (`5 m` LOLA vs `30 m` GLO-30), albedo ve sıcaklık hangi sensörden — hepsi veri dosyasında `_src` ve `_res_m` sütunlarıyla etiketli.
-> 2. **Matematiksel formül ve kaynak denetimi yaptık.** Skorlama formüllerini elle 600'den fazla eşleşme üzerinde çapraz hesapladık (sapma: sıfır). Ayrıca Ay `temp_amplitude` ürününde PDS `.lbl` etiketlerinden yakaladığımız tanım farkını saklamak yerine `docs/data_notes.md` içinde açık engel olarak işaretledik.
-> 3. **Belirsizliği saklamıyoruz.** Ölçüm hatası olan her sayı Monte Carlo aralığı olarak gösteriliyor; verisi olmayan veya ortak tanımı kurulmayan özelliğe (`thermal_inertia`) '0' yazmıyoruz, bilinçli olarak boş (`NaN`) bırakıyoruz.
+> 1. **Her sayının kaynağı ve çözünürlüğü yazılı.** Eğim puanı hangi uydu DEM'inden (`5 m` LOLA vs `30 m` GLO-30), albedo hangi sensörden (`1000 m` LOLA vs `500 m` MODIS) — hepsi veri dosyasında `_src` ve `_res_m` sütunlarıyla etiketli.
+> 2. **Sorumlu veri disiplini uyguladık.** Skorlama formüllerini çapraz doğruladık (`pytest` tüm birim ve uygulama testleri geçiyor) ve Ay `temp_amplitude` ürününde PDS `.lbl` etiketlerinden yakaladığımız tanım uyuşmazlığını zorlamak yerine `Karar #30` ile termal ekseni v1'de temiz şekilde `NaN` (askıda) bıraktık.
+> 3. **Belirsizliği saklamıyoruz.** Ölçüm hatası olan her sayı P5–P95 Monte Carlo aralığı olarak gösteriliyor; verisi olmayan veya ortak tanımı henüz kurulmayan özelliklere (`thermal_inertia`, v1 Moon `temp_amplitude`) '0' yazmıyoruz, bilinçli olarak boş (`NaN`) bırakıyoruz.
 >
 > Kısacası: abartılı iddialar yerine sınırları bilinen, savunulabilir bir tarama aracı kurduk."
 
@@ -80,7 +80,7 @@
 ## 5. Kapanış (30 saniye)
 
 **Söyle:**
-> "Özet: Tek bir Dünya yeri Ay'ı temsil edemiyor — ama farklı Dünya sahaları farklı görev eksenlerini tamamlayan bir test portföyü oluşturabiliyor. Sistemimiz, bir görev planlayıcısına 'bu yeteneği hangi sahada, hangi sınırlar içinde test etmeliyim?' sorusunu veriyle cevaplıyor. 40 Dünya sahası, 5 Ay bölgesi, üç eksen; her sayı kaynaklı, belirsizliğiyle raporlanmış ve açık sınırlarıyla belgeli. Teşekkürler."
+> "Özet: Tek bir Dünya yeri Ay'ı temsil edemiyor — ama farklı Dünya sahaları farklı görev eksenlerini tamamlayan bir test portföyü oluşturabiliyor. Sistemimiz, bir görev planlayıcısına 'bu yeteneği hangi sahada, hangi sınırlar içinde test etmeliyim?' sorusunu veriyle cevaplıyor. 40 Dünya sahası, 5 Ay bölgesi, aktif Mobilite & Yüzey eksenleri, askıda olduğu dürüstçe işaretlenmiş Termal başlığı ve gerçek 3D/uydu bağlamıyla tüm sayılar kaynaklı ve belgeli. Teşekkürler."
 
 ---
 
@@ -98,7 +98,7 @@
 **S: Veriler gerçek mi? Kendi verinizi mi kullandınız?**
 > "Hepsi NASA ve ESA'nın açık arşivleri: LOLA (`5 m/px` Ay yüksekliği ve `1 km` albedo), Diviner (`240 m` Ay sıcaklık), Copernicus GLO-30 (`30 m` Dünya yüksekliği), MODIS (`1 km` Dünya sıcaklık, `500 m` albedo) ve Sentinel-2 L2A (`10 m` yalnızca görsel bağlam için; sayısal skora girmez). Çözünürlükler ve açık tanım sınırları `docs/data_notes.md` içinde belgeli."
 
-**S: Sıcaklık puanları neden düşük ve neden geçici uyarısı var?**
-> "İki nedeni var. Fiziksel olarak Ay'da atmosfer olmadığı için kutup gündüz–gece termal döngüsü Dünya ortamlarından çok farklıdır. Teknik olarak da `docs/data_notes.md`'de belgelediğimiz üzere mevcut Ay `temp_amplitude` ürünü (`ltim` yerel saat dilimi seçimi) ile Dünya `MOD11A2.061` yıllık ortalama gündüz–gece farkı birebir aynı günlük döngü tanımına oturmuyor; PDS doğrulaması sürdüğü için termal ekseni şimdilik **geçici tanım** uyarısıyla sunuyoruz ve karar netleşene kadar bu eksene dayanarak kesin sıralama iddiası kurmuyoruz."
+**S: Sıcaklık puanları neden v1'de askıda (`NaN`) ve neden hesaplanmıyor?**
+> "`docs/data_notes.md` (`Karar #30`) içinde belgelediğimiz üzere, mevcut PDS LRO Diviner `ltim` dilimi ile Dünya `MOD11A2.061` yıllık ortalama gündüz–gece sıcaklık farkı birebir aynı günlük çevrim tanımına oturmuyor. Yanlış ya da elmayla armutu kıyaslayan bir skor göstermek yerine Ay `temp_amplitude` ve `thermal_inertia` değerlerini v1'de temiz biçimde `NaN` (askıda) bıraktık; tam günlük Diviner TBOL entegrasyonu v2 yol haritasında."
 
 **Uygulama açılmazsa (yedek plan):** `report/figures/` klasöründeki ekran görüntüleriyle aynı hikâyeyi anlat — sıra değişmez.

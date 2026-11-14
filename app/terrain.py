@@ -1,10 +1,10 @@
 """app/terrain.py — elevation grids for the 3D Terrain tab.
 
-Real tiles live at data/processed/dem_tiles/{site_id}.npz (array key "z",
-elevation in metres; optional "radius_m"). Until the DEM tiles from
-Person 2 / Person 3 (M6/E7) land, a deterministic stub grid is generated
-from the site's own measured slope/roughness/relief statistics; the UI
-labels every stub card as generated sample terrain.
+Loads verified DEM grids committed in data/processed/:
+  - Moon (M6): data/processed/moon_3d/{site_id}_3d.npz (key "elev_m", 5 m/px)
+  - Earth (E7): data/processed/earth_3d_grids.npz (key "{site_id}", 30 m/px)
+Falls back to data/processed/dem_tiles/{site_id}.npz ("z") and finally a
+deterministic stub grid built from the site's measured slope/roughness/relief.
 """
 from __future__ import annotations
 
@@ -17,9 +17,14 @@ import streamlit as st
 from scipy.ndimage import zoom
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TILE_DIR = ROOT / "data" / "processed" / "dem_tiles"
+PROC_DIR = ROOT / "data" / "processed"
+MOON_3D_DIR = PROC_DIR / "moon_3d"
+EARTH_3D_PATH = PROC_DIR / "earth_3d_grids.npz"
+TILE_DIR = PROC_DIR / "dem_tiles"
 
 GRID = 64  # stub grid resolution (GRID x GRID)
+EARTH_3D_HALF_WIDTH_M = 1110.0  # 74 x 30 m = 2220 m total window (E7)
+MOON_3D_DEFAULT_DX_M = 5.0
 
 
 def _seed(site_id: str) -> int:
@@ -85,14 +90,48 @@ def hillshade(z: np.ndarray, radius_m: float) -> np.ndarray:
 
 
 @st.cache_data(show_spinner=False)
-def get_tile(row: pd.Series) -> tuple[np.ndarray, bool]:
-    """Return (elevation grid in metres, is_stub) for one site.
+def _load_earth_grid_archive(mtime: float) -> dict[str, np.ndarray]:
+    """Load the committed E7 Earth 3D NPZ archive once per file mtime."""
+    if not EARTH_3D_PATH.exists():
+        return {}
+    with np.load(EARTH_3D_PATH) as archive:
+        return {key: np.asarray(archive[key], dtype=float) for key in archive.files}
 
-    Uses a verified tile from data/processed/dem_tiles/ when available;
-    otherwise generates the labelled stub grid from measured stats.
+
+def get_tile_data(row: pd.Series) -> tuple[np.ndarray, bool, float]:
+    """Return ``(elev_m, is_stub, half_width_m)`` for one Moon or Earth site.
+
+    Prefers verified M6 (`moon_3d/`) and E7 (`earth_3d_grids.npz`) DEM grids
+    over legacy `dem_tiles/` or the labelled synthetic stub fallback.
     """
-    path = TILE_DIR / f"{row['site_id']}.npz"
-    if path.exists():
-        data = np.load(path)
-        return np.asarray(data["z"], dtype=float), False
-    return _stub_dem(row), True
+    site_id = str(row["site_id"])
+    radius_m = float(row.get("radius_m", 1000.0) or 1000.0)
+
+    moon_path = MOON_3D_DIR / f"{site_id}_3d.npz"
+    if moon_path.exists():
+        with np.load(moon_path) as data:
+            z = np.asarray(data["elev_m"], dtype=float)
+            dx = float(data["dx_m"]) if "dx_m" in data else MOON_3D_DEFAULT_DX_M
+        half_w = 0.5 * max(z.shape[1] - 1, 1) * dx
+        return z, False, half_w
+
+    if EARTH_3D_PATH.exists():
+        earth_grids = _load_earth_grid_archive(EARTH_3D_PATH.stat().st_mtime)
+        if site_id in earth_grids:
+            return earth_grids[site_id], False, EARTH_3D_HALF_WIDTH_M
+
+    legacy_path = TILE_DIR / f"{site_id}.npz"
+    if legacy_path.exists():
+        with np.load(legacy_path) as data:
+            z = np.asarray(data["z"], dtype=float)
+            half_w = float(data["radius_m"]) if "radius_m" in data else radius_m
+        return z, False, half_w
+
+    return _stub_dem(row), True, radius_m
+
+
+@st.cache_data(show_spinner=False)
+def get_tile(row: pd.Series) -> tuple[np.ndarray, bool]:
+    """Return ``(elevation grid in metres, is_stub)`` for one site."""
+    z, is_stub, _ = get_tile_data(row)
+    return z, is_stub
