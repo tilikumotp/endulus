@@ -1,0 +1,37 @@
+{
+  "site_id": "earth_tongariro_rangipo",
+  "group": "extended_12",
+  "name": "Tongariro Volcanic Centre (Rangipo Andesitic-Basaltic Tephra Plain, NZ)",
+  "role": "candidate",
+  "lithology_class": "basalt",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2B_MSIL2A_20200311T221559_R129_T60HUB_20201005T083659",
+  "scene_ids_mosaicked": [
+    "S2B_MSIL2A_20200311T221559_R129_T60HUB_20201005T083659"
+  ],
+  "mgrs_tiles": [
+    "60HUB"
+  ],
+  "datetime": "2020-03-11T22:15:59.024000Z",
+  "tile_cloud_cover": 0.279166,
+  "local_cloud_pct": 0.004761829177314646,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.01,
+  "sun_elevation_deg": 43.19,
+  "lat": -39.285,
+  "lon": 175.72,
+  "center_metric_xy": [
+    389606.73,
+    5650815.04
+  ],
+  "crs": "EPSG:32760",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=-39.285,175.72&zoom=14&basemap=satellite"
+}

@@ -1,18 +1,37 @@
 {
   "site_id": "earth_mcmurdo_wright_valley",
+  "group": "active_28",
   "name": "McMurdo Dry Valleys (Wright Valley, Antarctica)",
   "role": "validation",
+  "lithology_class": "regolith_permafrost",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2B_MSIL2A_20251225T145759_R053_T57CWQ_20251225T193009",
-  "datetime": "2025-12-25T14:57:59.024000Z",
-  "cloud_cover": 1.217574,
+  "scene_id": "S2B_MSIL2A_20250114T204609_R128_T57CWQ_20250114T234055",
+  "scene_ids_mosaicked": [
+    "S2B_MSIL2A_20250114T204609_R128_T57CWQ_20250114T234055"
+  ],
+  "mgrs_tiles": [
+    "57CWQ"
+  ],
+  "datetime": "2025-01-14T20:46:09.024000Z",
+  "tile_cloud_cover": 7.278854,
+  "local_cloud_pct": 0.11428390025555149,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.16,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 25.19,
   "lat": -77.518,
   "lon": 161.85,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    568737.07,
+    1393751.4
+  ],
   "crs": "EPSG:32757",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=-77.518,161.85&zoom=14&basemap=satellite"
 }

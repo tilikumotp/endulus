@@ -1,18 +1,37 @@
 {
   "site_id": "earth_pinacate_el_elegante",
+  "group": "active_28",
   "name": "Sierra del Pinacate Volcanic Field (El Elegante Maar Rim, Sonora, Mexico)",
   "role": "candidate",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2C_MSIL2A_20250725T180941_R084_T12STA_20250725T233721",
-  "datetime": "2025-07-25T18:09:41.025000Z",
-  "cloud_cover": 0.009137,
+  "scene_id": "S2C_MSIL2A_20250923T181111_R084_T12STA_20250923T224712",
+  "scene_ids_mosaicked": [
+    "S2C_MSIL2A_20250923T181111_R084_T12STA_20250923T224712"
+  ],
+  "mgrs_tiles": [
+    "12STA"
+  ],
+  "datetime": "2025-09-23T18:11:11.025000Z",
+  "tile_cloud_cover": 0.013135,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 54.53,
   "lat": 31.795,
   "lon": -113.39,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    273721.49,
+    3520200.82
+  ],
   "crs": "EPSG:32612",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=31.795,-113.39&zoom=14&basemap=satellite"
 }

@@ -1,0 +1,37 @@
+{
+  "site_id": "earth_chajnantor_plateau",
+  "group": "extended_12",
+  "name": "Altiplano-Puna Complex (Chajnantor High-Altitude Ignimbrite Plateau, Chile)",
+  "role": "candidate",
+  "lithology_class": "pyroclastic_tuff",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20250419T143801_R096_T19KFQ_20250419T230313",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20250419T143801_R096_T19KFQ_20250419T230313"
+  ],
+  "mgrs_tiles": [
+    "19KFQ"
+  ],
+  "datetime": "2025-04-19T14:38:01.024000Z",
+  "tile_cloud_cover": 0.040813,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 47.78,
+  "lat": -23.023,
+  "lon": -67.754,
+  "center_metric_xy": [
+    627677.37,
+    7453391.12
+  ],
+  "crs": "EPSG:32719",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=-23.023,-67.754&zoom=14&basemap=satellite"
+}

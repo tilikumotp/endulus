@@ -1,18 +1,37 @@
 {
   "site_id": "earth_mauna_loa_hiseas",
+  "group": "active_28",
   "name": "Mauna Loa North Flank (HI-SEAS Basalt Field, Hawaii)",
   "role": "validation",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2A_MSIL2A_20241122T205941_R014_T04QHG_20241122T230753",
-  "datetime": "2024-11-22T20:59:41.024000Z",
-  "cloud_cover": 2.289007,
+  "scene_id": "S2B_MSIL2A_20250804T205939_R014_T05QKB_20250804T224019",
+  "scene_ids_mosaicked": [
+    "S2B_MSIL2A_20250804T205939_R014_T05QKB_20250804T224019"
+  ],
+  "mgrs_tiles": [
+    "05QKB"
+  ],
+  "datetime": "2025-08-04T20:59:39.024000Z",
+  "tile_cloud_cover": 8.036721,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 69.13,
   "lat": 19.6028,
   "lon": -155.4878,
-  "bbox_km": 5.0,
-  "crs": "EPSG:32604",
+  "center_metric_xy": [
+    239052.63,
+    2169429.64
+  ],
+  "crs": "EPSG:32605",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=19.6028,-155.4878&zoom=14&basemap=satellite"
 }

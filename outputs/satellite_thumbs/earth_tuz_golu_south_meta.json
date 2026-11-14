@@ -1,18 +1,37 @@
 {
   "site_id": "earth_tuz_golu_south",
+  "group": "active_28",
   "name": "Tuz G\u00f6l\u00fc Basin (Southern Evaporite Marginal Flat, Aksaray)",
   "role": "candidate",
+  "lithology_class": "evaporite",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2B_MSIL2A_20250914T082559_R021_T36SWH_20250914T112245",
-  "datetime": "2025-09-14T08:25:59.024000Z",
-  "cloud_cover": 0.311744,
+  "scene_id": "S2B_MSIL2A_20260701T082559_R021_T36SWH_20260701T123005",
+  "scene_ids_mosaicked": [
+    "S2B_MSIL2A_20260701T082559_R021_T36SWH_20260701T123005"
+  ],
+  "mgrs_tiles": [
+    "36SWH"
+  ],
+  "datetime": "2026-07-01T08:25:59.024000Z",
+  "tile_cloud_cover": 0.183815,
+  "local_cloud_pct": 0.13174394057237188,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 68.67,
   "lat": 38.55,
   "lon": 33.62,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    554025.53,
+    4267023.7
+  ],
   "crs": "EPSG:32636",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=38.55,33.62&zoom=14&basemap=satellite"
 }

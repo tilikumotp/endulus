@@ -1,0 +1,37 @@
+{
+  "site_id": "earth_agri_dogubayazit_flow",
+  "group": "extended_12",
+  "name": "Mount Ararat / A\u011fr\u0131 Da\u011f\u0131 (Western Basalt Plateau, A\u011fr\u0131)",
+  "role": "candidate",
+  "lithology_class": "basalt",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2C_MSIL2A_20261012T074841_R135_T38TMK_20261012T105309",
+  "scene_ids_mosaicked": [
+    "S2C_MSIL2A_20261012T074841_R135_T38TMK_20261012T105309"
+  ],
+  "mgrs_tiles": [
+    "38TMK"
+  ],
+  "datetime": "2026-10-12T07:48:41.025000Z",
+  "tile_cloud_cover": 1.068002,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 41.03,
+  "lat": 39.68,
+  "lon": 43.92,
+  "center_metric_xy": [
+    407381.61,
+    4392798.72
+  ],
+  "crs": "EPSG:32638",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=39.68,43.92&zoom=14&basemap=satellite"
+}

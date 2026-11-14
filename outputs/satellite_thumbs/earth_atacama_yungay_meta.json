@@ -1,18 +1,37 @@
 {
   "site_id": "earth_atacama_yungay",
+  "group": "active_28",
   "name": "Atacama Desert (Yungay Station)",
   "role": "validation",
+  "lithology_class": "evaporite",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2C_MSIL2A_20250706T143811_R096_T19KCP_20250706T200416",
-  "datetime": "2025-07-06T14:38:11.025000Z",
-  "cloud_cover": 0.065571,
+  "scene_id": "S2A_MSIL2A_20260427T144751_R139_T19KCP_20260428T002920",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20260427T144751_R139_T19KCP_20260428T002920"
+  ],
+  "mgrs_tiles": [
+    "19KCP"
+  ],
+  "datetime": "2026-04-27T14:47:51.024000Z",
+  "tile_cloud_cover": 2.824646,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 44.92,
   "lat": -24.1052,
   "lon": -70.0321,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    395105.71,
+    7333740.4
+  ],
   "crs": "EPSG:32719",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=-24.1052,-70.0321&zoom=14&basemap=satellite"
 }

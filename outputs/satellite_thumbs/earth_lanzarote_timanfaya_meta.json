@@ -1,18 +1,37 @@
 {
   "site_id": "earth_lanzarote_timanfaya",
+  "group": "active_28",
   "name": "Lanzarote Tinguat\u00f3n / Timanfaya (ESA PANGAEA, Canary Islands)",
   "role": "validation",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2A_MSIL2A_20241227T113511_R080_T28RFT_20241227T153950",
-  "datetime": "2024-12-27T11:35:11.024000Z",
-  "cloud_cover": 0.072412,
+  "scene_id": "S2A_MSIL2A_20231014T113321_R080_T28RFT_20231014T182353",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20231014T113321_R080_T28RFT_20231014T182353"
+  ],
+  "mgrs_tiles": [
+    "28RFT"
+  ],
+  "datetime": "2023-10-14T11:33:21.024000Z",
+  "tile_cloud_cover": 0.004701,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.01,
+  "sun_elevation_deg": 50.15,
   "lat": 29.015,
   "lon": -13.715,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    625146.44,
+    3210328.25
+  ],
   "crs": "EPSG:32628",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=29.015,-13.715&zoom=14&basemap=satellite"
 }

@@ -1,18 +1,37 @@
 {
   "site_id": "earth_puna_campo_piedra_pomez",
+  "group": "active_28",
   "name": "Puna de Atacama (Campo de Piedra P\u00f3mez Ignimbrite & Basalt, Argentina)",
   "role": "candidate",
+  "lithology_class": "pyroclastic_tuff",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2C_MSIL2A_20250812T142731_R053_T19JFL_20250812T185813",
-  "datetime": "2025-08-12T14:27:31.025000Z",
-  "cloud_cover": 0.071078,
+  "scene_id": "S2C_MSIL2A_20250424T142811_R053_T19JFL_20250424T203016",
+  "scene_ids_mosaicked": [
+    "S2C_MSIL2A_20250424T142811_R053_T19JFL_20250424T203016"
+  ],
+  "mgrs_tiles": [
+    "19JFL"
+  ],
+  "datetime": "2025-04-24T14:28:11.025000Z",
+  "tile_cloud_cover": 0.626366,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.05,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 42.46,
   "lat": -26.57,
   "lon": -67.44,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    655371.64,
+    7060243.52
+  ],
   "crs": "EPSG:32719",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=-26.57,-67.44&zoom=14&basemap=satellite"
 }

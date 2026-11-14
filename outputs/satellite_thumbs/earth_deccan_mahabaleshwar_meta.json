@@ -1,18 +1,37 @@
 {
   "site_id": "earth_deccan_mahabaleshwar",
+  "group": "active_28",
   "name": "Deccan Traps Flood Basalt Plateau (Panchgani Tableland, India)",
   "role": "candidate",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2B_MSIL2A_20250113T053209_R105_T43QCV_20250113T074041",
-  "datetime": "2025-01-13T05:32:09.024000Z",
-  "cloud_cover": 0.405055,
+  "scene_id": "S2A_MSIL2A_20231006T052701_R105_T43QCV_20231006T114420",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20231006T052701_R105_T43QCV_20231006T114420"
+  ],
+  "mgrs_tiles": [
+    "43QCV"
+  ],
+  "datetime": "2023-10-06T05:27:01.024000Z",
+  "tile_cloud_cover": 3.871848,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 61.61,
   "lat": 17.924,
   "lon": 73.805,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    373432.6,
+    1982183.47
+  ],
   "crs": "EPSG:32643",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=17.924,73.805&zoom=14&basemap=satellite"
 }

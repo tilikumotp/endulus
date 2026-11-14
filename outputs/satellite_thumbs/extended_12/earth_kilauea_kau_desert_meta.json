@@ -1,0 +1,37 @@
+{
+  "site_id": "earth_kilauea_kau_desert",
+  "group": "extended_12",
+  "name": "K\u012blauea SW Rift Zone (Ka\u02bb\u016b Desert Basalt & Tephra Plain, Hawaii)",
+  "role": "candidate",
+  "lithology_class": "basalt",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20231029T205941_R014_T05QKB_20231030T001146",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20231029T205941_R014_T05QKB_20231030T001146"
+  ],
+  "mgrs_tiles": [
+    "05QKB"
+  ],
+  "datetime": "2023-10-29T20:59:41.024000Z",
+  "tile_cloud_cover": 6.646068,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 53.36,
+  "lat": 19.365,
+  "lon": -155.335,
+  "center_metric_xy": [
+    254728.99,
+    2142872.54
+  ],
+  "crs": "EPSG:32605",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=19.365,-155.335&zoom=14&basemap=satellite"
+}

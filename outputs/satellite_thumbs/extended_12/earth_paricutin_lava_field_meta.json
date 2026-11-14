@@ -1,0 +1,37 @@
+{
+  "site_id": "earth_paricutin_lava_field",
+  "group": "extended_12",
+  "name": "Michoac\u00e1n-Guanajuato Field (Par\u00edcutin Basaltic-Andesite Flow, Mexico)",
+  "role": "candidate",
+  "lithology_class": "basalt",
+  "collection": "sentinel-2-l2a",
+  "scene_id": "S2A_MSIL2A_20240503T170851_R112_T13QGB_20240504T011229",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20240503T170851_R112_T13QGB_20240504T011229"
+  ],
+  "mgrs_tiles": [
+    "13QGB"
+  ],
+  "datetime": "2024-05-03T17:08:51.024000Z",
+  "tile_cloud_cover": 0.0,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 71.01,
+  "lat": 19.493,
+  "lon": -102.251,
+  "center_metric_xy": [
+    788555.85,
+    2157689.45
+  ],
+  "crs": "EPSG:32613",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
+  "shape_hwc": [
+    501,
+    501,
+    3
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=19.493,-102.251&zoom=14&basemap=satellite"
+}

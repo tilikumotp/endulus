@@ -1,18 +1,37 @@
 {
   "site_id": "earth_craters_of_the_moon",
+  "group": "active_28",
   "name": "Craters of the Moon Lava Field (Idaho)",
   "role": "validation",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2A_MSIL2A_20250819T182811_R127_T11TQJ_20250820T005914",
-  "datetime": "2025-08-19T18:28:11.024000Z",
-  "cloud_cover": 0.006348,
+  "scene_id": "S2A_MSIL2A_20260605T182811_R127_T11TQJ_20260606T023720",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20260605T182811_R127_T11TQJ_20260606T023720"
+  ],
+  "mgrs_tiles": [
+    "11TQJ"
+  ],
+  "datetime": "2026-06-05T18:28:11.024000Z",
+  "tile_cloud_cover": 0.010534,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.01,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 65.38,
   "lat": 43.4617,
   "lon": -113.5625,
-  "bbox_km": 5.0,
-  "crs": "EPSG:32611",
+  "center_metric_xy": [
+    292701.69,
+    4815277.67
+  ],
+  "crs": "EPSG:32612",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=43.4617,-113.5625&zoom=14&basemap=satellite"
 }

@@ -1,18 +1,37 @@
 {
   "site_id": "earth_acigol_guneydag",
+  "group": "active_28",
   "name": "Ac\u0131g\u00f6l-Nev\u015fehir Caldera (G\u00fcneyda\u011f Maar & Tephra Ring, Nev\u015fehir)",
   "role": "candidate",
+  "lithology_class": "pyroclastic_tuff",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2A_MSIL2A_20250713T082751_R021_T36SXH_20250713T115814",
-  "datetime": "2025-07-13T08:27:51.024000Z",
-  "cloud_cover": 0.301628,
+  "scene_id": "S2A_MSIL2A_20241004T082811_R021_T36SXH_20241004T115852",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20241004T082811_R021_T36SXH_20241004T115852"
+  ],
+  "mgrs_tiles": [
+    "36SXH"
+  ],
+  "datetime": "2024-10-04T08:28:11.024000Z",
+  "tile_cloud_cover": 0.042681,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.06,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 45.53,
   "lat": 38.525,
   "lon": 34.555,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    635549.58,
+    4265213.31
+  ],
   "crs": "EPSG:32636",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=38.525,34.555&zoom=14&basemap=satellite"
 }

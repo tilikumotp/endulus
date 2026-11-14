@@ -1,18 +1,37 @@
 {
   "site_id": "earth_erciyes_kojugedigi",
+  "group": "active_28",
   "name": "Mount Erciyes (Ko\u00e7da\u011f SE Flank Basalt-Andesite Plateau, Kayseri)",
   "role": "candidate",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2C_MSIL2A_20250916T081621_R121_T36SYH_20250916T140922",
-  "datetime": "2025-09-16T08:16:21.025000Z",
-  "cloud_cover": 0.114315,
+  "scene_id": "S2A_MSIL2A_20260618T083531_R021_T36SYH_20260618T133810",
+  "scene_ids_mosaicked": [
+    "S2A_MSIL2A_20260618T083531_R021_T36SYH_20260618T133810"
+  ],
+  "mgrs_tiles": [
+    "36SYH"
+  ],
+  "datetime": "2026-06-18T08:35:31.024000Z",
+  "tile_cloud_cover": 0.018855,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.1,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 70.67,
   "lat": 38.505,
   "lon": 35.535,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    721047.7,
+    4264893.8
+  ],
   "crs": "EPSG:32636",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=38.505,35.535&zoom=14&basemap=satellite"
 }

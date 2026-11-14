@@ -1,18 +1,37 @@
 {
   "site_id": "earth_etna_cisternazza",
+  "group": "active_28",
   "name": "Mount Etna (Cisternazza / Piano del Lago)",
   "role": "validation",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2B_MSIL2A_20250915T094029_R036_T33SVB_20250915T122659",
-  "datetime": "2025-09-15T09:40:29.024000Z",
-  "cloud_cover": 0.01098,
+  "scene_id": "S2B_MSIL2A_20260715T095029_R079_T33SVB_20260715T134555",
+  "scene_ids_mosaicked": [
+    "S2B_MSIL2A_20260715T095029_R079_T33SVB_20260715T134555"
+  ],
+  "mgrs_tiles": [
+    "33SVB"
+  ],
+  "datetime": "2026-07-15T09:50:29.024000Z",
+  "tile_cloud_cover": 0.635963,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.0,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 68.34,
   "lat": 37.745,
   "lon": 15.006,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    500528.6,
+    4177522.87
+  ],
   "crs": "EPSG:32633",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=37.745,15.006&zoom=14&basemap=satellite"
 }

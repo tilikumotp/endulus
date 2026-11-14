@@ -1,18 +1,37 @@
 {
   "site_id": "earth_tendurek_shield",
+  "group": "active_28",
   "name": "Tend\u00fcrek Shield Volcano (\u00c7ald\u0131ran Basalt Lava Apron, A\u011fr\u0131-Van)",
   "role": "candidate",
+  "lithology_class": "basalt",
   "collection": "sentinel-2-l2a",
-  "scene_id": "S2B_MSIL2A_20251114T080109_R035_T38SMJ_20251114T085821",
-  "datetime": "2025-11-14T08:01:09.024000Z",
-  "cloud_cover": 4.2e-05,
+  "scene_id": "S2C_MSIL2A_20260727T075611_R035_T38SLJ_20260727T114212",
+  "scene_ids_mosaicked": [
+    "S2C_MSIL2A_20260727T075611_R035_T38SLJ_20260727T114212"
+  ],
+  "mgrs_tiles": [
+    "38SLJ"
+  ],
+  "datetime": "2026-07-27T07:56:11.025000Z",
+  "tile_cloud_cover": 0.020214,
+  "local_cloud_pct": 0.0,
+  "local_nodata_pct": 0.0,
+  "saturated_white_pct": 0.01,
+  "black_nodata_pct": 0.0,
+  "sun_elevation_deg": 65.61,
   "lat": 39.32,
   "lon": 43.92,
-  "bbox_km": 5.0,
+  "center_metric_xy": [
+    406902.51,
+    4352844.32
+  ],
   "crs": "EPSG:32638",
+  "bbox_km": 5.01,
+  "pixel_size_m": 10.0,
   "shape_hwc": [
     501,
     501,
     3
-  ]
+  ],
+  "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=map&center=39.32,43.92&zoom=14&basemap=satellite"
 }
