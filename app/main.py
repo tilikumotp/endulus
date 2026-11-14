@@ -47,6 +47,12 @@ PROC_DIR = ROOT / "data" / "processed"
 
 AXIS_LABELS = {"mobility": "Mobility", "thermal": "Thermal", "surface": "Surface"}
 
+FEATURE_UNITS = {
+    "slope_mean": "deg", "slope_p90": "deg", "roughness": "m",
+    "relief": "m", "temp_amplitude": "K",
+    "thermal_inertia": "J m^-2 K^-1 s^-1/2", "albedo": "0-1",
+}
+
 MISSION_LABELS = {
     "default": "Balanced (all axes equal)",
     "rover_mobility": "Rover mobility test",
@@ -179,7 +185,11 @@ def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
 
 
 def _map_chart(result: pd.DataFrame, top_n: int) -> None:
-    """pydeck scatter map of the top-N scored Earth sites."""
+    """pydeck scatter map of the top-N scored Earth sites.
+
+    Known validation analogues are drawn as fixed blue circles; candidates
+    are coloured green→red by score, so the two roles are never confused.
+    """
     map_df = result.head(top_n)[
         ["site_id", "name", "role", "lat", "lon", "score", "lithology_class"]
     ].copy()
@@ -193,6 +203,7 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     map_df["color"] = map_df["score"].apply(_color)
     map_df["radius"] = (map_df["score"].fillna(0.3) * 150_000 + 40_000).astype(int)
     map_df["score_txt"] = (map_df["score"] * 100).round(1).astype(str) + "%"
+    map_df["color_val"] = [[60, 130, 255, 220]] * len(map_df)
 
     tooltip = {
         "html": "<b>{name}</b><br/>Role: {role}<br/>Score: {score_txt}"
@@ -203,20 +214,39 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     try:
         import pydeck as pdk
 
-        layer = pdk.Layer(
-            "ScatterplotLayer",
-            data=map_df,
-            get_position="[lon, lat]",
-            get_fill_color="color",
-            get_radius="radius",
-            pickable=True,
-            auto_highlight=True,
-        )
         view = pdk.ViewState(latitude=20, longitude=10, zoom=1, pitch=0)
+        layers = []
+        val_df = map_df[map_df["role"] == "validation"]
+        cand_df = map_df[map_df["role"] != "validation"]
+        if len(val_df):
+            layers.append(pdk.Layer(
+                "ScatterplotLayer",
+                data=val_df,
+                get_position="[lon, lat]",
+                get_fill_color="color_val",
+                get_radius=110_000,
+                stroked=True,
+                get_line_color=[230, 230, 230],
+                line_width_min_pixels=1,
+                pickable=True,
+                auto_highlight=True,
+            ))
+        if len(cand_df):
+            layers.append(pdk.Layer(
+                "ScatterplotLayer",
+                data=cand_df,
+                get_position="[lon, lat]",
+                get_fill_color="color",
+                get_radius="radius",
+                pickable=True,
+                auto_highlight=True,
+            ))
         st.pydeck_chart(
-            pdk.Deck(layers=[layer], initial_view_state=view, tooltip=tooltip),
+            pdk.Deck(layers=layers, initial_view_state=view, tooltip=tooltip),
             width="stretch",
         )
+        st.caption("🔵 Blue ring = known validation analogues (Etna, Atacama, "
+                   "Haughton…) · green→red = candidates, colour = score.")
     except ImportError:
         st.info("pydeck not installed — falling back to st.map.")
         st.map(map_df, size=200_000)
@@ -236,16 +266,18 @@ moon_df, mars_df, earth_df, moon_mock, mars_mock, earth_mock = load_data(
 with st.sidebar:
     st.header("⚙️ Settings")
 
-    # Mars real data may not exist yet; label it so jury never mixes
-    # a mock Mars preview with real Moon/Earth results (AGENTS.md §2).
+    # ── Option A lock (leader decision) ─────────────────────────────────────
+    # Mars stays hidden unless explicitly opted in via the checkbox at the
+    # bottom of the sidebar, so the jury never lands on a mock Mars view.
+    show_mars_preview = st.session_state.get("show_mars_preview", False)
     mars_option = "Mars (v2 Mock Preview)" if mars_mock else "Mars"
-    body_choice = st.radio("Reference body", ["Moon", mars_option], horizontal=True)
+    body_options = ["Moon"] + (
+        [mars_option] if (not mars_mock or show_mars_preview) else []
+    )
+    body_choice = st.radio("Reference body", body_options, horizontal=True)
     body = "Moon" if body_choice.startswith("Moon") else "Mars"
     ref_df = moon_df if body == "Moon" else mars_df
     body_mock = moon_mock if body == "Moon" else mars_mock
-    if mars_mock:
-        st.caption("ℹ️ Mars features are still MOCK (v2 preview); Moon & Earth "
-                   "switch to real parquets automatically when they land.")
 
     refs = ref_df[ref_df["role"] == "reference"].reset_index(drop=True)
 
@@ -270,6 +302,14 @@ with st.sidebar:
         "Portfolio coverage threshold", 0.30, 0.95, 0.70, 0.05,
         help="A site covers an axis when its score >= this value.",
     )
+    if mars_mock:
+        st.divider()
+        st.checkbox(
+            "Show v2 Mars architecture preview (mock)", value=False,
+            key="show_mars_preview",
+            help="Mars parquet is still MOCK; keep this off during the jury "
+                 "demo. Moon & Earth switch to real data automatically.",
+        )
 
 # ── MOCK FLAG for the CURRENT view (selected body + Earth, AGENTS.md rule 10) ─
 any_mock = body_mock or earth_mock
@@ -311,7 +351,10 @@ ref_features = [f for feats in AXES.values() for f in feats]
 ref_tbl = pd.DataFrame({
     "feature": ref_features,
     "value": [round(float(ref_row.get(f, np.nan)), 3) for f in ref_features],
+    "unit": [FEATURE_UNITS.get(f, "—") for f in ref_features],
     "sd": [round(float(ref_row.get(f"{f}_sd", np.nan)), 3) for f in ref_features],
+    "res_m": [ref_row.get(f"{f}_res_m", np.nan) for f in ref_features],
+    "source": [str(ref_row.get(f"{f}_src", "—")) for f in ref_features],
 })
 st.dataframe(ref_tbl, width="stretch", hide_index=True)
 st.caption("`temp_amplitude` = annual diurnal-cycle mean (docs/data_notes.md, "
@@ -350,6 +393,13 @@ with tab_radar:
 with tab_table:
     st.markdown("Mission-weighted overall score + per-axis scores with "
                 "[ci_low – ci_high] for every Earth site.")
+    role_filter = st.multiselect(
+        "Filter by role", ["validation", "candidate"],
+        default=["validation", "candidate"],
+        help="validation = known analogues (blind check) · candidate = test "
+             "candidates, never confirmed analogues.",
+    )
+    shown = result if not role_filter else result[result["role"].isin(role_filter)]
 
     def _fmt(score: float, lo: float, hi: float) -> str:
         if np.isnan(score):
@@ -360,7 +410,7 @@ with tab_table:
 
     ref_lith = str(ref_row.get("lithology_class", ""))
     rows = []
-    for _, r in result.iterrows():
+    for _, r in shown.iterrows():
         lith = str(r.get("lithology_class", "—"))
         rec = {
             "Site": r["name"],

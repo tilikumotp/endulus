@@ -59,3 +59,55 @@ current view are synthetic.
 ## 7. Disclaimer (must remain in the final deck/report until 100% real)
 Results shown with the MOCK banner are development data
 (`scripts/make_mock.py`), not scientific findings.
+
+## 8. Why No Single Earth Site is Enough (Public & Engineering Summary)
+Think of it like practice venues for a football team before a World Cup
+on another planet: every training ground teaches something different.
+Atacama's dirt is Mars-dry, Iceland's lava fields feel like Lunar
+maria underfoot, and Antarctica's Dry Valleys are as cold and barren
+as they come — but no single place on Earth also has the Moon's weak
+gravity, airless vacuum, killing radiation, or two-week-long nights.
+So instead of asking "which one place is most Moon-like?", we grade
+each site **subject by subject** — how you'd drive a rover there, how
+equipment survives the temperature swings, how dusty-bright the
+surface is — and we say openly what each grade is worth and how
+uncertain it is. The result is a short **shopping list** of a few
+training grounds that together cover every skill a lunar crew needs,
+plus an honest list of the skills that can only be rehearsed in
+simulators, because Earth simply cannot imitate them.
+
+## 9. Candidate vs. Confirmed Analog Strategy (Karacadağ Case Study)
+Our method is validated, not assumed: when the scorer is run **blind**
+(role labels hidden), the classic analogues — Atacama, Mauna Loa/Etna,
+Haughton Crater — rank near the top, which is exactly what decades of
+planetary-field literature predicts. Lesser-studied terrains play a
+different role. The Karacadağ basalt plateau in SE Turkey, for
+example, is a young, flat, relatively undissected basalt field —
+mechanically interesting for **mobility** (basalt regolith, low
+relief, pitted surface) and plausibly useful for **surface/albedo**
+analogy, which is why it can score high on those axes. But a high
+per-axis score is a *hypothesis*, not a title: until a literature
+check and (ideally) fieldwork confirm that its regolith behaviour and
+surface processes genuinely track a specific lunar environment, we
+label it a **candidate** — recommended as a low-cost *test site* for
+named axes only, never advertised as a "confirmed Moon analog". The
+app enforces this distinction visually (blue = validated analogue,
+green→red = candidate) and the report keeps the claim scoped to the
+axes that earned it. This is also our answer to the "novel discovery"
+temptation: novelty in a candidate is a *reason to test it*, not
+evidence.
+
+## 10. Future Work (v2 Extensions)
+- **Subsurface lava tubes:** compare CSA RADARSAT-1 open SAR archive
+  detections of terrestrial lava-tube candidates against LRO Mini-RF
+  radar returns of lunar tubes (e.g., Marius Hills region), so the
+  "subsurface radar calibration" axis can be scored on real
+  instruments instead of qualitative notes.
+- **Mars integration:** ingest real MOLA topography (slope, roughness,
+  relief) and TES thermal/albedo products for Jezero/Gale-class
+  references, enabling the same per-axis pipeline for Mars when a
+  Mars mission use case is requested.
+- Longer term: per-use-case uncertainty weighting (replace flat
+  mission presets with measured instrument tolerances), and
+  time-of-day/dust-stack modelling for the thermal axis.
+
