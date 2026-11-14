@@ -20,7 +20,7 @@ from rasterio.windows import Window, from_bounds as window_from_bounds
 
 from src.earth.sites import VERIFIED_EARTH_SITES, SiteSpec
 
-COPERNICUS_DEM_SRC = "Copernicus_DEM_GLO-30_2023.1"
+COPERNICUS_DEM_SRC = "Copernicus_DEM_GLO-30"
 
 IDENTITY_COLS: list[str] = [
     "site_id",
@@ -294,6 +294,14 @@ def reproject_dem_to_metric(
     return dst_data, transform, summary
 
 
+def _detrended_roughness(dx_m: np.ndarray, dy_m: np.ndarray, z_m: np.ndarray) -> float:
+    """Fit a first-order plane z = a*dx + b*dy + c via OLS and return std of residuals (m)."""
+    design = np.column_stack([dx_m, dy_m, np.ones_like(dx_m)])
+    coeffs, _, _, _ = np.linalg.lstsq(design, z_m, rcond=None)
+    residuals = z_m - (design @ coeffs)
+    return float(np.std(residuals, ddof=1))
+
+
 def compute_slope_in_radius(
     dem_m: np.ndarray,
     transform: rasterio.Affine,
@@ -304,7 +312,7 @@ def compute_slope_in_radius(
     n_boot: int = 200,
     seed: int = 42,
 ) -> dict[str, Any]:
-    """Compute slope_mean, slope_p90 and 1-sigma bootstrap uncertainties inside radius_m on metric grid."""
+    """Compute slope_mean, slope_p90, roughness, relief and 1-sigma uncertainties inside radius_m."""
     transformer = pyproj.Transformer.from_crs("EPSG:4326", dst_crs, always_xy=True)
     cx, cy = transformer.transform(lon, lat)
 
@@ -318,34 +326,61 @@ def compute_slope_in_radius(
     xs_arr = np.asarray(xs, dtype=np.float64).reshape(dem_m.shape)
     ys_arr = np.asarray(ys, dtype=np.float64).reshape(dem_m.shape)
 
-    dist_m = np.hypot(xs_arr - cx, ys_arr - cy)
+    rel_x = xs_arr - cx
+    rel_y = ys_arr - cy
+    dist_m = np.hypot(rel_x, rel_y)
     valid_mask = (dist_m <= radius_m) & np.isfinite(slope_deg) & np.isfinite(dem_m)
 
     valid_slopes = slope_deg[valid_mask]
+    valid_z = dem_m[valid_mask].astype(np.float64)
+    valid_dx = rel_x[valid_mask]
+    valid_dy = rel_y[valid_mask]
     if valid_slopes.size == 0:
         raise ValueError(f"No valid DEM pixels found within {radius_m} m of ({lat}, {lon}).")
 
+    elev_min = float(np.min(valid_z))
+    elev_max = float(np.max(valid_z))
+    relief = float(elev_max - elev_min)
+    roughness = _detrended_roughness(valid_dx, valid_dy, valid_z)
+
     rng = np.random.default_rng(seed)
-    idx = rng.integers(0, valid_slopes.size, size=(n_boot, valid_slopes.size))
-    boot_samples = valid_slopes[idx]
-    slope_mean_sd = float(np.std(np.mean(boot_samples, axis=1), ddof=1))
-    slope_p90_sd = float(np.std(np.percentile(boot_samples, 90.0, axis=1), ddof=1))
+    n_pix = valid_slopes.size
+    idx = rng.integers(0, n_pix, size=(n_boot, n_pix))
+    boot_slopes = valid_slopes[idx]
+    slope_mean_sd = float(np.std(np.mean(boot_slopes, axis=1), ddof=1))
+    slope_p90_sd = float(np.std(np.percentile(boot_slopes, 90.0, axis=1), ddof=1))
+
+    boot_roughness = np.empty(n_boot, dtype=np.float64)
+    boot_relief = np.empty(n_boot, dtype=np.float64)
+    sigma_z_rel = 1.0  # 1 m relative pixel-level vertical uncertainty for relief propagation
+    for b in range(n_boot):
+        b_idx = idx[b]
+        z_b = valid_z[b_idx] + rng.normal(0.0, sigma_z_rel, size=n_pix)
+        boot_roughness[b] = _detrended_roughness(valid_dx[b_idx], valid_dy[b_idx], z_b)
+        boot_relief[b] = float(np.max(z_b) - np.min(z_b))
+
+    roughness_sd = float(np.std(boot_roughness, ddof=1))
+    relief_sd = float(np.std(boot_relief, ddof=1))
 
     return {
         "slope_mean": float(np.mean(valid_slopes)),
         "slope_mean_sd": max(slope_mean_sd, 1e-4),
         "slope_p90": float(np.percentile(valid_slopes, 90.0)),
         "slope_p90_sd": max(slope_p90_sd, 1e-4),
-        "n_pixels": int(valid_slopes.size),
-        "elev_min_m": float(np.min(dem_m[valid_mask])),
-        "elev_max_m": float(np.max(dem_m[valid_mask])),
+        "roughness": roughness,
+        "roughness_sd": max(roughness_sd, 1e-4),
+        "relief": relief,
+        "relief_sd": max(relief_sd, 1e-4),
+        "n_pixels": int(n_pix),
+        "elev_min_m": elev_min,
+        "elev_max_m": elev_max,
         "slope_min_deg": float(np.min(valid_slopes)),
         "slope_max_deg": float(np.max(valid_slopes)),
         "slope_grid": slope_deg,
         "dem_grid": dem_m,
         "mask_grid": valid_mask,
-        "rel_x_m": xs_arr - cx,
-        "rel_y_m": ys_arr - cy,
+        "rel_x_m": rel_x,
+        "rel_y_m": rel_y,
     }
 
 
@@ -405,7 +440,9 @@ def save_sanity_html(
         rows=2,
         cols=2,
         subplot_titles=[
-            f"{d['site_id']} ({d['dst_crs']})<br>mean={d['slope_mean']:.2f}°, p90={d['slope_p90']:.2f}°"
+            f"{d['site_id']} ({d['dst_crs']})<br>"
+            f"slope={d['slope_mean']:.2f}° (p90={d['slope_p90']:.2f}°), "
+            f"rough={d['roughness']:.1f}m, relief={d['relief']:.1f}m"
             for d in diagnostics
         ],
     )
@@ -442,7 +479,7 @@ def save_sanity_html(
             col=c,
         )
     fig.update_layout(
-        title_text="Earth Task 2 — Projected Slope (degrees) & 1000 m Analysis Radius Sanity Check",
+        title_text="Earth Topography — Projected Slope (°), Roughness (m), Relief (m) & 1000 m Radius",
         height=850,
         width=1000,
     )
@@ -455,12 +492,12 @@ def run_task2(
     sites: list[SiteSpec] | None = None,
     out_parquet: Path = Path("data/processed/features_earth.parquet"),
 ) -> pd.DataFrame:
-    """Execute Task 2 end-to-end: fetch Copernicus DEM, reproject, compute slope, and write parquet."""
+    """Execute DEM topography extraction: slope_mean, slope_p90, roughness, relief."""
     target_sites = sites if sites is not None else VERIFIED_EARTH_SITES
     rows: list[dict[str, Any]] = []
     diagnostics: list[dict[str, Any]] = []
 
-    print("=== EARTH TASK 2: COPERNICUS DEM GLO-30 SLOPE EXTRACTION ===")
+    print("=== EARTH DEM TOPOGRAPHY: SLOPE, ROUGHNESS & RELIEF (Copernicus_DEM_GLO-30) ===")
     for s in target_sites:
         sid = s["site_id"]
         lat = s["lat"]
@@ -475,14 +512,15 @@ def run_task2(
         )
 
         print(
-            f"[{sid}] src_shape={summary['src_shape']} ({summary['src_crs']}, bounds={summary['src_bounds']}) "
-            f"-> dst_shape={summary['dst_shape']} ({summary['dst_crs']}, bounds={summary['dst_bounds']})"
+            f"[{sid}] src_shape={summary['src_shape']} ({summary['src_crs']}) "
+            f"-> dst_shape={summary['dst_shape']} ({summary['dst_crs']})"
         )
         print(
-            f"   n_pixels(r<=1000m)={stats['n_pixels']} | elev={stats['elev_min_m']:.1f}..{stats['elev_max_m']:.1f} m "
-            f"| slope_min..max={stats['slope_min_deg']:.2f}..{stats['slope_max_deg']:.2f} deg "
-            f"| slope_mean={stats['slope_mean']:.3f} ± {stats['slope_mean_sd']:.3f} deg "
-            f"| slope_p90={stats['slope_p90']:.3f} ± {stats['slope_p90_sd']:.3f} deg"
+            f"   n_pixels={stats['n_pixels']} | elev={stats['elev_min_m']:.1f}..{stats['elev_max_m']:.1f} m "
+            f"| slope_mean={stats['slope_mean']:.3f}±{stats['slope_mean_sd']:.3f}° "
+            f"| slope_p90={stats['slope_p90']:.3f}±{stats['slope_p90_sd']:.3f}° "
+            f"| roughness={stats['roughness']:.2f}±{stats['roughness_sd']:.2f} m "
+            f"| relief={stats['relief']:.2f}±{stats['relief_sd']:.2f} m"
         )
 
         row = make_empty_contract_row(
@@ -494,15 +532,11 @@ def run_task2(
             radius_m=radius_m,
             lithology_class=s["lithology_class"],
         )
-        row["slope_mean"] = stats["slope_mean"]
-        row["slope_mean_sd"] = stats["slope_mean_sd"]
-        row["slope_mean_src"] = COPERNICUS_DEM_SRC
-        row["slope_mean_res_m"] = 30.0
-
-        row["slope_p90"] = stats["slope_p90"]
-        row["slope_p90_sd"] = stats["slope_p90_sd"]
-        row["slope_p90_src"] = COPERNICUS_DEM_SRC
-        row["slope_p90_res_m"] = 30.0
+        for feat in ("slope_mean", "slope_p90", "roughness", "relief"):
+            row[feat] = stats[feat]
+            row[f"{feat}_sd"] = stats[f"{feat}_sd"]
+            row[f"{feat}_src"] = COPERNICUS_DEM_SRC
+            row[f"{feat}_res_m"] = 30.0
 
         rows.append(row)
         diagnostics.append(
