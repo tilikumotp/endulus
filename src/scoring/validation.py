@@ -1,4 +1,4 @@
-"""Blind validation of the method against known analogues (leader-owned)."""
+"""Descriptive blind top-k ranking diagnostics (leader-owned)."""
 from __future__ import annotations
 
 import numpy as np
@@ -11,16 +11,18 @@ def run_blind_validation(
     known_analog_ids: list[str] | None = None,
     top_k: int = 5,
 ) -> pd.DataFrame:
-    """Check that known analogues rank near the top, per axis, run blind.
+    """Rank validation sites per axis without exposing role labels to scoring.
 
     The scoring itself never sees roles; validation only reads the ranking
-    afterwards. An analogue counts as recovered for an axis when its rank among
-    all scored sites (by score, descending) is <= top_k.
+    afterwards. Every selected validation site is compared against every
+    axis, so the result is descriptive unless expected site-axis pairs were
+    defined from evidence before examining the rankings. An analogue counts
+    as top-k for an axis when its rank among all scored sites is <= top_k.
 
     Args:
         scores_df: axis_scores output for one reference site.
         earth_df: Earth feature table; its role=validation rows are the default
-            analogue set when known_analog_ids is None.
+            diagnostic set when known_analog_ids is None.
         known_analog_ids: explicit analogue site_ids (overrides the default).
         top_k: recovery threshold on the rank.
 

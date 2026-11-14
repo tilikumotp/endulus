@@ -9,12 +9,14 @@ def select_portfolio(
     min_score: float,
     axes: list[str] | None = None,
 ) -> tuple[list[str], list[str]]:
-    """Greedy set cover: smallest set of Earth sites covering the most axes.
+    """Greedy set cover; exact minimum site count when covering at most 3 axes.
 
     A site covers an axis when its score for that axis is >= min_score. Each
     round picks the site covering the most still-uncovered axes; ties break by
-    total score over those axes, then by site_id (deterministic). Stops when no
-    site covers anything new.
+    total score over those axes, then by site_id (deterministic). With at most
+    three axes, this greedy choice also minimizes the number of selected sites.
+    For larger axis sets, it remains a heuristic. Stops when no site covers
+    anything new.
 
     Args:
         scores_df: axis_scores output (site_id, axis, score, ...).

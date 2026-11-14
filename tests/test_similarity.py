@@ -4,7 +4,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from scoring.similarity import axis_scores
+from scoring.similarity import (
+    axis_gaps,
+    axis_scores,
+    axis_scores_with_draws,
+    combine_axes_with_uncertainty,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,12 +20,12 @@ def _load() -> tuple[pd.DataFrame, pd.DataFrame]:
     return moon, earth
 
 
-def test_scores_in_unit_interval_and_ci_contains_point() -> None:
+def test_scores_and_monte_carlo_quantiles_are_valid() -> None:
     moon, earth = _load()
     scores = axis_scores(moon.iloc[0], earth)
     assert scores["score"].between(0.0, 1.0).all()
-    assert (scores["ci_low"] <= scores["score"]).all()
-    assert (scores["score"] <= scores["ci_high"]).all()
+    assert scores["q05"].notna().all()
+    assert (scores["q05"] <= scores["q95"]).all()
     assert (scores["n_features_used"] > 0).all()
 
 
@@ -82,71 +87,98 @@ def test_nan_feature_is_skipped_and_reported() -> None:
     assert (used == 1).all()  # temp_amplitude only when thermal_inertia is NaN
 
 
-def test_reference_far_outside_pool_does_not_collapse_scores() -> None:
-    """Regression: candidates-only sigma gave exp(-22) ~ 1e-10 thermal scores.
+def test_componentwise_z_clipping_can_reverse_multifeature_rank() -> None:
+    """The uncapped distance keeps the nearest candidate first."""
+    rng = np.random.default_rng(42)
+    for _ in range(7):
+        values = rng.normal(size=(20, 2))
+        values *= 10 ** rng.uniform(-0.2, 1.0, size=(20, 2))
+        reference_values = (
+            rng.normal(size=2) * 10 ** rng.uniform(-0.2, 1.0, size=2)
+        )
+    ref = pd.Series({
+        "site_id": "ref", "slope_mean": reference_values[0],
+        "slope_p90": reference_values[1],
+    })
+    cands = pd.DataFrame({
+        "site_id": [f"c{i:02d}" for i in range(len(values))],
+        "slope_mean": values[:, 0],
+        "slope_p90": values[:, 1],
+        "roughness": np.nan, "relief": np.nan,
+        "temp_amplitude": np.nan, "thermal_inertia": np.nan, "albedo": np.nan,
+        "slope_mean_sd": 0.0, "slope_p90_sd": 0.0,
+    })
+    scores = axis_scores(ref, cands, n_boot=10, seed=1)
+    mobility = scores[scores["axis"] == "mobility"].set_index("site_id")
 
-    With the reference pooled into the standardization and +-3 sigma cap,
-    scores stay in a usable positive range.
-    """
+    raw_distances = {}
+    capped_distances = {}
+    for site_id in ("c05", "c18"):
+        candidate = cands[cands["site_id"] == site_id].iloc[0]
+        raw_z = []
+        capped_z = []
+        for feature in ("slope_mean", "slope_p90"):
+            pool = np.append(cands[feature].to_numpy(), ref[feature])
+            mean, scale = float(np.mean(pool)), float(np.std(pool))
+            candidate_z = (candidate[feature] - mean) / scale
+            reference_z = (ref[feature] - mean) / scale
+            raw_z.append(candidate_z - reference_z)
+            capped_z.append(
+                np.clip(candidate_z, -3.0, 3.0)
+                - np.clip(reference_z, -3.0, 3.0)
+            )
+        raw_distances[site_id] = float(np.sqrt(np.mean(np.square(raw_z))))
+        capped_distances[site_id] = float(np.sqrt(np.mean(np.square(capped_z))))
+
+    assert raw_distances["c05"] < raw_distances["c18"]
+    assert capped_distances["c18"] < capped_distances["c05"]
+    assert mobility.loc["c05", "score"] > mobility.loc["c18", "score"]
+
+
+def test_axis_gaps_match_uncapped_score_distance() -> None:
     moon, earth = _load()
     scores = axis_scores(moon.iloc[0], earth)
-    thermal = scores[scores["axis"] == "thermal"]["score"]
-    assert (thermal > 0.02).all(), thermal.tolist()
+    gaps = axis_gaps(moon.iloc[0], earth)
+    assert (gaps["z_diff"].abs() > 3.0).any()
+    for row in scores.itertuples(index=False):
+        used = gaps[
+            (gaps["site_id"] == row.site_id) & (gaps["axis"] == row.axis)
+        ]["z_diff"].dropna()
+        if not used.empty:
+            expected = float(np.exp(-np.sqrt(np.mean(used.to_numpy() ** 2))))
+            assert np.isclose(row.score, expected)
 
 
-def test_scores_stable_as_candidate_pool_grows() -> None:
-    """Regression: pooled z of a far-out reference grows ~ sqrt(k+1) with the
-    pool size (k=4 -> z 2.3, k=28 -> z 5.4), so without the +-3 z-cap scores
-    re-collapse once the grid expands. The cap must keep them bounded and
-    monotone in the candidate value, at ANY pool size.
-    """
-    ref = {
-        "site_id": "ref", "name": "ref", "body": "moon", "role": "reference",
-        "lat": 0.0, "lon": 0.0, "radius_m": 1000.0,
-        "slope_mean": 5.0, "slope_mean_sd": 1.0, "slope_p90": 10.0,
-        "slope_p90_sd": 1.0, "roughness": 5.0, "roughness_sd": 1.0,
-        "relief": 50.0, "relief_sd": 5.0, "temp_amplitude": 227.0,
-        "temp_amplitude_sd": 5.0, "thermal_inertia": float("nan"),
-        "albedo": float("nan"),
-    }
-
-    def _cands(n: int) -> pd.DataFrame:
-        rows = []
-        temps = np.linspace(5.0, 25.0, n)
-        for i, temp in enumerate(temps):
-            rows.append({
-                "site_id": f"c{i:02d}", "name": f"c{i}", "body": "earth",
-                "role": "candidate", "lat": 0.0, "lon": 0.1 * i,
-                "radius_m": 1000.0,
-                "slope_mean": 5.0, "slope_p90": 10.0, "roughness": 5.0,
-                "relief": 50.0, "temp_amplitude": float(temp),
-                "temp_amplitude_sd": 1.0, "thermal_inertia": float("nan"),
-                "albedo": float("nan"),
-            })
-        return pd.DataFrame(rows)
-
-    for n in (4, 28, 60):
-        scores = axis_scores(ref, _cands(n), n_boot=50, seed=0)
-        thermal = scores[scores["axis"] == "thermal"].sort_values("score")
-        s = thermal["score"].to_numpy()
-        assert (s > 0.02).all(), (n, s)          # no re-collapse at scale
-        assert np.all(np.diff(s) > 0), (n, s)    # ordering strictly preserved
+def test_draws_are_independent_of_candidate_row_order() -> None:
+    moon, earth = _load()
+    scores_a, draws_a = axis_scores_with_draws(
+        moon.iloc[0], earth, n_boot=50, seed=7
+    )
+    scores_b, draws_b = axis_scores_with_draws(
+        moon.iloc[0], earth.sample(frac=1.0, random_state=5),
+        n_boot=50, seed=7,
+    )
+    pd.testing.assert_frame_equal(
+        scores_a.sort_values(["site_id", "axis"]).reset_index(drop=True),
+        scores_b.sort_values(["site_id", "axis"]).reset_index(drop=True),
+    )
+    pd.testing.assert_frame_equal(
+        draws_a.sort_values(["site_id", "axis", "draw"]).reset_index(drop=True),
+        draws_b.sort_values(["site_id", "axis", "draw"]).reset_index(drop=True),
+    )
 
 
-def test_bootstrap_uses_candidate_sd() -> None:
-    """Regression: candidate noise used the reference's sd (line 44 bug).
-
-    A wide candidate *_sd with a zero-ref sd must still widen the CI.
-    """
-    ref = {
+def test_uncertainty_draws_use_candidate_sd() -> None:
+    """Candidate and reference uncertainties both contribute to draws."""
+    ref = pd.Series({
         "site_id": "ref", "name": "ref", "body": "moon", "role": "reference",
         "lat": 0.0, "lon": 0.0, "radius_m": 1000.0,
         "slope_mean": 5.0, "slope_mean_sd": 0.0, "slope_p90": 10.0,
         "slope_p90_sd": 0.0, "roughness": 5.0, "roughness_sd": 0.0,
         "relief": 50.0, "relief_sd": 0.0, "temp_amplitude": 20.0,
-        "temp_amplitude_sd": float("nan"), "thermal_inertia": float("nan"),
+        "temp_amplitude_sd": 0.0, "thermal_inertia": float("nan"),
         "albedo": float("nan"),
-    }
+    })
     rows = []
     for sid, temp in (("a", 18.0), ("b", 22.0)):
         rows.append({
@@ -161,4 +193,49 @@ def test_bootstrap_uses_candidate_sd() -> None:
     scores = axis_scores(ref, cands, n_boot=200, seed=0)
     thermal = scores[scores["axis"] == "thermal"]
     assert thermal["score"].notna().all()
-    assert ((thermal["ci_high"] - thermal["ci_low"]) > 0.05).all()
+    assert ((thermal["q95"] - thermal["q05"]) > 0.05).all()
+
+
+def test_unknown_feature_sd_leaves_interval_unavailable() -> None:
+    ref = pd.Series({
+        "site_id": "ref", "temp_amplitude": 20.0,
+        "temp_amplitude_sd": float("nan"),
+    })
+    cands = pd.DataFrame({
+        "site_id": ["a"],
+        "slope_mean": [np.nan], "slope_p90": [np.nan],
+        "roughness": [np.nan], "relief": [np.nan],
+        "temp_amplitude": [18.0], "temp_amplitude_sd": [5.0],
+        "thermal_inertia": [np.nan], "albedo": [np.nan],
+    })
+    scores, draws = axis_scores_with_draws(ref, cands, n_boot=20)
+    thermal = scores[scores["axis"] == "thermal"].iloc[0]
+    assert np.isfinite(thermal["score"])
+    assert np.isnan(thermal["q05"])
+    assert np.isnan(thermal["q95"])
+    assert draws.loc[draws["axis"] == "thermal", "score"].isna().all()
+
+    overall = combine_axes_with_uncertainty(scores, draws)
+    assert np.isfinite(overall.iloc[0]["score"])
+    assert np.isnan(overall.iloc[0]["q05"])
+    assert np.isnan(overall.iloc[0]["q95"])
+
+
+def test_negative_feature_sd_is_rejected() -> None:
+    ref = pd.Series({
+        "site_id": "ref", "temp_amplitude": 20.0,
+        "temp_amplitude_sd": 1.0,
+    })
+    cands = pd.DataFrame({
+        "site_id": ["a"],
+        "slope_mean": [np.nan], "slope_p90": [np.nan],
+        "roughness": [np.nan], "relief": [np.nan],
+        "temp_amplitude": [18.0], "temp_amplitude_sd": [-1.0],
+        "thermal_inertia": [np.nan], "albedo": [np.nan],
+    })
+    try:
+        axis_scores(ref, cands)
+    except ValueError as exc:
+        assert "Negative uncertainty" in str(exc)
+    else:
+        raise AssertionError("negative feature SD should be rejected")

@@ -10,4 +10,26 @@ MODIS MOD11A2.061, NASA MODIS MCD43A3.061).
   Site 04 ROI: LRO WAC orthomosaic with dark PSR floor and illuminated rim +
   LOLA shaded relief via USGS Astrogeology WMS) alongside McMurdo Dry Valleys
   (`earth_mcmurdo_wright_valley`, Esri World Imagery) and quantitative per-axis
-  similarity scores with 95% bootstrap confidence intervals.
+  similarity indices with 5th–95th Monte Carlo uncertainty percentiles
+  (not confidence intervals).
+
+- `24_i18n_tr_default_clean_ui.jpeg`: Plain-language (i18n) pass, Turkish
+  default view. Every user-visible string lives in `app/i18n.py` (TR default
+  + English toggle in the sidebar); developer jargon (module/function names,
+  internal-doc references) is removed from the screen; the reference-site
+  label reads "Referans saha (Ay'dan)", measurements use readable Turkish
+  column headers, and the score table gains ground-type (lithology) and
+  region (Türkiye / other) filters. English view verified manually across
+  all tabs.
+
+- `25_title_map_tr_clean.jpeg`: Revised title and framing ("Ay ↔ Dünya
+  Benzer Koşullar Analizi"; all Mars references removed), plain subtitle
+  explaining exactly what the app does, portfolio tab removed, role filter
+  removed, continent-based region filter (Asia / Europe / Africa / Americas
+  / Oceania / Antarctica) and split map captions (dot size & colour vs
+  blue-ringed known analogues).
+
+- `26_validation_new_chart_table.jpeg`: Redesigned validation tab: simple
+  one-bar-per-criterion summary chart (count of known analogues reaching
+  the top 5 out of 10 comparisons per criterion, labels on bars) plus a
+  plain-language table with Saha / Ölçüt / Sıralama / Değerlendirme columns.
