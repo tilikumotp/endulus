@@ -471,13 +471,16 @@ def save_sanity_html(
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
+    n_items = len(diagnostics)
+    n_cols = min(4, max(1, n_items))
+    n_rows = math.ceil(n_items / n_cols)
     fig = make_subplots(
-        rows=2,
-        cols=2,
+        rows=n_rows,
+        cols=n_cols,
         subplot_titles=[
             f"{d['site_id']} ({d['dst_crs']})<br>"
-            f"slope={d['slope_mean']:.2f}° (p90={d['slope_p90']:.2f}°), "
-            f"rough={d['roughness']:.1f}m, relief={d['relief']:.1f}m, "
+            f"slope={d['slope_mean']:.1f}° (p90={d['slope_p90']:.1f}°), "
+            f"rough={d['roughness']:.1f}m, relief={d['relief']:.0f}m, "
             f"ΔT={d.get('temp_amplitude', float('nan')):.1f}K, "
             f"alb={d.get('albedo', float('nan')):.3f}"
             for d in diagnostics
@@ -485,8 +488,8 @@ def save_sanity_html(
     )
     theta = np.linspace(0.0, 2.0 * np.pi, 180)
     for idx, d in enumerate(diagnostics):
-        r = idx // 2 + 1
-        c = idx % 2 + 1
+        r = idx // n_cols + 1
+        c = idx % n_cols + 1
         x_axis = d["rel_x_m"][0, :]
         y_axis = d["rel_y_m"][:, 0]
         fig.add_trace(
@@ -516,9 +519,9 @@ def save_sanity_html(
             col=c,
         )
     fig.update_layout(
-        title_text="Earth Topography & MODIS LST — Slope (°), Roughness (m), Relief (m), ΔT (K)",
-        height=850,
-        width=1000,
+        title_text="Earth Topography & MODIS — Slope (°), Roughness (m), Relief (m), ΔT (K), Albedo",
+        height=max(850, 320 * n_rows),
+        width=1400,
     )
     out_html.parent.mkdir(parents=True, exist_ok=True)
     fig.write_html(str(out_html))

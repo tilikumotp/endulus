@@ -46,44 +46,47 @@ def _process_single_composite(
     lon: float,
 ) -> dict[str, Any] | None:
     """Download and extract valid 3x3 pixel day/night LST pairs from one MOD11A2.061 composite."""
-    day_url = f"{item['assets']['LST_Day_1km']['href']}?{sas_token}"
-    night_url = f"{item['assets']['LST_Night_1km']['href']}?{sas_token}"
-    b_day = requests.get(day_url, timeout=20).content
-    b_night = requests.get(night_url, timeout=20).content
+    try:
+        day_url = f"{item['assets']['LST_Day_1km']['href']}?{sas_token}"
+        night_url = f"{item['assets']['LST_Night_1km']['href']}?{sas_token}"
+        b_day = requests.get(day_url, timeout=25).content
+        b_night = requests.get(night_url, timeout=25).content
 
-    with MemoryFile(b_day) as m_d, MemoryFile(b_night) as m_n:
-        with m_d.open() as src_d, m_n.open() as src_n:
-            crs_str = src_d.crs.to_proj4() or str(src_d.crs)
-            shape_tuple = (src_d.height, src_d.width)
-            res_tuple = (round(abs(src_d.res[0]), 2), round(abs(src_d.res[1]), 2))
-            tf = pyproj.Transformer.from_crs("EPSG:4326", src_d.crs, always_xy=True)
-            cx, cy = tf.transform(lon, lat)
-            row, col = src_d.index(cx, cy)
-            win = (
-                (max(0, row - 1), min(src_d.height, row + 2)),
-                (max(0, col - 1), min(src_d.width, col + 2)),
-            )
-            w_d = src_d.read(1, window=win).astype(np.float64)
-            w_n = src_n.read(1, window=win).astype(np.float64)
+        with MemoryFile(b_day) as m_d, MemoryFile(b_night) as m_n:
+            with m_d.open() as src_d, m_n.open() as src_n:
+                crs_str = src_d.crs.to_proj4() or str(src_d.crs)
+                shape_tuple = (src_d.height, src_d.width)
+                res_tuple = (round(abs(src_d.res[0]), 2), round(abs(src_d.res[1]), 2))
+                tf = pyproj.Transformer.from_crs("EPSG:4326", src_d.crs, always_xy=True)
+                cx, cy = tf.transform(lon, lat)
+                row, col = src_d.index(cx, cy)
+                win = (
+                    (max(0, row - 1), min(src_d.height, row + 2)),
+                    (max(0, col - 1), min(src_d.width, col + 2)),
+                )
+                w_d = src_d.read(1, window=win).astype(np.float64)
+                w_n = src_n.read(1, window=win).astype(np.float64)
 
-            valid = (w_d > 0) & (w_n > 0)
-            if not np.any(valid):
-                return None
-            d_k = w_d[valid] * 0.02
-            n_k = w_n[valid] * 0.02
-            diff = d_k - n_k
-            pos = diff > 0
-            if not np.any(pos):
-                return None
-            return {
-                "id": item["id"],
-                "amps": diff[pos].tolist(),
-                "days_k": d_k[pos].tolist(),
-                "nights_k": n_k[pos].tolist(),
-                "crs_str": crs_str,
-                "shape": shape_tuple,
-                "res": res_tuple,
-            }
+                valid = (w_d > 0) & (w_n > 0)
+                if not np.any(valid):
+                    return None
+                d_k = w_d[valid] * 0.02
+                n_k = w_n[valid] * 0.02
+                diff = d_k - n_k
+                pos = diff > 0
+                if not np.any(pos):
+                    return None
+                return {
+                    "id": item["id"],
+                    "amps": diff[pos].tolist(),
+                    "days_k": d_k[pos].tolist(),
+                    "nights_k": n_k[pos].tolist(),
+                    "crs_str": crs_str,
+                    "shape": shape_tuple,
+                    "res": res_tuple,
+                }
+    except Exception:
+        return None
 
 
 def fetch_mod11a2_temp_amplitude(
@@ -195,6 +198,96 @@ def check_mcd43a3_access() -> tuple[bool, str]:
     )
 
 
+def _extract_mcd43a3_window(
+    sess: requests.Session,
+    token: str,
+    tile_id: str,
+    lat: float,
+    lon: float,
+    r_in: int,
+    col: int,
+    sig: bytes,
+    temporal: str,
+    max_granules: int,
+) -> tuple[list[float], list[str]]:
+    """Query CMR and extract valid 5x5 Albedo_BSA_shortwave pixels for a given temporal window."""
+    cmr_resp = sess.get(
+        CMR_GRANULES_URL,
+        params={
+            "short_name": "MCD43A3",
+            "version": "061",
+            "point": f"{lon},{lat}",
+            "temporal": temporal,
+            "page_size": 100,
+        },
+        timeout=20,
+    )
+    cmr_resp.raise_for_status()
+    entries = [
+        e for e in cmr_resp.json().get("feed", {}).get("entry", []) if f".{tile_id}." in e["title"]
+    ]
+    if not entries:
+        return [], []
+
+    if len(entries) > max_granules:
+        idx = np.linspace(0, len(entries) - 1, max_granules, dtype=int)
+        chosen = [entries[i] for i in idx]
+    else:
+        chosen = entries
+
+    vals: list[float] = []
+    granule_ids: list[str] = []
+    auth_hdr = {"Authorization": f"Bearer {token}"}
+
+    for ent in chosen:
+        hdf_urls = [
+            link["href"]
+            for link in ent.get("links", [])
+            if link.get("href", "").endswith(".hdf") and link.get("href", "").startswith("https://")
+        ]
+        if not hdf_urls:
+            continue
+        hdf_url = hdf_urls[0]
+        r_probe = sess.get(hdf_url, headers={**auth_hdr, "Range": "bytes=0-0"}, timeout=20)
+        if r_probe.status_code not in (200, 206):
+            continue
+        total_len = int(r_probe.headers["Content-Range"].split("/")[-1])
+
+        pos = -1
+        b0 = 0
+        mid = b""
+        for frac_lo, frac_hi in ((0.44, 0.52), (0.30, 0.65), (0.10, 0.90)):
+            b0, b1 = int(frac_lo * total_len), int(frac_hi * total_len)
+            mid = sess.get(
+                hdf_url, headers={**auth_hdr, "Range": f"bytes={b0}-{b1}"}, timeout=45
+            ).content
+            pos = mid.find(sig)
+            if pos != -1:
+                break
+        if pos == -1:
+            continue
+
+        comp_slice = mid[pos + 16 : pos + 16 + 350000]
+        raw_strip = zlib.decompressobj().decompress(comp_slice)
+        if len(raw_strip) < 480000:
+            c_start = b0 + pos + 16
+            c_end = min(total_len - 1, c_start + 350000)
+            comp_slice = sess.get(
+                hdf_url, headers={**auth_hdr, "Range": f"bytes={c_start}-{c_end}"}, timeout=35
+            ).content
+            raw_strip = zlib.decompressobj().decompress(comp_slice)
+        if len(raw_strip) < 480000:
+            continue
+        strip = np.frombuffer(raw_strip[:480000], dtype=">i2").reshape(100, 2400)
+        win = strip[max(0, r_in - 2) : min(100, r_in + 3), max(0, col - 2) : min(2400, col + 3)]
+        valid = win[(win >= 0) & (win < 32767)].astype(np.float64) * 0.001
+        if valid.size > 0:
+            vals.extend(valid.tolist())
+            granule_ids.append(ent["title"])
+
+    return vals, granule_ids
+
+
 def fetch_mcd43a3_albedo(
     site_id: str,
     lat: float,
@@ -230,68 +323,20 @@ def fetch_mcd43a3_albedo(
     c_ref = 457 + y_chk
     sig = b"\x00\x03\x00\x00\x00\x07S\x00" + struct.pack(">H", c_ref) + b"\x00\x00\x00\x04\x00\x04"
 
+    south_summer = "2024-01-01T00:00:00Z,2024-02-28T23:59:59Z"
+    windows = [south_summer, temporal] if lat < -45.0 else [temporal, south_summer]
+
     sess = requests.Session()
-    cmr_resp = sess.get(
-        CMR_GRANULES_URL,
-        params={
-            "short_name": "MCD43A3",
-            "version": "061",
-            "point": f"{lon},{lat}",
-            "temporal": temporal,
-            "page_size": 100,
-        },
-        timeout=20,
-    )
-    cmr_resp.raise_for_status()
-    entries = [
-        e for e in cmr_resp.json().get("feed", {}).get("entry", []) if f".{tile_id}." in e["title"]
-    ]
-    if not entries:
-        return None
-
-    if len(entries) > max_granules:
-        idx = np.linspace(0, len(entries) - 1, max_granules, dtype=int)
-        chosen = [entries[i] for i in idx]
-    else:
-        chosen = entries
-
     vals: list[float] = []
     granule_ids: list[str] = []
-    auth_hdr = {"Authorization": f"Bearer {token}"}
-
-    for ent in chosen:
-        hdf_urls = [
-            link["href"]
-            for link in ent.get("links", [])
-            if link.get("href", "").endswith(".hdf") and link.get("href", "").startswith("https://")
-        ]
-        if not hdf_urls:
-            continue
-        hdf_url = hdf_urls[0]
-        r_probe = sess.get(hdf_url, headers={**auth_hdr, "Range": "bytes=0-0"}, timeout=20)
-        if r_probe.status_code not in (200, 206):
-            continue
-        total_len = int(r_probe.headers["Content-Range"].split("/")[-1])
-
-        b0, b1 = int(0.44 * total_len), int(0.52 * total_len)
-        mid = sess.get(hdf_url, headers={**auth_hdr, "Range": f"bytes={b0}-{b1}"}, timeout=35).content
-        pos = mid.find(sig)
-        if pos == -1:
-            b0, b1 = int(0.30 * total_len), int(0.65 * total_len)
-            mid = sess.get(
-                hdf_url, headers={**auth_hdr, "Range": f"bytes={b0}-{b1}"}, timeout=45
-            ).content
-            pos = mid.find(sig)
-        if pos == -1:
-            continue
-
-        raw_strip = zlib.decompressobj().decompress(mid[pos + 16 : pos + 16 + 300000])
-        strip = np.frombuffer(raw_strip, dtype=">i2").reshape(100, 2400)
-        win = strip[max(0, r_in - 2) : min(100, r_in + 3), max(0, col - 2) : min(2400, col + 3)]
-        valid = win[(win >= 0) & (win < 32767)].astype(np.float64) * 0.001
-        if valid.size > 0:
-            vals.extend(valid.tolist())
-            granule_ids.append(ent["title"])
+    used_temporal = windows[0]
+    for win_temp in windows:
+        vals, granule_ids = _extract_mcd43a3_window(
+            sess, token, tile_id, lat, lon, r_in, col, sig, win_temp, max_granules
+        )
+        if vals:
+            used_temporal = win_temp
+            break
 
     if not vals:
         return None
@@ -300,7 +345,7 @@ def fetch_mcd43a3_albedo(
     result = {
         "site_id": site_id,
         "tile_id": tile_id,
-        "temporal": temporal,
+        "temporal": used_temporal,
         "albedo": float(np.mean(arr)),
         "albedo_sd": max(float(np.std(arr, ddof=1)), 1e-4) if arr.size > 1 else 0.01,
         "albedo_src": MCD43A3_SRC,
