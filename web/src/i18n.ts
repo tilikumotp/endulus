@@ -2,31 +2,34 @@ import type { FilterKey, Lang, MissionKey, WorkbenchTab } from "./types";
 
 export const MISSIONS: Record<
   MissionKey,
-  { tr: string; en: string; note_tr: string; note_en: string }
+  { tr: string; en: string; ratio: string; note_tr: string; note_en: string }
 > = {
   default: {
     tr: "Dengeli",
     en: "Balanced",
-    note_tr: "Mobilite (1.0) ve Yüzey (1.0) eşit ağırlıklıdır",
-    note_en: "Mobility (1.0) and Surface (1.0) carry equal weight",
+    ratio: "50/50",
+    note_tr:
+      "Arazi sürüşü ve yüzey parlaklığı eşit (%50 / %50) değerlendirilir; genel keşif için başlangıç noktasıdır.",
+    note_en:
+      "Terrain driveability and surface brightness carry equal weight (50% / 50%) for general scouting.",
   },
   rover_mobility: {
     tr: "Gezgin araç testi",
     en: "Rover mobility test",
-    note_tr: "Arazi eğimi ve pürüzlülük iki kat ağırlıklıdır (Hasandağı ve Etna yükselir)",
-    note_en: "Terrain slope and roughness carry 2x weight (Hasandağı and Etna climb)",
-  },
-  isru_ice: {
-    tr: "Kaynak / buz (verisiz)",
-    en: "Resource / ice (no ice data)",
-    note_tr: "Yüzey parlaklığına odaklanır; buz/uçucular doğrudan laboratuvarda doğrulanır",
-    note_en: "Focuses on surface brightness while ground ice remains lab-verified",
+    ratio: "67/33",
+    note_tr:
+      "Tekerlek ve tırmanma testleri için eğim, engebe ve yükselti (%67) yüzey renginin iki katı öne çıkar.",
+    note_en:
+      "Slope, roughness and elevation relief carry 2x weight (67%) for rover mobility and wheel trials.",
   },
   radar_calibration: {
     tr: "Yeraltı radar kalibrasyonu",
     en: "Subsurface radar calibration",
-    note_tr: "Yüzey parlaklığı ve yüzey karakteri iki kat ağırlıklıdır",
-    note_en: "Surface brightness and terrain scattering carry 2x weight",
+    ratio: "33/67",
+    note_tr:
+      "Sinyal yansıtıcılığı ve yüzey dokusu için geniş bant parlaklık/albedo (%67) eğime göre iki kat öne çıkar.",
+    note_en:
+      "Surface brightness/albedo carries 2x weight (67%) over slope to prioritize ground reflectance.",
   },
 };
 

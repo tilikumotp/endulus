@@ -163,8 +163,9 @@ export default function App() {
     Math.abs(wMob - PRESET_WEIGHTS[mission].wMob) > 0.01 ||
     Math.abs(wSurf - PRESET_WEIGHTS[mission].wSurf) > 0.01;
 
+  const bothZeroWeights = wMob === 0 && wSurf === 0;
   const weightTotal = Math.max(0.01, wMob + wSurf);
-  const mobPct = Math.round((wMob / weightTotal) * 100);
+  const mobPct = bothZeroWeights ? 50 : Math.round((wMob / weightTotal) * 100);
   const surfPct = 100 - mobPct;
 
   const sitesById = useMemo(() => {
@@ -703,7 +704,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 3. Mission Profile + Custom Weight Sliders */}
+            {/* 3. Mission Profile + Self-Explanatory Custom Weight Controls */}
             <div>
               <div className="flex items-center justify-between px-1 mb-1.5">
                 <div className="text-[11.5px] text-[#7a8296] flex items-center gap-1.5">
@@ -716,43 +717,105 @@ export default function App() {
                     onClick={() => handleMissionSelect(mission)}
                     className="text-[10.5px] font-mono text-[#4c8bf5] hover:underline"
                   >
-                    {lang === "tr" ? "Sıfırla" : "Reset"}
+                    {lang === "tr" ? "Varsayılana dön" : "Reset preset"}
                   </button>
                 )}
               </div>
 
               <div className="flex flex-col gap-1">
-                {(Object.keys(MISSIONS) as MissionKey[]).map((mk) => (
+                {(Object.keys(MISSIONS) as MissionKey[]).map((mk) => {
+                  const isActive = mk === mission && !isCustomWeights;
+                  return (
+                    <button
+                      key={mk}
+                      type="button"
+                      onClick={() => handleMissionSelect(mk)}
+                      className={`h-8 px-2.5 rounded-lg text-left text-[12px] transition-colors duration-150 flex items-center justify-between gap-2 ${
+                        isActive
+                          ? "active-highlight text-[#eef0f5] font-medium"
+                          : "text-[#a3a9b8] hover:text-[#eef0f5] hover:bg-[#11141c]"
+                      }`}
+                    >
+                      <span className="truncate">{MISSIONS[mk][lang]}</span>
+                      <span
+                        className={`text-[10px] font-mono tabular shrink-0 px-1.5 py-0.5 rounded ${
+                          isActive
+                            ? "bg-[#4c8bf5]/20 text-[#4c8bf5]"
+                            : "bg-[#11141c] text-[#7a8296]"
+                        }`}
+                      >
+                        {MISSIONS[mk].ratio}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Plain-language explanation of active mode + live #1 site feedback */}
+              <div className="mt-2 rounded-lg border hairline bg-[#11141c]/70 p-2.5 flex flex-col gap-2">
+                <p className="text-[11px] leading-[1.45] text-[#a3a9b8]">
+                  {isCustomWeights
+                    ? lang === "tr"
+                      ? `Özel ağırlık etkin (%${mobPct} arazi, %${surfPct} yüzey). Tüm 40 sahanın genel puanı bu orana göre anlık güncellenir.`
+                      : `Custom ratio active (${mobPct}% terrain, ${surfPct}% surface). All 40 sites re-rank live.`
+                    : lang === "tr"
+                      ? MISSIONS[mission].note_tr
+                      : MISSIONS[mission].note_en}
+                </p>
+
+                {activeScores[0] && sitesById[activeScores[0].site_id] && (
                   <button
-                    key={mk}
                     type="button"
-                    onClick={() => handleMissionSelect(mk)}
-                    className={`h-8 px-2.5 rounded-lg text-left text-[12.5px] transition-colors duration-150 truncate ${
-                      mk === mission && !isCustomWeights
-                        ? "active-highlight text-[#eef0f5] font-medium"
-                        : "text-[#a3a9b8] hover:text-[#eef0f5] hover:bg-[#11141c]"
-                    }`}
+                    onClick={() => setSelectedEarthId(activeScores[0].site_id)}
+                    className="w-full text-left px-2 py-1.5 rounded bg-[#07080d] border hairline hover:border-[#4c8bf5]/50 transition-colors flex items-center justify-between gap-2 text-[11px]"
+                    title={
+                      lang === "tr"
+                        ? "1. sıradaki sahayı incelemek için tıklayın"
+                        : "Click to inspect #1 site"
+                    }
                   >
-                    {MISSIONS[mk][lang]}
+                    <span className="text-[#7a8296] shrink-0">
+                      {lang === "tr" ? "Şu an #1:" : "Current #1:"}
+                    </span>
+                    <span className="text-[#eef0f5] font-medium truncate">
+                      {sitesById[activeScores[0].site_id].short}
+                    </span>
+                    <span className="font-mono tabular text-[#4cc38a] shrink-0">
+                      {activeScores[0].score.toFixed(3)}
+                    </span>
                   </button>
-                ))}
+                )}
               </div>
 
               {/* Interactive Custom Weight Sliders */}
-              <div className="mt-2.5 rounded-lg border hairline bg-[#11141c] p-2.5 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-[11px] font-mono tabular">
-                  <span className="text-[#a3a9b8]">
-                    {lang === "tr" ? "Özel eksen ağırlığı" : "Custom weights"}
+              <div className="mt-2 rounded-lg border hairline bg-[#11141c] p-2.5 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-[#eef0f5] font-medium">
+                    {lang === "tr" ? "Özel eksen dengesi" : "Custom axis balance"}
                   </span>
-                  <span className={isCustomWeights ? "text-[#4c8bf5]" : "text-[#7a8296]"}>
-                    {mobPct}% / {surfPct}%
+                  <span className="font-mono tabular text-[#a3a9b8]">
+                    <span className="text-[#4c8bf5]">{mobPct}%</span>
+                    <span className="text-[#7a8296] mx-1">/</span>
+                    <span className="text-[#4cc38a]">{surfPct}%</span>
                   </span>
                 </div>
 
+                {/* Proportional live ratio bar */}
+                <div className="h-1.5 w-full rounded-full overflow-hidden bg-[#07080d] flex">
+                  <div
+                    className="h-full bg-[#4c8bf5] transition-all duration-150"
+                    style={{ width: `${mobPct}%` }}
+                  />
+                  <div
+                    className="h-full bg-[#4cc38a] transition-all duration-150"
+                    style={{ width: `${surfPct}%` }}
+                  />
+                </div>
+
                 <label className="flex flex-col gap-1 text-[11px]">
-                  <div className="flex justify-between text-[#a3a9b8]">
-                    <span>{lang === "tr" ? "Mobilite (Arazi)" : "Mobility"}</span>
-                    <span className="font-mono tabular text-[#eef0f5]">{wMob.toFixed(2)}</span>
+                  <div className="flex justify-between text-[#eef0f5]">
+                    <span>{lang === "tr" ? "Mobilite (Arazi)" : "Mobility (Terrain)"}</span>
+                    <span className="font-mono tabular text-[#4c8bf5]">{wMob.toFixed(2)}×</span>
                   </div>
                   <input
                     type="range"
@@ -763,12 +826,17 @@ export default function App() {
                     onChange={(e) => setWMob(parseFloat(e.target.value))}
                     className="w-full accent-[#4c8bf5] cursor-pointer"
                   />
+                  <span className="text-[10px] text-[#7a8296] leading-tight">
+                    {lang === "tr"
+                      ? "Eğim, dik yamaç (p90), pürüzlülük ve yükselti farkı"
+                      : "Slope, steep grade (p90), roughness & relief"}
+                  </span>
                 </label>
 
                 <label className="flex flex-col gap-1 text-[11px]">
-                  <div className="flex justify-between text-[#a3a9b8]">
-                    <span>{lang === "tr" ? "Yüzey (Albedo)" : "Surface"}</span>
-                    <span className="font-mono tabular text-[#eef0f5]">{wSurf.toFixed(2)}</span>
+                  <div className="flex justify-between text-[#eef0f5]">
+                    <span>{lang === "tr" ? "Yüzey (Parlaklık)" : "Surface (Albedo)"}</span>
+                    <span className="font-mono tabular text-[#4cc38a]">{wSurf.toFixed(2)}×</span>
                   </div>
                   <input
                     type="range"
@@ -779,7 +847,63 @@ export default function App() {
                     onChange={(e) => setWSurf(parseFloat(e.target.value))}
                     className="w-full accent-[#4cc38a] cursor-pointer"
                   />
+                  <span className="text-[10px] text-[#7a8296] leading-tight">
+                    {lang === "tr"
+                      ? "Yüzey ışık yansıtma ve parlaklık uyumu (albedo)"
+                      : "Surface reflectance & brightness fit (albedo)"}
+                  </span>
                 </label>
+
+                {/* Quick 1-click extreme / balanced ratio buttons */}
+                <div className="grid grid-cols-3 gap-1 pt-1 border-t hairline text-[10px] font-medium">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWMob(1);
+                      setWSurf(0);
+                    }}
+                    className={`py-1.5 px-1 rounded border whitespace-nowrap transition-colors ${
+                      wMob > 0 && wSurf === 0
+                        ? "border-[#4c8bf5]/60 bg-[#4c8bf5]/15 text-[#eef0f5]"
+                        : "hairline bg-[#07080d] text-[#a3a9b8] hover:text-[#eef0f5]"
+                    }`}
+                  >
+                    {lang === "tr" ? "%100 Arazi" : "100% Terrain"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMissionSelect("default")}
+                    className={`py-1.5 px-1 rounded border font-mono whitespace-nowrap transition-colors ${
+                      !bothZeroWeights && Math.abs(mobPct - 50) <= 1
+                        ? "border-[#eef0f5]/40 bg-[#1a1e28] text-[#eef0f5]"
+                        : "hairline bg-[#07080d] text-[#a3a9b8] hover:text-[#eef0f5]"
+                    }`}
+                  >
+                    50 / 50
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWMob(0);
+                      setWSurf(1);
+                    }}
+                    className={`py-1.5 px-1 rounded border whitespace-nowrap transition-colors ${
+                      wSurf > 0 && wMob === 0
+                        ? "border-[#4cc38a]/60 bg-[#4cc38a]/15 text-[#eef0f5]"
+                        : "hairline bg-[#07080d] text-[#a3a9b8] hover:text-[#eef0f5]"
+                    }`}
+                  >
+                    {lang === "tr" ? "%100 Yüzey" : "100% Surface"}
+                  </button>
+                </div>
+
+                {bothZeroWeights && (
+                  <p className="text-[10px] text-[#d9a441] leading-tight">
+                    {lang === "tr"
+                      ? "İki ağırlık da 0 olduğunda sistem otomatik %50/%50 dengeler."
+                      : "When both weights are 0, scoring falls back to 50/50."}
+                  </p>
+                )}
               </div>
             </div>
 
