@@ -1,0 +1,250 @@
+"""Audit and AGENTS.md §5 contract verification tests for the 40-site Earth dataset."""
+
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from scripts.validate_contract import count_mock, validate
+from src.earth.dem_pipeline import CONTRACT_COLS
+from src.earth.sites import VERIFIED_EARTH_SITES
+
+PARQUET_PATH = Path("data/processed/features_earth.parquet")
+DOCS_PATH = Path("docs/data_sources_earth.md")
+RAW_EARTH_DIR = Path("data/raw/earth")
+
+EXPECTED_VALIDATION_IDS = {
+    "earth_etna_cisternazza",
+    "earth_atacama_yungay",
+    "earth_haughton_crater",
+    "earth_mauna_loa_hiseas",
+    "earth_mcmurdo_wright_valley",
+    "earth_lanzarote_timanfaya",
+    "earth_meteor_crater_arizona",
+    "earth_craters_of_the_moon",
+    "earth_svalbard_bockfjorden",
+    "earth_lunar_crater_nevada",
+}
+
+TURKEY_CANDIDATE_IDS = {
+    "earth_karacadag_summit",
+    "earth_karacadag_ovabag",
+    "earth_kula_divlit",
+    "earth_tendurek_shield",
+    "earth_erciyes_kojugedigi",
+    "earth_hasandagi_kecekalecik",
+    "earth_acigol_guneydag",
+    "earth_cappadocia_kavakkoy",
+    "earth_tuz_golu_south",
+    "earth_salda_terrace",
+    "earth_karapinar_meke",
+    "earth_suphan_south_apron",
+    "earth_nemrut_caldera_flank",
+    "earth_agri_dogubayazit_flow",
+}
+
+GLOBAL_CANDIDATE_IDS = {
+    "earth_askja_holuhraun",
+    "earth_harrat_rahat_madinah",
+    "earth_pinacate_el_elegante",
+    "earth_puna_campo_piedra_pomez",
+    "earth_deccan_mahabaleshwar",
+    "earth_harrat_ash_shaam",
+    "earth_kilbourne_hole_nm",
+    "earth_qaidam_dalangtan",
+    "earth_payunia_pampa_negra",
+    "earth_chajnantor_plateau",
+    "earth_waw_an_namus_apron",
+    "earth_tibesti_tarso_voon",
+    "earth_paricutin_lava_field",
+    "earth_tolbachik_apron",
+    "earth_kilauea_kau_desert",
+    "earth_tongariro_rangipo",
+}
+
+SITE_REGION_BOUNDS: dict[str, tuple[float, float, float, float]] = {
+    "earth_etna_cisternazza": (37.5, 38.0, 14.8, 15.2),
+    "earth_atacama_yungay": (-25.0, -23.0, -70.5, -69.5),
+    "earth_haughton_crater": (75.0, 75.8, -90.5, -89.0),
+    "earth_mauna_loa_hiseas": (19.2, 19.9, -155.8, -155.2),
+    "earth_mcmurdo_wright_valley": (-78.0, -77.0, 160.5, 163.0),
+    "earth_lanzarote_timanfaya": (28.8, 29.3, -13.9, -13.4),
+    "earth_meteor_crater_arizona": (34.8, 35.3, -111.3, -110.8),
+    "earth_craters_of_the_moon": (43.1, 43.7, -113.9, -113.2),
+    "earth_svalbard_bockfjorden": (79.0, 79.8, 12.5, 14.5),
+    "earth_lunar_crater_nevada": (38.0, 38.7, -116.5, -115.7),
+    "earth_karacadag_summit": (37.4, 37.9, 39.5, 40.0),
+    "earth_karacadag_ovabag": (37.5, 38.0, 39.8, 40.3),
+    "earth_kula_divlit": (38.3, 38.8, 28.3, 28.9),
+    "earth_tendurek_shield": (39.1, 39.6, 43.6, 44.2),
+    "earth_erciyes_kojugedigi": (38.3, 38.7, 35.3, 35.8),
+    "earth_hasandagi_kecekalecik": (38.0, 38.4, 33.9, 34.4),
+    "earth_acigol_guneydag": (38.3, 38.7, 34.3, 34.8),
+    "earth_cappadocia_kavakkoy": (38.4, 38.9, 34.6, 35.1),
+    "earth_tuz_golu_south": (38.3, 39.1, 33.2, 33.9),
+    "earth_salda_terrace": (37.4, 37.7, 29.5, 29.8),
+    "earth_askja_holuhraun": (64.5, 65.2, -17.3, -16.3),
+    "earth_harrat_rahat_madinah": (24.0, 24.7, 39.4, 40.2),
+    "earth_pinacate_el_elegante": (31.5, 32.1, -113.8, -113.1),
+    "earth_puna_campo_piedra_pomez": (-27.0, -26.2, -67.8, -67.1),
+    "earth_deccan_mahabaleshwar": (17.6, 18.2, 73.5, 74.1),
+    "earth_harrat_ash_shaam": (31.8, 32.6, 36.7, 37.6),
+    "earth_kilbourne_hole_nm": (31.7, 32.2, -107.3, -106.7),
+    "earth_qaidam_dalangtan": (38.1, 38.9, 91.0, 91.9),
+    "earth_karapinar_meke": (37.4, 38.0, 33.4, 34.0),
+    "earth_suphan_south_apron": (38.6, 39.2, 42.5, 43.2),
+    "earth_nemrut_caldera_flank": (38.4, 38.9, 42.0, 42.6),
+    "earth_agri_dogubayazit_flow": (39.4, 39.9, 43.6, 44.3),
+    "earth_payunia_pampa_negra": (-36.5, -35.8, -69.5, -68.8),
+    "earth_chajnantor_plateau": (-23.3, -22.7, -68.0, -67.4),
+    "earth_waw_an_namus_apron": (24.6, 25.3, 17.4, 18.1),
+    "earth_tibesti_tarso_voon": (20.6, 21.3, 16.9, 17.6),
+    "earth_paricutin_lava_field": (19.2, 19.8, -102.5, -101.9),
+    "earth_tolbachik_apron": (55.4, 56.1, 159.9, 160.7),
+    "earth_kilauea_kau_desert": (19.1, 19.7, -155.6, -155.0),
+    "earth_tongariro_rangipo": (-39.6, -39.0, 175.4, 176.0),
+}
+
+
+@pytest.fixture(scope="module")
+def df_earth() -> pd.DataFrame:
+    """Load the 40-site processed Earth features parquet."""
+    assert PARQUET_PATH.exists(), f"Missing {PARQUET_PATH}"
+    return pd.read_parquet(PARQUET_PATH)
+
+
+def test_exact_36_column_contract_schema(df_earth: pd.DataFrame) -> None:
+    """Verify exact 36-column AGENTS.md §5 schema, order, and thermal_inertia contract."""
+    assert list(df_earth.columns) == CONTRACT_COLS
+    assert len(df_earth.columns) == 36
+    assert (df_earth["body"] == "earth").all()
+    assert df_earth["thermal_inertia"].isna().all()
+    assert df_earth["thermal_inertia_sd"].isna().all()
+    assert (df_earth["thermal_inertia_src"] == "").all()
+    assert (df_earth["thermal_inertia_res_m"] == 1000.0).all()
+
+    required_non_nan = (
+        "slope_mean",
+        "slope_p90",
+        "roughness",
+        "relief",
+        "temp_amplitude",
+        "albedo",
+    )
+    for col in required_non_nan:
+        assert df_earth[col].notna().all(), f"Unexpected NaN in {col}"
+        assert df_earth[f"{col}_sd"].notna().all(), f"Unexpected NaN in {col}_sd"
+
+
+def test_site_counts_and_region_bounds(df_earth: pd.DataFrame) -> None:
+    """Verify 40 sites (10 validation + 30 candidate [14 TR + 16 global]) and region boxes."""
+    assert len(df_earth) == 40
+    assert df_earth["site_id"].is_unique
+
+    val_ids = set(df_earth[df_earth["role"] == "validation"]["site_id"])
+    cand_ids = set(df_earth[df_earth["role"] == "candidate"]["site_id"])
+    assert val_ids == EXPECTED_VALIDATION_IDS
+    assert len(val_ids) == 10
+    assert len(cand_ids) == 30
+    assert cand_ids == TURKEY_CANDIDATE_IDS | GLOBAL_CANDIDATE_IDS
+    assert len(cand_ids & TURKEY_CANDIDATE_IDS) == 14
+    assert len(cand_ids & GLOBAL_CANDIDATE_IDS) == 16
+
+    for _, row in df_earth.iterrows():
+        sid = row["site_id"]
+        lat_min, lat_max, lon_min, lon_max = SITE_REGION_BOUNDS[sid]
+        assert lat_min <= row["lat"] <= lat_max, f"{sid} lat={row['lat']} out of bounds"
+        assert lon_min <= row["lon"] <= lon_max, f"{sid} lon={row['lon']} out of bounds"
+
+
+def test_temp_amplitude_annual_mean_and_raw_cache(df_earth: pd.DataFrame) -> None:
+    """Verify MOD11A2.061_annual_mean source and |amp - (day - night)| < 0.1 K when raw cache exists."""
+    assert (df_earth["temp_amplitude_src"] == "MOD11A2.061_annual_mean").all()
+    assert (df_earth["temp_amplitude_res_m"] == 1000.0).all()
+    assert (df_earth["temp_amplitude"] > 0.0).all()
+
+    cached = [RAW_EARTH_DIR / f"{sid}_mod11a2_061_annual_2024.json" for sid in df_earth["site_id"]]
+    if all(p.exists() for p in cached):
+        for _, row in df_earth.iterrows():
+            data = json.loads(
+                (RAW_EARTH_DIR / f"{row['site_id']}_mod11a2_061_annual_2024.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            diff = abs(
+                float(row["temp_amplitude"])
+                - (float(data["lst_day_mean_k"]) - float(data["lst_night_mean_k"]))
+            )
+            assert diff < 0.1, f"{row['site_id']} diff={diff:.4f} K >= 0.1 K"
+
+
+def test_albedo_and_physical_invariants(df_earth: pd.DataFrame) -> None:
+    """Verify real MODIS albedo bounds, dark basalt vs evaporite separation, and slope invariants."""
+    assert set(df_earth["albedo_src"].unique()).issubset({"MCD43A3.061", "MCD43A4.061_Liang2001"})
+    assert (df_earth["albedo_res_m"] == 500.0).all()
+    assert ((df_earth["albedo"] >= 0.0) & (df_earth["albedo"] <= 1.0)).all()
+    assert (df_earth["slope_p90"] >= df_earth["slope_mean"]).all()
+    assert (df_earth["relief"] >= 0.0).all()
+    assert (df_earth["roughness"] >= 0.0).all()
+
+    by_id = df_earth.set_index("site_id")["albedo"]
+    for sid in ("earth_askja_holuhraun", "earth_mauna_loa_hiseas", "earth_etna_cisternazza", "earth_tolbachik_apron"):
+        assert 0.02 <= by_id[sid] <= 0.10, f"Unexpected dark basalt albedo for {sid}: {by_id[sid]}"
+    for sid in ("earth_atacama_yungay", "earth_qaidam_dalangtan", "earth_tuz_golu_south"):
+        assert 0.18 <= by_id[sid] <= 0.45, f"Unexpected evaporite albedo for {sid}: {by_id[sid]}"
+
+
+def test_validator_no_mock_and_mock_rejection(df_earth: pd.DataFrame, tmp_path: Path) -> None:
+    """Verify validate_contract passes cleanly with 0/40 MOCK and flags injected MOCK."""
+    n_mock, per_col = count_mock(df_earth, PARQUET_PATH)
+    assert n_mock == 0
+    assert all(v == 0 for v in per_col.values())
+
+    errors, warnings, infos = validate(PARQUET_PATH, fail_on_mock=True)
+    assert errors == []
+    assert warnings == []
+    assert any("0/40 satirda en az bir src == MOCK" in inf for inf in infos)
+
+    df_mock = df_earth.copy()
+    df_mock.loc[0, "albedo_src"] = "MOCK"
+    mock_parquet = tmp_path / "features_earth_mock.parquet"
+    df_mock.to_parquet(mock_parquet, index=False)
+
+    err_strict, _, info_strict = validate(mock_parquet, fail_on_mock=True)
+    assert any("1/40 satirda en az bir src == MOCK" in inf for inf in info_strict)
+    assert any("MOCK" in e for e in err_strict)
+
+
+def test_cross_table_consistency_with_docs(df_earth: pd.DataFrame) -> None:
+    """Verify exact 40-site consistency across parquet, sites.py, and docs/data_sources_earth.md."""
+    sites_py_ids = [s["site_id"] for s in VERIFIED_EARTH_SITES]
+    assert list(df_earth["site_id"]) == sites_py_ids
+
+    md_text = DOCS_PATH.read_text(encoding="utf-8")
+    sec4_ids = re.findall(r"\|\s*\d+\s*\|\s*`(earth_[a-z0-9_]+)`\s*\|", md_text)
+    assert sec4_ids == sites_py_ids
+
+    sec5_ids = re.findall(
+        r"^\|\s*`(earth_[a-z0-9_]+)`\s*\|\s*\d+\.\d+\s*\|\s*\d+\.\d+\s*\|",
+        md_text,
+        flags=re.MULTILINE,
+    )
+    assert sec5_ids == sites_py_ids
+
+    # Ensure CV > 0.30 high-uncertainty audit table and 7 lithology conflict nuances are documented
+    assert "earth_mcmurdo_wright_valley" in md_text
+    for conflict_sid in (
+        "earth_tongariro_rangipo",
+        "earth_erciyes_kojugedigi",
+        "earth_hasandagi_kecekalecik",
+        "earth_salda_terrace",
+        "earth_tendurek_shield",
+        "earth_suphan_south_apron",
+        "earth_paricutin_lava_field",
+    ):
+        assert conflict_sid in md_text

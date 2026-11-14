@@ -64,13 +64,7 @@ CONTRACT_COLS: list[str] = (
         for feat in NUMERIC_FEATURES
         for col in (feat, f"{feat}_sd", f"{feat}_src", f"{feat}_res_m")
     ]
-    + [
-        "lithology_class",
-        "lithology_src",
-        "lst_day_mean_k",
-        "lst_night_mean_k",
-        "high_uncertainty",
-    ]
+    + ["lithology_class"]
 )
 
 
@@ -433,9 +427,8 @@ def make_empty_contract_row(
     lon: float,
     radius_m: float = 1000.0,
     lithology_class: str = "",
-    lithology_src: str = "",
 ) -> dict[str, Any]:
-    """Initialize a single Earth site row with all contract columns and native resolutions."""
+    """Initialize a single Earth site row with the exact 36 AGENTS.md §5 contract columns."""
     row: dict[str, Any] = {
         "site_id": str(site_id),
         "name": str(name),
@@ -451,15 +444,11 @@ def make_empty_contract_row(
         row[f"{feat}_src"] = ""
         row[f"{feat}_res_m"] = float(EARTH_NATIVE_RES_M[feat])
     row["lithology_class"] = str(lithology_class)
-    row["lithology_src"] = str(lithology_src)
-    row["lst_day_mean_k"] = float("nan")
-    row["lst_night_mean_k"] = float("nan")
-    row["high_uncertainty"] = False
     return row
 
 
 def build_contract_dataframe(rows: list[dict[str, Any]]) -> pd.DataFrame:
-    """Assemble and type-cast the Earth features DataFrame per AGENTS.md §5."""
+    """Assemble and type-cast the 36-column Earth features DataFrame per AGENTS.md §5."""
     df = pd.DataFrame(rows)
     df = df[CONTRACT_COLS]
     for feat in NUMERIC_FEATURES:
@@ -471,10 +460,6 @@ def build_contract_dataframe(rows: list[dict[str, Any]]) -> pd.DataFrame:
     df["lon"] = df["lon"].astype("float64")
     df["radius_m"] = df["radius_m"].astype("float64")
     df["lithology_class"] = df["lithology_class"].fillna("").astype(str)
-    df["lithology_src"] = df["lithology_src"].fillna("").astype(str)
-    df["lst_day_mean_k"] = df["lst_day_mean_k"].astype("float64")
-    df["lst_night_mean_k"] = df["lst_night_mean_k"].astype("float64")
-    df["high_uncertainty"] = df["high_uncertainty"].astype(bool)
     return df
 
 
@@ -594,7 +579,6 @@ def run_task2(
             lon=lon,
             radius_m=radius_m,
             lithology_class=s["lithology_class"],
-            lithology_src=s["citation"],
         )
         for feat in ("slope_mean", "slope_p90", "roughness", "relief"):
             row[feat] = stats[feat]
@@ -606,26 +590,12 @@ def run_task2(
         row["temp_amplitude_sd"] = modis_lst["temp_amplitude_sd"]
         row["temp_amplitude_src"] = modis_lst["temp_amplitude_src"]
         row["temp_amplitude_res_m"] = 1000.0
-        row["lst_day_mean_k"] = modis_lst.get("lst_day_mean_k", float("nan"))
-        row["lst_night_mean_k"] = modis_lst.get("lst_night_mean_k", float("nan"))
 
         if modis_alb is not None:
             row["albedo"] = modis_alb["albedo"]
             row["albedo_sd"] = modis_alb["albedo_sd"]
             row["albedo_src"] = modis_alb["albedo_src"]
             row["albedo_res_m"] = 500.0
-
-        cv_temp = (
-            row["temp_amplitude_sd"] / row["temp_amplitude"]
-            if row["temp_amplitude"] > 0
-            else 0.0
-        )
-        cv_alb = (
-            row["albedo_sd"] / row["albedo"]
-            if np.isfinite(row["albedo"]) and row["albedo"] > 0
-            else 0.0
-        )
-        row["high_uncertainty"] = bool(cv_temp > 0.30 or cv_alb > 0.30)
 
         rows.append(row)
         diagnostics.append(

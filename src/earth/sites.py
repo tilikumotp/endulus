@@ -153,7 +153,7 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
         ),
     },
     # =========================================================================
-    # 2. CANDIDATE SITES (role="candidate", 18 curated Turkish & global sites)
+    # 2. CANDIDATE SITES (role="candidate", 30 curated Turkish & global sites)
     # =========================================================================
     {
         "site_id": "earth_karacadag_summit",
@@ -390,10 +390,7 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
             "Dalangtan high-altitude (~2700 m) hyperarid sulfate/halite evaporite flats, Qaidam Basin (38°28'48\"N, 91°27'00\"E)."
         ),
     },
-]
-
-# Extended 12-site reserve pool (kept separate from the frozen 28-site v1 grid)
-EXTENDED_CANDIDATE_SITES_POOL: list[SiteSpec] = [
+    # Extended 12 verified candidates (Turkey + global) completing the 30-candidate pool (40 sites total)
     {
         "site_id": "earth_karapinar_meke",
         "name": "Karapınar Volcanic Field (Meke Maar & Scoria Apron, Konya)",
