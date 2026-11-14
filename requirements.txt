@@ -1,0 +1,12 @@
+numpy
+pandas
+geopandas
+rasterio
+xarray
+scikit-learn
+scipy
+streamlit
+pydeck
+plotly
+pyarrow
+shap
