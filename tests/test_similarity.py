@@ -1,6 +1,7 @@
 """Tests for scoring.similarity on the committed mock data."""
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from scoring.similarity import axis_scores
@@ -46,3 +47,85 @@ def test_nan_feature_is_skipped_and_reported() -> None:
     used = thermal[thermal["site_id"].isin(nan_ti)]["n_features_used"]
     assert (used == 1).all()  # temp_amplitude only
     assert (thermal[~thermal["site_id"].isin(nan_ti)]["n_features_used"] == 2).all()
+
+
+def test_reference_far_outside_pool_does_not_collapse_scores() -> None:
+    """Regression: candidates-only sigma gave exp(-22) ~ 1e-10 thermal scores.
+
+    With the reference pooled into the standardization, z saturates near
+    sqrt((k+1)/k) and scores stay in a usable range.
+    """
+    moon, earth = _load()
+    scores = axis_scores(moon.iloc[0], earth)
+    thermal = scores[scores["axis"] == "thermal"]["score"]
+    assert (thermal > 0.05).all(), thermal.tolist()
+
+
+def test_scores_stable_as_candidate_pool_grows() -> None:
+    """Regression: pooled z of a far-out reference grows ~ sqrt(k+1) with the
+    pool size (k=4 -> z 2.3, k=28 -> z 5.4), so without the +-3 z-cap scores
+    re-collapse once the grid expands. The cap must keep them bounded and
+    monotone in the candidate value, at ANY pool size.
+    """
+    ref = {
+        "site_id": "ref", "name": "ref", "body": "moon", "role": "reference",
+        "lat": 0.0, "lon": 0.0, "radius_m": 1000.0,
+        "slope_mean": 5.0, "slope_mean_sd": 1.0, "slope_p90": 10.0,
+        "slope_p90_sd": 1.0, "roughness": 5.0, "roughness_sd": 1.0,
+        "relief": 50.0, "relief_sd": 5.0, "temp_amplitude": 227.0,
+        "temp_amplitude_sd": 5.0, "thermal_inertia": float("nan"),
+        "albedo": float("nan"),
+    }
+
+    def _cands(n: int) -> pd.DataFrame:
+        rows = []
+        temps = np.linspace(5.0, 25.0, n)
+        for i, temp in enumerate(temps):
+            rows.append({
+                "site_id": f"c{i:02d}", "name": f"c{i}", "body": "earth",
+                "role": "candidate", "lat": 0.0, "lon": 0.1 * i,
+                "radius_m": 1000.0,
+                "slope_mean": 5.0, "slope_p90": 10.0, "roughness": 5.0,
+                "relief": 50.0, "temp_amplitude": float(temp),
+                "temp_amplitude_sd": 1.0, "thermal_inertia": float("nan"),
+                "albedo": float("nan"),
+            })
+        return pd.DataFrame(rows)
+
+    for n in (4, 28, 60):
+        scores = axis_scores(ref, _cands(n), n_boot=50, seed=0)
+        thermal = scores[scores["axis"] == "thermal"].sort_values("score")
+        s = thermal["score"].to_numpy()
+        assert (s > 0.02).all(), (n, s)          # no re-collapse at scale
+        assert np.all(np.diff(s) > 0), (n, s)    # ordering strictly preserved
+
+
+def test_bootstrap_uses_candidate_sd() -> None:
+    """Regression: candidate noise used the reference's sd (line 44 bug).
+
+    A wide candidate *_sd with a zero-ref sd must still widen the CI.
+    """
+    ref = {
+        "site_id": "ref", "name": "ref", "body": "moon", "role": "reference",
+        "lat": 0.0, "lon": 0.0, "radius_m": 1000.0,
+        "slope_mean": 5.0, "slope_mean_sd": 0.0, "slope_p90": 10.0,
+        "slope_p90_sd": 0.0, "roughness": 5.0, "roughness_sd": 0.0,
+        "relief": 50.0, "relief_sd": 0.0, "temp_amplitude": 20.0,
+        "temp_amplitude_sd": float("nan"), "thermal_inertia": float("nan"),
+        "albedo": float("nan"),
+    }
+    rows = []
+    for sid, temp in (("a", 18.0), ("b", 22.0)):
+        rows.append({
+            "site_id": sid, "name": sid, "body": "earth", "role": "candidate",
+            "lat": 0.0, "lon": 1.0, "radius_m": 1000.0,
+            "slope_mean": 5.0, "slope_p90": 10.0, "roughness": 5.0,
+            "relief": 50.0, "temp_amplitude": temp,
+            "temp_amplitude_sd": 5.0, "thermal_inertia": float("nan"),
+            "albedo": float("nan"),
+        })
+    cands = pd.DataFrame(rows)
+    scores = axis_scores(ref, cands, n_boot=200, seed=0)
+    thermal = scores[scores["axis"] == "thermal"]
+    assert thermal["score"].notna().all()
+    assert ((thermal["ci_high"] - thermal["ci_low"]) > 0.05).all()

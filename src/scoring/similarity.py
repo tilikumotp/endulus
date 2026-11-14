@@ -17,14 +17,33 @@ def _axis_scores(
     n_boot: int,
     rng: np.random.Generator,
 ) -> pd.DataFrame:
-    """Score one axis: standardized Euclidean distance, exp(-d), bootstrapped CI."""
+    """Score one axis: standardized Euclidean distance, exp(-d), bootstrapped CI.
+
+    Standardization (mean/std) uses the pool of candidates PLUS the reference:
+    a candidates-only sigma turns a far-out reference (lunar temp_amplitude vs
+    Earth sites) into a huge z. With the reference pooled in, its z grows like
+    sqrt(k+1) as the candidate pool grows — measured: k=4 -> z 2.3, k=28 ->
+    z 5.4 (scores re-collapsed to ~0.004) — so z values are CLIPPED to +-
+    Z_CAP before the distance. The cap keeps scores in [exp(-Z_CAP), 1] and
+    preserves candidate ordering (clipping is per value, not per difference).
+    Bootstrap noise perturbs candidates with THEIR own *_sd and the reference
+    with its *_sd (NaN sd -> 0, honest fallback).
+    """
+    Z_CAP = 3.0
     mean: dict[str, float] = {}
     std: dict[str, float] = {}
     for f in features:
         vals = pd.to_numeric(cands[f], errors="coerce").to_numpy(dtype=float)
         vals = vals[np.isfinite(vals)]
-        mean[f] = float(np.mean(vals)) if vals.size else float("nan")
-        std[f] = float(np.std(vals)) if vals.size else float("nan")
+        ref_val = float(pd.to_numeric(ref[f], errors="coerce"))
+        if np.isfinite(ref_val) and vals.size:
+            pool = np.append(vals, ref_val)
+        elif np.isfinite(ref_val):
+            pool = np.array([ref_val])
+        else:
+            pool = vals
+        mean[f] = float(np.mean(pool)) if pool.size else float("nan")
+        std[f] = float(np.std(pool)) if pool.size else float("nan")
 
     rows: list[dict[str, float]] = []
     for i in range(len(cands)):
@@ -41,17 +60,25 @@ def _axis_scores(
         cvals = np.array([float(cands[f].iat[i]) for f in used])
         rvals = np.array([float(ref[f]) for f in used])
         # NaN uncertainty means "unknown"; perturbing with 0 is the honest fallback.
-        sd = np.array([float(ref[f"{f}_sd"]) if pd.notna(ref[f"{f}_sd"]) else 0.0
-                       for f in used])
-        sd = np.where(np.isfinite(sd), sd, 0.0)
+        c_sd = np.array([
+            float(pd.to_numeric(cands[f"{f}_sd"].iat[i], errors="coerce"))
+            if pd.notna(cands[f"{f}_sd"].iat[i]) else 0.0
+            for f in used
+        ])
+        c_sd = np.where(np.isfinite(c_sd), c_sd, 0.0)
+        r_sd = np.array([float(ref[f"{f}_sd"]) if pd.notna(ref[f"{f}_sd"]) else 0.0
+                         for f in used])
+        r_sd = np.where(np.isfinite(r_sd), r_sd, 0.0)
         mu = np.array([mean[f] for f in used])
         sigma = np.array([std[f] for f in used])
-        zc, zr = (cvals - mu) / sigma, (rvals - mu) / sigma
+        zc = np.clip((cvals - mu) / sigma, -Z_CAP, Z_CAP)
+        zr = np.clip((rvals - mu) / sigma, -Z_CAP, Z_CAP)
         point = float(np.exp(-float(np.sqrt(np.mean((zc - zr) ** 2)))))
-        eps_c = rng.normal(0.0, sd, size=(n_boot, len(used)))
-        eps_r = rng.normal(0.0, sd, size=(n_boot, len(used)))
+        eps_c = rng.normal(0.0, c_sd, size=(n_boot, len(used)))
+        eps_r = rng.normal(0.0, r_sd, size=(n_boot, len(used)))
         d_boot = np.sqrt(np.mean(
-            (((cvals + eps_c) - mu) / sigma - ((rvals + eps_r) - mu) / sigma) ** 2, axis=1))
+            (np.clip(((cvals + eps_c) - mu) / sigma, -Z_CAP, Z_CAP)
+             - np.clip(((rvals + eps_r) - mu) / sigma, -Z_CAP, Z_CAP)) ** 2, axis=1))
         ci_low, ci_high = np.percentile(np.exp(-d_boot), [5.0, 95.0])
         # The unperturbed point estimate can sit outside the perturbed percentile
         # band; clip so the contract invariant ci_low <= score <= ci_high always holds.
@@ -133,7 +160,9 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
     """Per-feature reference-vs-candidate comparison for the 'breakdown' card.
 
     One row per (site, feature) where both values are finite; diff is in the
-    feature's native unit, z_diff is diff normalized by the candidate sd.
+    feature's native unit, z_diff is diff normalized by the same reference-
+    inclusive pool std used in axis_scores and clipped to +-3 (same cap), so
+    the breakdown card stays consistent with the scores.
     """
     axis_of = {f: a for a, feats in AXES.items() for f in feats}
     feats = list(axis_of)
@@ -143,8 +172,15 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
     for f in feats:
         vals = cvals[f].to_numpy(dtype=float)
         vals = vals[np.isfinite(vals)]
-        stats[f] = (float(np.mean(vals)) if vals.size else float("nan"),
-                    float(np.std(vals)) if vals.size else float("nan"))
+        rv0 = float(rvals[f]) if pd.notna(rvals[f]) else float("nan")
+        if np.isfinite(rv0) and vals.size:
+            pool = np.append(vals, rv0)
+        elif np.isfinite(rv0):
+            pool = np.array([rv0])
+        else:
+            pool = vals
+        stats[f] = (float(np.mean(pool)) if pool.size else float("nan"),
+                    float(np.std(pool)) if pool.size else float("nan"))
     rows = []
     for i in range(len(candidates_df)):
         for f in feats:
@@ -153,6 +189,7 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
             if not (np.isfinite(rv) and np.isfinite(cv)):
                 continue
             mu, sigma = stats[f]
+            z = (cv - rv) / sigma if sigma > 0.0 else np.nan
             rows.append({
                 "site_id": candidates_df["site_id"].iat[i],
                 "axis": axis_of[f],
@@ -160,7 +197,7 @@ def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataF
                 "ref_value": rv,
                 "cand_value": cv,
                 "diff": cv - rv,
-                "z_diff": (cv - rv) / sigma if sigma > 0.0 else np.nan,
+                "z_diff": float(np.clip(z, -3.0, 3.0)) if np.isfinite(z) else np.nan,
             })
     return pd.DataFrame(rows)[["site_id", "axis", "feature", "ref_value",
                                "cand_value", "diff", "z_diff"]]
