@@ -428,7 +428,7 @@ def make_empty_contract_row(
     radius_m: float = 1000.0,
     lithology_class: str = "",
 ) -> dict[str, Any]:
-    """Initialize a single Earth site row with all 36 contract columns and native resolutions."""
+    """Initialize a single Earth site row with the exact 36 AGENTS.md §5 contract columns."""
     row: dict[str, Any] = {
         "site_id": str(site_id),
         "name": str(name),
@@ -448,7 +448,7 @@ def make_empty_contract_row(
 
 
 def build_contract_dataframe(rows: list[dict[str, Any]]) -> pd.DataFrame:
-    """Assemble and type-cast the full 36-column Earth features DataFrame per AGENTS.md §5."""
+    """Assemble and type-cast the 36-column Earth features DataFrame per AGENTS.md §5."""
     df = pd.DataFrame(rows)
     df = df[CONTRACT_COLS]
     for feat in NUMERIC_FEATURES:
