@@ -18,6 +18,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from moon_mars.shackleton_slope import (  # noqa: E402
+    MOON_STEREO_PROJ4,
     VERIFIED_MOON_SITES,
     MoonSiteSpec,
     extract_site_topography,
@@ -25,6 +26,9 @@ from moon_mars.shackleton_slope import (  # noqa: E402
 
 ATLAS_DIR = REPO_ROOT / "data" / "processed" / "moon_atlas"
 METADATA_PATH = ATLAS_DIR / "atlas_metadata.json"
+THUMBS_DIR = REPO_ROOT / "data" / "processed" / "thumbs" / "moon"
+THUMBS_META_JSON = THUMBS_DIR / "thumbs_metadata.json"
+THUMBS_META_CSV = THUMBS_DIR / "thumbs_metadata.csv"
 
 BG_COLOR = "#0e1117"
 PANEL_BG = "#161b22"
@@ -181,6 +185,41 @@ def _add_hazard_legend(ax: plt.Axes) -> None:
     leg.set_zorder(10)
 
 
+def _save_siglip_thumb_224(
+    site: MoonSiteSpec,
+    hs: np.ndarray,
+    x0_m: float,
+    y0_m: float,
+) -> dict[str, object]:
+    """Save a 224x224 compact LRO LOLA hillshade thumbnail in data/processed/thumbs/moon/ and return metadata."""
+    THUMBS_DIR.mkdir(parents=True, exist_ok=True)
+    site_id = site["site_id"]
+    thumb_path = THUMBS_DIR / f"{site_id}.png"
+
+    arr_u8 = np.clip(np.round(hs * 255.0), 0, 255).astype(np.uint8)
+    rgb_img = Image.fromarray(np.dstack([arr_u8, arr_u8, arr_u8]), mode="RGB")
+    resized = rgb_img.resize((224, 224), resample=Image.Resampling.LANCZOS)
+    resized.save(thumb_path, format="PNG", optimize=True)
+
+    return {
+        "site_id": site_id,
+        "name": site["name"],
+        "tile_id": f"PGDA_LOLA_5mpp_{site['pgda_site']}",
+        "lat": round(float(site["lat"]), 4),
+        "lon": round(float(site["lon"]), 4),
+        "x_stereo_m": round(float(x0_m), 1),
+        "y_stereo_m": round(float(y0_m), 1),
+        "crs": MOON_STEREO_PROJ4,
+        "image_size_px": "224x224",
+        "window_m": 2200.0,
+        "scale_m_per_px": round(2200.0 / 224.0, 4),
+        "native_res_m": 5.0,
+        "source": f"NASA_GSFC_PGDA_Product78:{site['dem_src']} ({site['pgda_site']}_final_adj_5mpp_surf.tif)",
+        "usage_scope": "visual_exploration_only_excluded_from_numeric_scoring",
+        "thumb_path": f"data/processed/thumbs/moon/{site_id}.png",
+    }
+
+
 DISCLAIMER_NOTE = "Illustrative slope bins; not a landing-safety assessment."
 
 
@@ -198,8 +237,8 @@ def _add_disclaimer_footer(fig: plt.Figure) -> None:
     )
 
 
-def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
-    """Generate hillshade, hazard, and 3-panel atlas PNGs + metadata dict for one lunar site."""
+def generate_site_atlas(site: MoonSiteSpec) -> tuple[dict[str, object], dict[str, object]]:
+    """Generate hillshade, hazard, and 3-panel atlas PNGs + 224x224 SigLIP thumb + metadata dicts for one lunar site."""
     site_id = site["site_id"]
     name_tr = SITE_NAMES_TR.get(site_id, site["name"])
     radius_m = float(site["radius_m"])
@@ -227,6 +266,7 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
 
     hs = _compute_dual_hillshade(elev, 5.0, 5.0)
     hazard_rgb = _blend_hazard_rgb(hs, slope_deg)
+    thumb_meta = _save_siglip_thumb_224(site, hs, x0_m, y0_m)
 
     # 1. Output A: <site_id>_hillshade.png
     fig_a, ax_a = plt.subplots(figsize=(4.6, 4.7), dpi=95, facecolor=BG_COLOR)
@@ -337,7 +377,7 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
         f"hillshade={hs_bytes / 1024:.1f}KB, hazard={haz_bytes / 1024:.1f}KB, atlas={atl_bytes / 1024:.1f}KB"
     )
 
-    return {
+    atlas_meta = {
         "site_id": site_id,
         "name_tr": name_tr,
         "window_km": 2.2,
@@ -355,19 +395,31 @@ def generate_site_atlas(site: MoonSiteSpec) -> dict[str, object]:
         "hazard_path": f"data/processed/moon_atlas/{site_id}_hazard.png",
         "atlas_path": f"data/processed/moon_atlas/{site_id}_atlas.png",
     }
+    return atlas_meta, thumb_meta
 
 
 def main() -> int:
-    """Generate all 15 Lunar South Pole visual atlas PNGs and atlas_metadata.json."""
+    """Generate all 15 Lunar South Pole visual atlas PNGs, 5 SigLIP 224x224 thumbs, and metadata files."""
+    import pandas as pd
+
     ATLAS_DIR.mkdir(parents=True, exist_ok=True)
+    THUMBS_DIR.mkdir(parents=True, exist_ok=True)
     metadata_list: list[dict[str, object]] = []
+    thumbs_list: list[dict[str, object]] = []
     for site in VERIFIED_MOON_SITES:
-        meta = generate_site_atlas(site)
+        meta, t_meta = generate_site_atlas(site)
         metadata_list.append(meta)
+        thumbs_list.append(t_meta)
 
     METADATA_PATH.write_text(json.dumps(metadata_list, indent=2, ensure_ascii=False), encoding="utf-8")
+    THUMBS_META_JSON.write_text(json.dumps(thumbs_list, indent=2, ensure_ascii=False), encoding="utf-8")
+    pd.DataFrame(thumbs_list).to_csv(THUMBS_META_CSV, index=False)
     total_kb = sum(p.stat().st_size for p in ATLAS_DIR.glob("*") if p.is_file()) / 1024.0
-    print(f"[TAMAMLANDI] {len(metadata_list)} saha icin 15 PNG + metadata uretildi (Toplam boyut: {total_kb:.1f} KB)")
+    thumbs_kb = sum(p.stat().st_size for p in THUMBS_DIR.glob("*") if p.is_file()) / 1024.0
+    print(
+        f"[TAMAMLANDI] {len(metadata_list)} saha icin 15 PNG + metadata ({total_kb:.1f} KB) ve "
+        f"5 SigLIP 224x224 thumb ({thumbs_kb:.1f} KB) uretildi."
+    )
     return 0
 
 

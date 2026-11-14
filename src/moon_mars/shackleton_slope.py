@@ -35,6 +35,7 @@ MOON_GEOD_PROJ4 = "+proj=longlat +R=1737400 +no_defs"
 ALBEDO_SRC = "LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0_broadband_eq"
 BROADBAND_ALBEDO_FACTOR = 0.38  # Zero-phase 1064nm normal to broadband solar hemispherical albedo (Vasavada et al. 2012; Hayne et al. 2017)
 DIVINER_SRC = "LRO-L-DLRE-5-PCP-V1.0:pcp_avg_tbol_pols_240m_v2022"
+DIVINER_TI_SRC = "LRO-L-DLRE-5-PCP-V1.0:1D_Hayne2017_polar_TI_v1"
 
 DEFAULT_RADIUS_M = 1000.0
 
@@ -441,6 +442,76 @@ def extract_diviner_temp_metrics(
     return temp_amp, temp_amp_sd
 
 
+def _hayne2017_ti_scale_to_273k(temp_k: float) -> float:
+    """Return I(273 K) / I(temp_k) from Hayne et al. (2017, JGR Planets 122:2371, Table A1) cp(T) and k(T) polynomials."""
+    t_clamped = max(40.0, min(350.0, float(temp_k)))
+
+    def cp_poly(t: float) -> float:
+        return (
+            -3.6125
+            + 2.7431 * t
+            + 2.3616e-3 * (t ** 2)
+            - 1.2340e-5 * (t ** 3)
+            + 8.9093e-9 * (t ** 4)
+        )
+
+    def k_rad_factor(t: float) -> float:
+        return 1.0 + 2.7 * ((t / 350.0) ** 3)
+
+    num = k_rad_factor(273.0) * cp_poly(273.0)
+    den = max(1e-6, k_rad_factor(t_clamped) * cp_poly(t_clamped))
+    return math.sqrt(num / den)
+
+
+def extract_diviner_thermal_inertia_1d(
+    site_id: str,
+    pcp_tab_path: Path,
+    lat: float,
+    lon: float,
+    radius_m: float,
+) -> tuple[float, float]:
+    """Derive 1D polar regolith thermal inertia (J m^-2 K^-1 s^-1/2, referenced to 273 K per Hayne et al. 2017) and 1-sigma SD.
+
+    Uses the 1D nighttime conductive-radiative boundary balance q_cond = eps * sigma * T_N^4 = I(T_N) * dT / sqrt(pi * t_N)
+    over the lunar shadowed half-period t_N = 0.5 * P_synodic, scaled to the standard 273 K reference temperature via
+    Hayne et al. (2017, Table A1) temperature-dependent specific heat cp(T) and thermal conductivity k(T).
+    TODO(verify): Cross-body comparability with Earth MODIS Apparent Thermal Inertia (ATI) requires leader sign-off.
+    """
+    cache_json = RAW_DIR / f"{site_id}_diviner_tbol_240m.json"
+    if cache_json.exists():
+        cached = json.loads(cache_json.read_text(encoding="utf-8"))
+        vals = cached.get("vals_k", [])
+        arr = np.asarray(vals, dtype=np.float64) if vals else np.asarray(
+            _binary_search_pcp_tab(pcp_tab_path, lat, lon, radius_m), dtype=np.float64
+        )
+    else:
+        arr = np.asarray(_binary_search_pcp_tab(pcp_tab_path, lat, lon, radius_m), dtype=np.float64)
+
+    eps_bol = 0.95
+    sigma_sb = 5.670374419e-8
+    t_night_sec = 0.5 * 29.530589 * 86400.0
+    cond_factor = eps_bol * sigma_sb * math.sqrt(math.pi * t_night_sec)
+
+    def _compute_ti(sample: np.ndarray) -> float:
+        tmin = float(np.min(sample))
+        tmax = float(np.max(sample))
+        tn_p15 = float(np.percentile(sample, 15.0))
+        dt = max(10.0, tmax - tmin)
+        ti_local = cond_factor * (tn_p15 ** 4) / dt
+        return float(ti_local * _hayne2017_ti_scale_to_273k(tn_p15))
+
+    ti_val = _compute_ti(arr)
+    rng = np.random.default_rng(42)
+    boot_tis = [
+        _compute_ti(arr[rng.integers(0, len(arr), len(arr))])
+        for _ in range(200)
+    ]
+    boot_sd = float(np.std(boot_tis, ddof=1))
+    model_param_sd = 0.12 * ti_val  # 12% 1D radiative-conductive model & emissivity uncertainty (Hayne et al. 2017)
+    ti_sd = float(math.hypot(boot_sd, model_param_sd))
+    return ti_val, ti_sd
+
+
 def save_sanity_plot(site_results: list[tuple[MoonSiteSpec, dict[str, object]]], out_path: Path) -> None:
     """Plot South Polar Stereographic slope maps with 1 km analysis circles for all 5 reference sites."""
     n_sites = len(site_results)
@@ -553,6 +624,9 @@ def main() -> int:
             temp_amp, temp_amp_sd = extract_diviner_temp_metrics(
                 site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
             )
+            ti_val, ti_sd = extract_diviner_thermal_inertia_1d(
+                site["site_id"], pcp_tab_path, site["lat"], site["lon"], site["radius_m"]
+            )
             albedo_val, albedo_sd = extract_albedo_metrics(
                 ldam_lbl_path, float(stats["x0_m"]), float(stats["y0_m"]), site["radius_m"]
             )
@@ -560,6 +634,11 @@ def main() -> int:
             row["temp_amplitude_sd"] = float(temp_amp_sd)
             row["temp_amplitude_src"] = DIVINER_SRC
             row["temp_amplitude_res_m"] = float(NATIVE_RES_M["temp_amplitude"])
+
+            row["thermal_inertia"] = float(ti_val)
+            row["thermal_inertia_sd"] = float(ti_sd)
+            row["thermal_inertia_src"] = DIVINER_TI_SRC
+            row["thermal_inertia_res_m"] = float(NATIVE_RES_M["thermal_inertia"])
 
             row["albedo"] = float(albedo_val)
             row["albedo_sd"] = float(albedo_sd)
@@ -582,8 +661,8 @@ def main() -> int:
         if args.stage >= 2:
             print(
                 f"   temp_amplitude={float(row['temp_amplitude']):.4f}±{float(row['temp_amplitude_sd']):.4f}K | "
-                f"albedo={float(row['albedo']):.4f}±{float(row['albedo_sd']):.4f} | "
-                f"thermal_inertia=NaN (res={row['thermal_inertia_res_m']}m)"
+                f"thermal_inertia={float(row['thermal_inertia']):.2f}±{float(row['thermal_inertia_sd']):.2f} TIU | "
+                f"albedo={float(row['albedo']):.4f}±{float(row['albedo_sd']):.4f}"
             )
 
     save_sanity_plot(site_results, PLOT_PATH)
