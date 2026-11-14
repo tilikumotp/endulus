@@ -23,3 +23,11 @@ File `22` is the same panel after PR #2 merged real Earth data
 the quantitative box shows the leader's real scores (e.g. Mobility
 0.21 [0.11–0.30]) — mock's inflated 0.94s are gone. Moon reference is
 still MOCK (banner shown) until Person 2's parquet lands.
+
+File `23` is the milestone frame: p2's real Moon parquet landed
+(`features_moon.parquet`, 5 LRO/PGDA sites, no MOCK rows) — the MOCK
+banner is gone and the panel shows the real Shackleton Crater
+(Site 04 ROI): WAC orthomosaic with the dark PSR floor and bright rim,
+LOLA shaded relief, and McMurdo Dry Valleys side-by-side, with the
+leader's real scores in the context box (Mobility 0.09 [0.08–0.11]).
+Only Mars (optional preview) remains mock.
