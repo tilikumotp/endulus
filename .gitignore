@@ -11,3 +11,7 @@ __pycache__/
 
 # Streamlit secrets must never be committed (theme config.toml IS committed)
 .streamlit/secrets.toml
+
+# React / Vite build artifacts
+web/node_modules/
+web/dist/

@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface-deep: #07080d;
+  --surface-bg: #0b0d14;
+  --surface-card: #11141c;
+  --surface-raised: #1a1e28;
+  --hairline: rgba(238, 240, 245, 0.08);
+  --hairline-strong: rgba(238, 240, 245, 0.14);
+  --text-primary: #eef0f5;
+  --text-secondary: #a3a9b8;
+  --text-muted: #7a8296;
+  --accent: #4c8bf5;
+  --ease-instrument: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.hairline {
+  border-color: var(--hairline);
+}
+
+.hairline-strong {
+  border-color: var(--hairline-strong);
+}
+
+/* Single calm hero entrance: subtle 8px rise + opacity only */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.enter-rise {
+  opacity: 0;
+  animation: riseIn 420ms var(--ease-instrument) forwards;
+}
+
+.enter-delay-1 { animation-delay: 50ms; }
+.enter-delay-2 { animation-delay: 100ms; }
+.enter-delay-3 { animation-delay: 150ms; }
+.enter-delay-4 { animation-delay: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .enter-rise {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+}
+
+/* Active control subtle top highlight per unslop tokens */
+.active-highlight {
+  background-color: var(--surface-raised);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
