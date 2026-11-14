@@ -57,7 +57,7 @@ export const LITHOLOGY_NAMES: Record<string, { tr: string; en: string }> = {
   pyroclastic_tuff: { tr: "Volkanik tüf", en: "Pyroclastic tuff" },
   evaporite: { tr: "Evaporit / tuz düzlüğü", en: "Evaporite" },
   impact_breccia: { tr: "Çarpma breşi", en: "Impact breccia" },
-  regolith_permafrost: { tr: "Donmuş regolit (permafrost)", en: "Frozen regolith (permafrost)" },
+  regolith_permafrost: { tr: "Donmuş toprak (permafrost)", en: "Frozen ground (permafrost)" },
   regolith: { tr: "Ay regoliti", en: "Lunar regolith" },
 };
 
@@ -67,207 +67,149 @@ export const CHALLENGE_STORY: Record<
 > = {
   tr: [
     {
-      tag: "01 · NASA Challenge Sorunu",
-      title: "Tek bir Dünya sahası Ay'ı bütünüyle taklit edemez",
+      tag: "01 · Sorun",
+      title: "Dünya'da Ay'ın birebir aynısı tek bir yer yok",
       points: [
-        "Ay Güney Kutbu'ndaki Artemis III aday sahaları dik krater duvarları (18.5°), yüksek kabartma ve düşük atmosferli parlaklık profili sunar.",
-        "Dünya'daki klasik test sahalarından Atacama ve Haughton düz Mars düzlükleridir; dik eğimli Etna ise koyu bazalt rengiyle Ay'dan ayrılır.",
-        "Tek bir genel sıralama bu ayrışmaları gizler ve saha mühendisliğini yanlış teste yönlendirebilir.",
+        "Artemis III'ün ineceği Ay Güney Kutbu hem dik krater yamaçlarına (18.5°) hem de açık renkli tozlu bir yüzeye sahiptir.",
+        "Bilinen ünlü sahalardan Atacama ve Haughton çok düzdür; dik eğimli Etna'nın taşı ise Ay toprağına göre çok koyudur.",
+        "Sahalara tek bir genel puan vermek bu farkları gizler ve mühendisleri yanlış yerde araç test etmeye yönlendirebilir.",
       ],
     },
     {
-      tag: "02 · Karşılaştığımız Veri ve Fizik Zorlukları",
-      title: "Farklı çözünürlükler, uyumsuz döngüler ve karma pikseller",
+      tag: "02 · Karşılaştığımız Zorluklar",
+      title: "Veriler aynı ölçüde değildi ve sıcaklıklar kıyaslanamıyordu",
       points: [
-        "Ay verisi LRO LOLA ile 5 m/px iken küresel Dünya DEM ürünleri 30 m/px çözünürlüktedir (Ağrı Dağı'ndaki Copernicus tile boşluğu için NASADEM EGM96 yedeği devreye alındı).",
-        "Ay'ın 29.5 günlük vakum sıcaklık döngüsü ile Dünya'nın 24 saatlik atmosferik döngüsü aynı fiziksel ölçüt olmadığı için termal sayı üretmek yerine bu ekseni askıya aldık.",
-        "500 m MODIS piksellerine su, tarım veya gölge karışabildiğinden 10 m WorldCover + Sentinel-2 denetimi ekledik.",
+        "Ay haritaları her 5 metrede bir detay verirken Dünya uydu verisi 30 metrede bir çiziliyor; yüksek dağlarda (Ağrı gibi) eksik kalan yerler için yedek uydu verisi kullanmak gerekti.",
+        "Ay'da bir gün yaklaşık 1 ay sürerken Dünya'da 24 saat sürer. Sıcaklık döngüleri fiziksel olarak uyuşmadığı için yanıltıcı sıcaklık kıyaslaması yapmadık.",
+        "Bazı uydu piksellerinin içine su veya bitki örtüsü de karıştığı için sadece çıplak zemin özelliklerini dikkatle ayırdık.",
       ],
     },
     {
-      tag: "03 · Geliştirdiğimiz Çözüm",
-      title: "Çok eksenli skorlama, belirsizlik aralığı ve asgari test portföyü",
+      tag: "03 · Çözümümüz",
+      title: "Araç sürüşünü ve zemin dokusunu ayrı ölçtük, seçimi esnek yaptık",
       points: [
-        "Her Ay krateri ve 40 Dünya sahası birebir aynı r = 1000 m metrik pencerede Mobilite ve Yüzey eksenlerinde ayrı ayrı puanlandı.",
-        "Tüm ölçümlere 200 çekilişli Monte Carlo hata aralığı (P5–P95) bağlandı; görev profili ve özel eksen ağırlıklarıyla anlık yeniden hesaplama eklendi.",
-        "Tek saha yetmediğinde belirlenen eşiği aşan en küçük Dünya test kümesi seçildi; Türkiye sahaları bilimsel dürüstlük gereği aday olarak konumlandı.",
+        "5 Ay kraterini ve Dünya'daki 40 test sahasını tamamen aynı büyüklükteki 1 km yarıçaplı daireler içinde ölçtük.",
+        "Her saha için araç sürüşüne uygunluk (Mobilite) ve yüzey parlaklığı (Yüzey) ayrı ayrı puanlandı, yanına hata payı eklendi.",
+        "Görev türüne göre (örneğin sadece gezgin araç testi) ağırlıklar kaydırılarak Türkiye'dekiler dahil en uygun test sahaları şeffafça sıralanır.",
       ],
     },
   ],
   en: [
     {
-      tag: "01 · The NASA Challenge Problem",
-      title: "No single Earth site reproduces Lunar conditions across every axis",
+      tag: "01 · The Problem",
+      title: "No single place on Earth matches the Moon in every respect",
       points: [
-        "Artemis III south pole targets combine steep crater walls (18.5°), deep relief and vacuum reflectance that no single terrestrial site matches.",
-        "Classic Mars sites like Atacama and Haughton are relatively flat, whereas steep Mt. Etna differs sharply in dark mare-like basalt albedo.",
-        "Reducing sites to a single composite score hides fatal physical mismatches before rover or lander field tests begin.",
+        "Lunar south pole sites combine steep crater walls (18.5°) with bright highland regolith reflectance.",
+        "Famous analogues like Atacama and Haughton are mostly flat plains, while steep Mt. Etna has much darker volcanic basalt.",
+        "Giving each site one blended number hides these physical mismatches before field testing.",
       ],
     },
     {
-      tag: "02 · Real Data & Physics Obstacles",
-      title: "Resolution mismatches, non-equivalent thermal cycles & mixed pixels",
+      tag: "02 · Data Obstacles",
+      title: "Different map resolutions and incompatible day-night heat cycles",
       points: [
-        "Lunar LRO LOLA resolves 5 m/px while global Copernicus GLO-30 resolves 30 m/px (requiring a NASADEM EGM96 fallback on Mount Ararat where Copernicus lacked a tile).",
-        "Because a 29.5-day vacuum lunar cycle and a 24-hour Earth diurnal cycle represent incompatible thermal physics, synthetic gap-filling was rejected.",
-        "Coarse 500 m MODIS pixels can dilute surface reflectance with snow, crops or lakes, requiring 10 m Sentinel-2 L2A & WorldCover audits.",
+        "Lunar satellite DEMs sample every 5 meters while global Earth DEMs sample every 30 meters, with backup DEMs needed on high peaks like Mount Ararat.",
+        "A lunar day lasts nearly one Earth month vs 24 hours on Earth, so forcing a direct temperature score would mislead engineers.",
+        "Water or desert vegetation can mix into coarse satellite pixels, requiring clean separation of bare terrain.",
       ],
     },
     {
       tag: "03 · Our Solution",
-      title: "Per-axis telemetry, Monte Carlo uncertainty & compact portfolios",
+      title: "Score mobility and surface separately with live mission weights",
       points: [
-        "All 5 Moon craters and 40 Earth sites are projected to metric coordinates and measured over identical r = 1000 m circular windows.",
-        "Scores separate Mobility and Surface independently, propagate uncertainty with 200 Monte Carlo draws, and adapt instantaneously to mission weight sliders.",
-        "A greedy set-cover optimizer builds the smallest Earth test-site portfolio that covers target thresholds while keeping newly studied Turkish fields transparently flagged as candidates.",
+        "All 5 lunar craters and 40 Earth sites are measured over identical 1 km radius circular windows.",
+        "Terrain driveability (Mobility) and brightness (Surface) receive separate scores and clear uncertainty ranges.",
+        "Engineers shift mission weights live to see which global or Turkish test sites fit their exact hardware test.",
       ],
     },
   ],
 };
 
-export const ACHIEVEMENT_PILLARS: Record<
+export type ExampleJumpKey =
+  | "rover_hasandagi"
+  | "faustini_haughton"
+  | "radar_meke"
+  | "terrain_slope";
+
+export const SOLUTION_EXAMPLES: Record<
   Lang,
-  { badge: string; title: string; source: string; detail: string }[]
+  {
+    action: ExampleJumpKey;
+    tag: string;
+    title: string;
+    example: string;
+    linkLabel: string;
+  }[]
 > = {
   tr: [
     {
-      badge: "Mobilite Ekseni",
-      title: "Eşit r = 1000 m metrik arazi ve eğim uyumu",
-      source: "LRO LOLA 5 m · Copernicus GLO-30 / NASADEM 30 m",
-      detail:
-        "Tüm sahalar yerel metrik koordinatlara dönüştürülerek ortalama eğim, p90 dik eğim, pürüzlülük ve yükselti farkı üzerinden objektif kıyaslanır.",
+      action: "rover_hasandagi",
+      tag: "Çözüm 01 · Görev Ağırlığı",
+      title: "Hasandağı Gezgin Testi'nde nasıl 1. sıraya çıkar?",
+      example:
+        "Dengeli modda düz sahalar yüzünden geri kalan dik volkanik yamaçlar, 'Gezgin araç testi' seçilince eğim ağırlığı iki katına çıkar ve Türkiye'den Hasandağı Keçikaleçik 40 saha arasından #1 sıraya yükselir.",
+      linkLabel: "bkz. Hasandağı #1 sıralamasını canlı gör",
     },
     {
-      badge: "Yüzey Ekseni",
-      title: "Geniş bant albedo ve duyarlılık testi",
-      source: "LOLA 1064 nm · MODIS MCD43A3 (c = 0.30–0.46)",
-      detail:
-        "Kutup regoliti ile Dünya bazalt, tüf ve tuz düzlükleri arasındaki parlaklık uyumu dönüşüm faktörü duyarlılık testleriyle doğrulanır.",
+      action: "faustini_haughton",
+      tag: "Çözüm 02 · Krater Seçimi",
+      title: "Atacama ve Haughton neden krater değiştirince yükselir?",
+      example:
+        "Shackleton krateri çok diktir (18.5°), bu yüzden düz çöl/buz sahaları alt sırada kalır. Daha yatık Faustini Kenarı (5.2°) seçildiğinde Haughton (#6) ve Atacama (#8) üst sıralara tırmanır.",
+      linkLabel: "bkz. Faustini & Haughton uyumuna git",
     },
     {
-      badge: "Belirsizlik & Kalite",
-      title: "200 çekilişli Monte Carlo P5–P95 ve 10 m denetim",
-      source: "ESA WorldCover 10 m · Sentinel-2 L2A · 51/51 test",
-      detail:
-        "Sıralamalar P5–P95 güven aralığıyla birlikte sunulur; 10 m uydu görüntüsüyle karma piksel taşıyan sahalar otomatik işaretlenir.",
+      action: "radar_meke",
+      tag: "Çözüm 03 · Eksen Ayrıştırma",
+      title: "Karapınar Meke ve Etna farkını nasıl gizlemedik?",
+      example:
+        "Etna eğimde Shackleton'a çok yakındır ama koyu siyah taşı Ay toprağından farklıdır. Mobilite ve Yüzey skorlarını ayırdığımız için Meke Yüzey'de #1 öne çıkarken her fark net görünür.",
+      linkLabel: "bkz. Meke radar ve fiziksel farklar tablosunu aç",
     },
     {
-      badge: "Görev & Portföy",
-      title: "Asgari test kümesi ve çevrimdışı 3B atlas",
-      source: "5 Ay krateri × 40 Dünya sahası · 0 yapay veri",
-      detail:
-        "Gezgin, radar ve denge profilleri ile tek tıkla 5 m / 10 m çevrimdışı uydu kesitleri ve asgari test portföyü canlı hesaplanır.",
+      action: "terrain_slope",
+      tag: "Çözüm 04 · 3B Arazi & Uydu",
+      title: "Sayılar tek başına yetmediğinde arazi şeklini nasıl gösterdik?",
+      example:
+        "Mühendis sahaya gitmeden krater eğim tehlikesini (<10°, 10–20°, >20°) 3 boyutlu kabartmada döndürerek görebilir ve gerçek uydu görüntüsünü yan yana inceleyebilir.",
+      linkLabel: "bkz. 3B eğim tehlikesi ve uydu görünümünü aç",
     },
   ],
   en: [
     {
-      badge: "Mobility Axis",
-      title: "Metric r = 1000 m terrain geometry across Moon & Earth",
-      source: "LRO LOLA 5 m · Copernicus GLO-30 / NASADEM 30 m",
-      detail:
-        "Reprojected into planar metric CRS so slope_mean, p90 steepness, roughness and elevation relief share exact physical definitions.",
+      action: "rover_hasandagi",
+      tag: "Solved 01 · Mission Shift",
+      title: "How Hasandağı climbs to #1 for rover tests",
+      example:
+        "Selecting Rover Mobility doubles terrain steepness weight, immediately elevating Turkey's steep Hasandağı Keçikaleçik volcanic apron to #1 out of 40 sites.",
+      linkLabel: "See Hasandağı at #1 live",
     },
     {
-      badge: "Surface Axis",
-      title: "Broadband albedo harmonization & sensitivity curve",
-      source: "LOLA 1064 nm · MODIS MCD43A3 (c = 0.30–0.46)",
-      detail:
-        "Measures highland regolith reflectance against basalt, tuff and evaporite fields, stress-tested across reflectance conversion factors.",
+      action: "faustini_haughton",
+      tag: "Solved 02 · Crater Fit",
+      title: "Why Haughton & Atacama rise on Faustini",
+      example:
+        "Flat Mars analogues trail on steep Shackleton (18.5°), yet recover cleanly into the Mobility top 10 when gentler Faustini Rim (5.2°) is chosen.",
+      linkLabel: "Jump to Faustini & Haughton view",
     },
     {
-      badge: "Uncertainty & Audit",
-      title: "200-draw Monte Carlo intervals & 10 m pixel screening",
-      source: "ESA WorldCover 10 m · Sentinel-2 L2A · 51/51 tests",
-      detail:
-        "Every score publishes P5–P95 percentile uncertainty alongside automated 10 m landcover screening against water or vegetation mixing.",
+      action: "radar_meke",
+      tag: "Solved 03 · Split Transparency",
+      title: "Showing why Meke Crater leads Surface while Etna differs",
+      example:
+        "Keeping Mobility and Surface separate prevents Etna's dark mare basalt from hiding behind its slope match, while spotlighting Karapınar Meke's #1 reflectance fit.",
+      linkLabel: "Open Meke radar & physical gap breakdown",
     },
     {
-      badge: "Mission & Portfolio",
-      title: "Minimal test portfolio & offline 3D relief inspector",
-      source: "5 Lunar craters × 40 Earth sites · 0 mock rows",
-      detail:
-        "Customizable mission weight sliders and greedy set-cover selection pair directly with offline 3D DEM meshes and Sentinel-2 imagery.",
+      action: "terrain_slope",
+      tag: "Solved 04 · 3D Slope Hazard",
+      title: "Inspecting real 3D relief & orbital imagery side by side",
+      example:
+        "Interactive 3D DEM meshes highlight safe (<10°) vs steep (>20°) rover slopes next to real cloudless Sentinel-2 satellite views.",
+      linkLabel: "Open 3D slope hazard inspector",
     },
   ],
 };
-
-export const JURY_DEMO_TOUR: {
-  id: string;
-  moonId: string;
-  mission: MissionKey;
-  earthId: string;
-  tab: WorkbenchTab;
-  trTitle: string;
-  enTitle: string;
-  trSpeech: string;
-  enSpeech: string;
-}[] = [
-  {
-    id: "step1",
-    moonId: "moon_shackleton_rim",
-    mission: "default",
-    earthId: "earth_karapinar_meke",
-    tab: "overview",
-    trTitle: "01 · Problem ve Shackleton seçimi",
-    enTitle: "01 · Problem & Shackleton baseline",
-    trSpeech:
-      "Shackleton Kenarı 18.50° eğime ve 0.147 albedoya sahiptir. Dengeli modda Karapınar Meke Yüzey #1 (0.903) ile toplamda öne geçerken Mobilite açığı radar ve fark tablosunda net görülür.",
-    enSpeech:
-      "Shackleton Rim pairs 18.50° mean slope with 0.147 albedo. Under Balanced weights Karapınar Meke leads overall via Surface #1 (0.903), while its mobility gap remains transparent.",
-  },
-  {
-    id: "step2",
-    moonId: "moon_shackleton_rim",
-    mission: "rover_mobility",
-    earthId: "earth_hasandagi_kecekalecik",
-    tab: "overview",
-    trTitle: "02 · Görev ağırlığı: Hasandağı #1",
-    enTitle: "02 · Mission shift: Hasandağı #1",
-    trSpeech:
-      "Görev profili Gezgin Araç Testi'ne geçince (Mobilite 2x) sıralama anında değişir ve Hasandağı Keçikaleçik #1 sıraya çıkar. Özel ağırlık sürgüleriyle kendi profilinizi test edebilirsiniz.",
-    enSpeech:
-      "Switching to Rover Mobility (2x) elevates Hasandağı Keçikaleçik cleanly to #1, and custom weight sliders let engineers test bespoke weighting profiles live.",
-  },
-  {
-    id: "step3",
-    moonId: "moon_faustini_rim",
-    mission: "default",
-    earthId: "earth_etna_cisternazza",
-    tab: "validation",
-    trTitle: "03 · Etna ayrışması ve Faustini kayması",
-    enTitle: "03 · Etna split & Faustini recovery",
-    trSpeech:
-      "Dik Shackleton'da Mobilite #3 olan Etna (22.74°) koyu albedosu (0.047) nedeniyle Yüzey'de ayrışır. Daha yatık Faustini Kenarı'na geçince Svalbard #3, Haughton #6 ve Atacama #8 üst sıralara tırmanır.",
-    enSpeech:
-      "Steep Etna splits between Mobility #3 and dark mare albedo; switching to gentler Faustini (5.20°) immediately recovers Svalbard #3, Haughton #6 and Atacama #8.",
-  },
-  {
-    id: "step4",
-    moonId: "moon_shackleton_rim",
-    mission: "default",
-    earthId: "earth_karacadag_summit",
-    tab: "validation",
-    trTitle: "04 · Karacadağ adayı ve kalibrasyon",
-    enTitle: "04 · Karacadağ discipline & calibration",
-    trSpeech:
-      "Karacadağ doğrulanmış analog değil nicel aday olarak etiketlenir. Alttaki duyarlılık testi LOLA 1064 nm dönüşümünü (c = 0.30–0.46) ve 10 m WorldCover + Sentinel-2 karma piksel denetimini gösterir.",
-    enSpeech:
-      "Karacadağ is kept strictly as a quantitative test candidate. Sensitivity curves test c in [0.30..0.46] while WorldCover + Sentinel-2 audits flag 1 km mixed-pixel risks.",
-  },
-  {
-    id: "step5",
-    moonId: "moon_shackleton_rim",
-    mission: "default",
-    earthId: "earth_karapinar_meke",
-    tab: "terrain",
-    trTitle: "05 · 3B LOLA DEM, eğim haritası ve uydu",
-    enTitle: "05 · 3D LOLA DEM, slope map & satellite",
-    trSpeech:
-      "5 m/px NASA LRO LOLA ve 30 m/px Copernicus GLO-30 yüzeyleri; yükseklik, <10°/10–20°/>20° eğim tehlikesi ve kontur görünümleriyle anlık yükseklik-eğim sorgulama olanağı sunar.",
-    enSpeech:
-      "Real 5 m/px LRO LOLA vs 30 m/px Copernicus surfaces include elevation, slope hazard bins and contour modes with interactive point probing.",
-  },
-];
 
 export const ANALYSIS_FIGURES: {
   file: string;
@@ -323,7 +265,7 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     navFigures: "Figürler ve kaynakça",
     heroTitle: "Ay Güney Kutbu için çok eksenli Dünya analogu seçimi",
     heroBody:
-      "Hiçbir Dünya sahası Ay koşullarını tek başına karşılayamaz. Bu platform beş Artemis III aday Ay bölgesini kırk Dünya sahasıyla arazi mobilitesi ve yüzey parlaklığı eksenlerinde ayrı ayrı puanlar, her sonuca belirsizlik ve fiziksel sınır ekler.",
+      "Hiçbir Dünya sahası Ay koşullarını tek başına karşılayamaz. Bu platform beş Artemis III aday Ay bölgesini kırk Dünya sahasıyla arazi mobilitesi ve yüzey parlaklığı eksenlerinde ayrı ayrı puanlar, her sonuca hata payı ve fiziksel bağlam ekler.",
     heroPrimaryCta: "Gözlemevini aç",
     moonRegionLabel: "Ay referans krateri",
     missionLabel: "Görev profili ve özel ağırlık",
@@ -331,10 +273,9 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     earthPickerLabel: "Hızlı Dünya sahası seçici (40)",
     searchPlaceholder: "Saha, ID veya litoloji ara",
     selectedEarthLabel: "Seçili Dünya sahası",
-    tourBadge: "Sunum turu",
     mapZoomGlobal: "Küresel görünüm",
     mapZoomTurkey: "Türkiye odağı (14 aday)",
-    chartTitle: "Eksen puanları ve Monte Carlo P5–P95 aralığı",
+    chartTitle: "Eksen puanları ve belirsizlik aralığı",
     chartNote: "Puanlar 0–1 sıralama indeksidir, olasılık değildir",
     modeOverall: "Genel",
     modeMobility: "Mobilite",
@@ -349,9 +290,9 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     orbitalMoonTitle: "NASA LRO LOLA 5 m kabartma ve eğim sınıfları",
     orbitalEarthTitle: "ESA Sentinel-2 L2A 10 m gerçek uydu görüntüsü",
     validationIntro:
-      "40 sahanın tamamı Z-ölçeklemesine katılır; bilinen 10 doğrulama sahası (Etna, Atacama, Haughton vb.) ön-kayıtlı DOI literatürüyle karşılaştırılırken Karacadağ, Hasandağı ve Karapınar gibi az çalışılmış sahalar nicel test adayı olarak tutulur.",
-    whySplitTitle: "Challenge sorunu, karşılaştığımız zorluklar ve çözümümüz",
-    limitsTitle: "Neleri başardık? Aktif çözüm kapsamı",
+      "Bu bölümde projede çözdüğümüz temel sorunu, veri toplarken yaşadığımız zorlukları ve daha önce uzay çalışmalarında kullanılmış 10 ünlü test sahasının toprak türü ve koordinatlarıyla sıralamamızdaki yerini görebilirsiniz.",
+    whySplitTitle: "Sorun, zorluklar ve geliştirdiğimiz çözüm",
+    limitsTitle: "Somut örneklerle neyi nasıl çözdük?",
     bibMoonTitle: "Ay Güney Kutbu yörünge veri setleri ve akademik literatür",
     bibEarthTitle: "Dünya uydu ürünleri, kalibrasyon ve doğrulama kaynakları",
     bibTableTitle: "40 sahanın koordinat, DEM ve akademik kaynakça dizini",
@@ -366,7 +307,7 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     navFigures: "Figures & bibliography",
     heroTitle: "Multi-axis Earth analogue selection for lunar south pole bases",
     heroBody:
-      "No single terrestrial site reproduces lunar conditions on every axis. This workbench scores five Artemis III candidate Moon sites against forty Earth field sites across terrain mobility and surface albedo with Monte Carlo uncertainty.",
+      "No single terrestrial site reproduces lunar conditions on every axis. This workbench scores five Artemis III candidate Moon sites against forty Earth field sites across terrain mobility and surface albedo with clear uncertainty ranges.",
     heroPrimaryCta: "Open observatory",
     moonRegionLabel: "Lunar reference crater",
     missionLabel: "Mission profile & custom weights",
@@ -374,10 +315,9 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     earthPickerLabel: "Quick Earth site selector (40)",
     searchPlaceholder: "Search site, ID or lithology",
     selectedEarthLabel: "Selected Earth site",
-    tourBadge: "Guided tour",
     mapZoomGlobal: "Global view",
     mapZoomTurkey: "Turkey focus (14 candidates)",
-    chartTitle: "Axis scores with Monte Carlo P5–P95 intervals",
+    chartTitle: "Axis scores and uncertainty intervals",
     chartNote: "Scores are 0–1 ranking indices, not probabilities",
     modeOverall: "Overall",
     modeMobility: "Mobility",
@@ -392,9 +332,9 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     orbitalMoonTitle: "NASA LRO LOLA 5 m relief and slope hazard",
     orbitalEarthTitle: "ESA Sentinel-2 L2A 10 m orbital view",
     validationIntro:
-      "All 40 sites enter Z-scaling without role labels; established analogues (Etna, Atacama, Haughton) are audited against pre-registered DOI literature while lesser-studied fields like Karacadağ remain quantitative candidates.",
-    whySplitTitle: "Challenge framing, real obstacles & our engineering solution",
-    limitsTitle: "What we achieved: active analytical scope",
+      "Read a plain overview of the core challenge, our data hurdles, and where 10 classic space analogue sites rank alongside their soil/rock type and coordinates.",
+    whySplitTitle: "Problem, hurdles and our solution",
+    limitsTitle: "How we solved it: concrete live examples",
     bibMoonTitle: "Lunar South Pole orbital datasets and literature",
     bibEarthTitle: "Earth satellite products, calibration & validation sources",
     bibTableTitle: "40-site coordinate, DEM and academic citation ledger",

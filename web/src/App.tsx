@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowDownUp,
+  ArrowRight,
   ArrowUp,
   BookOpen,
   ChevronLeft,
@@ -10,32 +11,29 @@ import {
   ExternalLink,
   MapPin,
   Mountain,
-  Play,
   RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import { AlbedoSensitivitySvg } from "./components/AlbedoSensitivitySvg";
 import { ElevationProfileSvg } from "./components/ElevationProfileSvg";
 import { LunarGlyphCanvas } from "./components/LunarGlyphCanvas";
-import { PortfolioOptimizerCard } from "./components/PortfolioOptimizerCard";
 import { RadarCompareSvg } from "./components/RadarCompareSvg";
 import { RealMapLeaflet } from "./components/RealMapLeaflet";
 import { ScoreBarsChart, type ChartAxisMode } from "./components/ScoreBarsChart";
 import { Terrain3DCanvas, type TerrainColorMode } from "./components/Terrain3DCanvas";
 import {
-  ACHIEVEMENT_PILLARS,
   ANALYSIS_FIGURES,
   CHALLENGE_STORY,
   FEATURE_NAMES,
   FILTERS,
-  JURY_DEMO_TOUR,
   LITHOLOGY_NAMES,
   MISSIONS,
+  SOLUTION_EXAMPLES,
   UI_COPY,
   WORKBENCH_TABS,
+  type ExampleJumpKey,
 } from "./i18n";
 import { computeWeightedScores, PRESET_WEIGHTS } from "./scoring";
 import type {
@@ -60,8 +58,7 @@ type TableSortCol =
   | "relief"
   | "lithology";
 type SortDir = "asc" | "desc";
-type ValSortCol = "mob_rank" | "rank" | "surf_rank" | "name";
-type OverviewSubTab = "compare" | "portfolio";
+type ValSortCol = "mob_rank" | "rank" | "surf_rank" | "name" | "lithology" | "slope_mean";
 type MoonAtlasMode = "hillshade" | "hazard" | "plate";
 
 function extractDoiUrl(text: string): string | null {
@@ -98,7 +95,6 @@ export default function App() {
   const [search, setSearch] = useState<string>("");
   const [selectedEarthId, setSelectedEarthId] = useState<string>("earth_karapinar_meke");
   const [workbenchTab, setWorkbenchTab] = useState<WorkbenchTab>("overview");
-  const [overviewSubTab, setOverviewSubTab] = useState<OverviewSubTab>("compare");
   const [chartMode, setChartMode] = useState<ChartAxisMode>("overall");
   const [maxBars, setMaxBars] = useState<number>(12);
 
@@ -106,9 +102,6 @@ export default function App() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [valSortCol, setValSortCol] = useState<ValSortCol>("mob_rank");
   const [valSortDir, setValSortDir] = useState<SortDir>("asc");
-
-  const [portfolioThreshold, setPortfolioThreshold] = useState<number>(0.7);
-  const [tourIdx, setTourIdx] = useState<number | null>(null);
 
   // 3D Terrain interactive state
   const [azimuthDeg, setAzimuthDeg] = useState<number>(42);
@@ -277,19 +270,15 @@ export default function App() {
     const list = activeScores.filter((r) => sitesById[r.site_id]?.role === "validation");
     const mul = valSortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
-      if (valSortCol === "name") {
-        const sa = sitesById[a.site_id]?.short ?? "";
-        const sb = sitesById[b.site_id]?.short ?? "";
-        return sa.localeCompare(sb) * mul;
-      }
+      const sa = sitesById[a.site_id];
+      const sb = sitesById[b.site_id];
+      if (!sa || !sb) return 0;
+      if (valSortCol === "name") return sa.short.localeCompare(sb.short) * mul;
+      if (valSortCol === "lithology") return sa.lithology.localeCompare(sb.lithology) * mul;
+      if (valSortCol === "slope_mean") return (sa.slope_mean - sb.slope_mean) * mul;
       return (a[valSortCol] - b[valSortCol]) * mul;
     });
   }, [data, activeScores, sitesById, valSortCol, valSortDir]);
-
-  const craterSensitivity = useMemo(() => {
-    if (!data) return [];
-    return data.albedo_sensitivity.filter((r) => r.ref_site_id === moonId);
-  }, [data, moonId]);
 
   const filteredBibSites = useMemo(() => {
     if (!data) return [];
@@ -317,12 +306,12 @@ export default function App() {
     }
   };
 
-  const handleValSortClick = (col: ValSortCol) => {
+  const handleValSortClick = (col: ValSortCol, defaultDir: SortDir = "asc") => {
     if (valSortCol === col) {
       setValSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setValSortCol(col);
-      setValSortDir("asc");
+      setValSortDir(defaultDir);
     }
   };
 
@@ -333,15 +322,45 @@ export default function App() {
     setSelectedEarthId(poolRows[nextIdx].site_id);
   };
 
-  const applyTourStep = (index: number) => {
-    const safe = ((index % JURY_DEMO_TOUR.length) + JURY_DEMO_TOUR.length) % JURY_DEMO_TOUR.length;
-    const step = JURY_DEMO_TOUR[safe];
-    setTourIdx(safe);
-    setMoonId(step.moonId);
-    handleMissionSelect(step.mission);
+  const jumpToExample = (action: ExampleJumpKey) => {
     setFilter("all");
-    setSelectedEarthId(step.earthId);
-    setWorkbenchTab(step.tab);
+    setSearch("");
+    if (action === "rover_hasandagi") {
+      setMoonId("moon_shackleton_rim");
+      handleMissionSelect("rover_mobility");
+      setSelectedEarthId("earth_hasandagi_kecekalecik");
+      setChartMode("overall");
+      setWorkbenchTab("overview");
+      requestAnimationFrame(() => {
+        document.getElementById("observatory")?.scrollIntoView({ behavior: "smooth" });
+      });
+    } else if (action === "faustini_haughton") {
+      setMoonId("moon_faustini_rim");
+      handleMissionSelect("default");
+      setSelectedEarthId("earth_haughton_crater");
+      setChartMode("mobility");
+      setWorkbenchTab("overview");
+      requestAnimationFrame(() => {
+        document.getElementById("observatory")?.scrollIntoView({ behavior: "smooth" });
+      });
+    } else if (action === "radar_meke") {
+      setMoonId("moon_shackleton_rim");
+      handleMissionSelect("default");
+      setSelectedEarthId("earth_karapinar_meke");
+      setChartMode("surface");
+      setWorkbenchTab("overview");
+      setTimeout(() => {
+        document.getElementById("radar-gaps-panel")?.scrollIntoView({ behavior: "smooth" });
+      }, 60);
+    } else {
+      setMoonId("moon_shackleton_rim");
+      setSelectedEarthId("earth_karapinar_meke");
+      setColorMode3d("slope");
+      setWorkbenchTab("terrain");
+      requestAnimationFrame(() => {
+        document.getElementById("observatory")?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
   };
 
   if (loadError) {
@@ -366,7 +385,6 @@ export default function App() {
   }
 
   const moonName = lang === "tr" ? activeMoon.name_tr : activeMoon.name_en;
-  const activeTour = tourIdx !== null ? JURY_DEMO_TOUR[tourIdx] : null;
 
   const SortIndicator = ({ active, dir }: { active: boolean; dir: SortDir }) => {
     if (!active) return <ArrowDownUp className="w-3 h-3 text-[#555e73] inline ml-1" strokeWidth={1.5} />;
@@ -422,18 +440,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                applyTourStep(0);
-                document.getElementById("observatory")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#11141c] border hairline text-[12px] font-medium text-[#eef0f5] hover:border-[#4c8bf5]/60 transition-colors duration-150"
-            >
-              <Play className="w-3.5 h-3.5 text-[#4c8bf5]" strokeWidth={1.6} />
-              <span>{copy.tourBadge}</span>
-            </button>
-
             <div className="inline-flex rounded-lg p-0.5 bg-[#11141c] border hairline text-[12px]">
               {(["tr", "en"] as Lang[]).map((code) => (
                 <button
@@ -465,9 +471,7 @@ export default function App() {
                 {data.meta.earth_count} {lang === "tr" ? "Dünya sahası" : "Earth sites"}
               </span>
               <span className="text-[#2b3245]">/</span>
-              <span className="text-[#4cc38a]">
-                {data.meta.tests_passed} {lang === "tr" ? "test · 0 yapay veri" : "tests · 0 mock"}
-              </span>
+              <span className="text-[#4c8bf5]">LRO LOLA · Copernicus DEM</span>
             </div>
 
             <h1 className="enter-rise enter-delay-2 text-[32px] sm:text-[42px] font-medium leading-[1.09] tracking-[-0.025em] text-[#eef0f5] max-w-[19ch]">
@@ -486,17 +490,6 @@ export default function App() {
                 <Compass className="w-4 h-4 text-[#07080d]" strokeWidth={1.5} />
                 <span>{copy.heroPrimaryCta}</span>
               </a>
-              <button
-                type="button"
-                onClick={() => {
-                  applyTourStep(0);
-                  document.getElementById("observatory")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="h-10 px-5 rounded-lg bg-[#1a1e28] border hairline-strong text-[#eef0f5] text-[13.5px] font-medium inline-flex items-center gap-2 hover:bg-[#232836] transition-colors duration-150"
-              >
-                <Play className="w-3.5 h-3.5 text-[#4c8bf5]" strokeWidth={1.6} />
-                <span>{lang === "tr" ? "Sunum turunu başlat" : "Start guided tour"}</span>
-              </button>
             </div>
 
             {/* Clean uniform 5-crater selector strip + telemetry */}
@@ -560,69 +553,6 @@ export default function App() {
 
       {/* Main Interactive Observatory Workbench */}
       <section id="observatory" className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-7 flex-1">
-        {/* Interactive Guided Tour Strip (optional, expands cleanly on click) */}
-        <div className="rounded-xl border hairline bg-[#11141c] p-3.5 mb-5">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11.5px] font-mono text-[#4c8bf5] px-2 py-0.5 rounded bg-[#4c8bf5]/12 border border-[#4c8bf5]/30">
-                {copy.tourBadge}
-              </span>
-              {JURY_DEMO_TOUR.map((step, i) => (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => applyTourStep(i)}
-                  className={`px-2.5 py-1 rounded-lg text-[12px] font-medium border transition-colors duration-150 ${
-                    tourIdx === i
-                      ? "active-highlight border-[#4c8bf5]/55 text-[#eef0f5]"
-                      : "border-transparent text-[#7a8296] hover:text-[#eef0f5] hover:bg-[#1a1e28]/60"
-                  }`}
-                >
-                  {lang === "tr" ? step.trTitle : step.enTitle}
-                </button>
-              ))}
-            </div>
-
-            {activeTour && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => applyTourStep((tourIdx ?? 0) - 1)}
-                  className="p-1.5 rounded-lg bg-[#07080d] border hairline text-[#a3a9b8] hover:text-[#eef0f5]"
-                  aria-label="Previous step"
-                >
-                  <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-                <span className="text-[12px] font-mono tabular text-[#7a8296] px-1">
-                  {(tourIdx ?? 0) + 1}/{JURY_DEMO_TOUR.length}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => applyTourStep((tourIdx ?? 0) + 1)}
-                  className="p-1.5 rounded-lg bg-[#07080d] border hairline text-[#a3a9b8] hover:text-[#eef0f5]"
-                  aria-label="Next step"
-                >
-                  <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTourIdx(null)}
-                  className="p-1.5 rounded-lg bg-[#07080d] border hairline text-[#7a8296] hover:text-[#eef0f5]"
-                  aria-label="Close tour"
-                >
-                  <X className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {activeTour && (
-            <p className="mt-3 pt-3 border-t hairline text-[13px] leading-relaxed text-[#c7cddb]">
-              {lang === "tr" ? activeTour.trSpeech : activeTour.enSpeech}
-            </p>
-          )}
-        </div>
-
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Sticky 284px Observatory Control Rail */}
           <aside className="w-full lg:w-[284px] shrink-0 lg:sticky lg:top-[72px] rounded-xl border hairline bg-[#07080d] p-4 flex flex-col gap-4">
@@ -1018,213 +948,89 @@ export default function App() {
                   lang={lang}
                 />
 
-                {/* Decluttered 2-mode Sub-Switcher for Detailed Analytics */}
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="inline-flex rounded-lg p-1 bg-[#11141c] border hairline text-[12.5px]">
-                      <button
-                        type="button"
-                        onClick={() => setOverviewSubTab("compare")}
-                        className={`px-3.5 py-1.5 rounded-md font-medium transition-colors duration-150 ${
-                          overviewSubTab === "compare"
-                            ? "active-highlight text-[#eef0f5]"
-                            : "text-[#7a8296] hover:text-[#eef0f5]"
-                        }`}
-                      >
-                        {lang === "tr" ? "Radar ve fiziksel farklar" : "Radar & feature gaps"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOverviewSubTab("portfolio")}
-                        className={`px-3.5 py-1.5 rounded-md font-medium transition-colors duration-150 ${
-                          overviewSubTab === "portfolio"
-                            ? "active-highlight text-[#eef0f5]"
-                            : "text-[#7a8296] hover:text-[#eef0f5]"
-                        }`}
-                      >
-                        {lang === "tr" ? "Portföy ve 5 krater matrisi" : "Portfolio & 5-crater matrix"}
-                      </button>
-                    </div>
-
-                    <span className="text-[11.5px] font-mono text-[#7a8296]">
-                      {moonName} ↔ {selectedEarth.short}
-                    </span>
+                {/* Paired Radar Comparison & Physical Difference Gaps */}
+                <div id="radar-gaps-panel" className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+                  <div className="xl:col-span-5">
+                    <RadarCompareSvg
+                      moon={activeMoon}
+                      earth={selectedEarth}
+                      allMoon={data.moon_refs}
+                      allEarth={data.earth_sites}
+                      scoreRow={selectedScore}
+                      lang={lang}
+                    />
                   </div>
 
-                  {overviewSubTab === "compare" ? (
-                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
-                      <div className="xl:col-span-5">
-                        <RadarCompareSvg
-                          moon={activeMoon}
-                          earth={selectedEarth}
-                          allMoon={data.moon_refs}
-                          allEarth={data.earth_sites}
-                          scoreRow={selectedScore}
-                          lang={lang}
-                        />
-                      </div>
-
-                      <div className="xl:col-span-7 rounded-xl border hairline bg-[#11141c] p-5 flex flex-col justify-between">
-                        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                          <h3 className="text-[15px] font-medium text-[#eef0f5]">
-                            {copy.gapsTitle}
-                          </h3>
-                          <span className="text-[11.5px] font-mono text-[#7a8296]">
-                            r = 1000 m · {activeMoon.dem_src} vs {selectedEarth.dem_src}
-                          </span>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-[13px] border-collapse">
-                            <thead>
-                              <tr className="border-b hairline text-[#7a8296] text-left">
-                                <th className="py-2 pr-3 font-normal">
-                                  {lang === "tr" ? "Ölçüt" : "Criterion"}
-                                </th>
-                                <th className="py-2 pr-3 font-normal text-right">
-                                  {lang === "tr" ? "Ay" : "Moon"}
-                                </th>
-                                <th className="py-2 pr-3 font-normal text-right">
-                                  {lang === "tr" ? "Dünya" : "Earth"}
-                                </th>
-                                <th className="py-2 pr-3 font-normal text-right">
-                                  {lang === "tr" ? "Fark" : "Diff"}
-                                </th>
-                                <th className="py-2 font-normal text-right">
-                                  {lang === "tr" ? "Standart fark (z)" : "Std (z)"}
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="font-mono tabular">
-                              {selectedGaps.map((g) => {
-                                const fn = FEATURE_NAMES[g.feature];
-                                const absZ = Math.abs(g.z_diff ?? 0);
-                                return (
-                                  <tr key={g.feature} className="border-b hairline last:border-b-0">
-                                    <td className="py-2.5 pr-3 font-sans text-[#eef0f5]">
-                                      {fn ? fn[lang] : g.feature}
-                                      <span className="text-[#7a8296] text-[11px] ml-1.5 font-mono">
-                                        ({fn?.unit ?? ""})
-                                      </span>
-                                    </td>
-                                    <td className="py-2.5 pr-3 text-right text-[#a3a9b8]">
-                                      {g.moon_val !== null ? g.moon_val.toFixed(2) : "NaN"}
-                                    </td>
-                                    <td className="py-2.5 pr-3 text-right text-[#a3a9b8]">
-                                      {g.earth_val !== null ? g.earth_val.toFixed(2) : "NaN"}
-                                    </td>
-                                    <td className="py-2.5 pr-3 text-right text-[#eef0f5]">
-                                      {g.diff !== null ? g.diff.toFixed(2) : "—"}
-                                    </td>
-                                    <td
-                                      className={`py-2.5 text-right ${
-                                        absZ < 0.5
-                                          ? "text-[#4cc38a]"
-                                          : absZ > 1.3
-                                            ? "text-[#e5484d]"
-                                            : "text-[#a3a9b8]"
-                                      }`}
-                                    >
-                                      {g.z_diff !== null ? g.z_diff.toFixed(2) : "—"}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+                  <div className="xl:col-span-7 rounded-xl border hairline bg-[#11141c] p-5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                      <h3 className="text-[15px] font-medium text-[#eef0f5]">
+                        {copy.gapsTitle}: {moonName} ↔ {selectedEarth.short}
+                      </h3>
+                      <span className="text-[11.5px] font-mono text-[#7a8296]">
+                        r = 1000 m · {activeMoon.dem_src} vs {selectedEarth.dem_src}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="flex flex-col gap-5">
-                      <PortfolioOptimizerCard
-                        rows={activeScores}
-                        sitesById={sitesById}
-                        moonName={moonName}
-                        threshold={portfolioThreshold}
-                        onThresholdChange={setPortfolioThreshold}
-                        onSelectSite={(sid) => setSelectedEarthId(sid)}
-                        lang={lang}
-                      />
 
-                      <div className="rounded-xl border hairline bg-[#11141c] p-5">
-                        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                          <div>
-                            <h3 className="text-[15px] font-medium text-[#eef0f5]">
-                              {lang === "tr"
-                                ? "Beş Artemis III Ay kraterinde ilk 3 eşleşme"
-                                : "Top 3 matches across all five Artemis III regions"}
-                            </h3>
-                            <p className="text-[12px] text-[#7a8296] mt-0.5">
-                              {lang === "tr"
-                                ? "Hücreye tıklayarak hedef krateri ve Dünya sahasını anında seçin"
-                                : "Click any cell to jump directly to that Lunar crater and Earth site"}
-                            </p>
-                          </div>
-                          <span className="text-[11.5px] font-mono text-[#7a8296]">
-                            {MISSIONS[mission][lang]}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                          {data.moon_refs.map((m) => {
-                            const rawBase = data.comparisons[m.site_id]?.default ?? [];
-                            const top3 = (
-                              isCustomWeights
-                                ? computeWeightedScores(rawBase, wMob, wSurf)
-                                : data.comparisons[m.site_id]?.[mission] ?? []
-                            ).slice(0, 3);
-                            const isCurMoon = m.site_id === moonId;
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[13px] border-collapse">
+                        <thead>
+                          <tr className="border-b hairline text-[#7a8296] text-left">
+                            <th className="py-2 pr-3 font-normal">
+                              {lang === "tr" ? "Ölçüt" : "Criterion"}
+                            </th>
+                            <th className="py-2 pr-3 font-normal text-right">
+                              {lang === "tr" ? "Ay" : "Moon"}
+                            </th>
+                            <th className="py-2 pr-3 font-normal text-right">
+                              {lang === "tr" ? "Dünya" : "Earth"}
+                            </th>
+                            <th className="py-2 pr-3 font-normal text-right">
+                              {lang === "tr" ? "Fark" : "Diff"}
+                            </th>
+                            <th className="py-2 font-normal text-right">
+                              {lang === "tr" ? "Standart fark (z)" : "Std (z)"}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="font-mono tabular">
+                          {selectedGaps.map((g) => {
+                            const fn = FEATURE_NAMES[g.feature];
+                            const absZ = Math.abs(g.z_diff ?? 0);
                             return (
-                              <div
-                                key={m.site_id}
-                                className={`rounded-lg border p-3 flex flex-col gap-2 ${
-                                  isCurMoon
-                                    ? "border-[#4c8bf5]/55 bg-[#151a27]"
-                                    : "hairline bg-[#07080d]"
-                                }`}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => setMoonId(m.site_id)}
-                                  className="text-left text-[12px] font-medium text-[#eef0f5] hover:text-[#4c8bf5] truncate"
+                              <tr key={g.feature} className="border-b hairline last:border-b-0">
+                                <td className="py-2.5 pr-3 font-sans text-[#eef0f5]">
+                                  {fn ? fn[lang] : g.feature}
+                                  <span className="text-[#7a8296] text-[11px] ml-1.5 font-mono">
+                                    ({fn?.unit ?? ""})
+                                  </span>
+                                </td>
+                                <td className="py-2.5 pr-3 text-right text-[#a3a9b8]">
+                                  {g.moon_val !== null ? g.moon_val.toFixed(2) : "NaN"}
+                                </td>
+                                <td className="py-2.5 pr-3 text-right text-[#a3a9b8]">
+                                  {g.earth_val !== null ? g.earth_val.toFixed(2) : "NaN"}
+                                </td>
+                                <td className="py-2.5 pr-3 text-right text-[#eef0f5]">
+                                  {g.diff !== null ? g.diff.toFixed(2) : "—"}
+                                </td>
+                                <td
+                                  className={`py-2.5 text-right ${
+                                    absZ < 0.5
+                                      ? "text-[#4cc38a]"
+                                      : absZ > 1.3
+                                        ? "text-[#e5484d]"
+                                        : "text-[#a3a9b8]"
+                                  }`}
                                 >
-                                  {lang === "tr" ? m.name_tr : m.name_en}
-                                </button>
-                                <div className="text-[11px] font-mono tabular text-[#7a8296]">
-                                  {m.slope_mean.toFixed(1)}° · alb {m.albedo.toFixed(3)}
-                                </div>
-                                <div className="flex flex-col gap-1 pt-1 border-t hairline">
-                                  {top3.map((r, idx) => {
-                                    const es = sitesById[r.site_id];
-                                    if (!es) return null;
-                                    return (
-                                      <button
-                                        key={r.site_id}
-                                        type="button"
-                                        onClick={() => {
-                                          setMoonId(m.site_id);
-                                          setSelectedEarthId(r.site_id);
-                                        }}
-                                        className="text-left text-[11.5px] flex items-center justify-between gap-2 py-0.5 text-[#a3a9b8] hover:text-[#eef0f5]"
-                                      >
-                                        <span className="truncate">
-                                          {idx + 1}. {es.short}
-                                        </span>
-                                        <span className="font-mono tabular text-[#eef0f5] shrink-0">
-                                          {r.score.toFixed(3)}
-                                        </span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
+                                  {g.z_diff !== null ? g.z_diff.toFixed(2) : "—"}
+                                </td>
+                              </tr>
                             );
                           })}
-                        </div>
-                      </div>
+                        </tbody>
+                      </table>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Full Interactive Table with Bidirectional Asc/Desc Column Sorting */}
@@ -1815,11 +1621,22 @@ export default function App() {
                             {lang === "tr" ? "Yüzey #" : "Surface #"}
                             <SortIndicator active={valSortCol === "surf_rank"} dir={valSortDir} />
                           </th>
-                          <th className="py-2.5 px-4 font-normal">
-                            {lang === "tr" ? "Beklenen (E1)" : "Expected (E1)"}
+                          <th
+                            onClick={() => handleValSortClick("lithology")}
+                            className="py-2.5 px-4 font-normal cursor-pointer hover:text-[#eef0f5] whitespace-nowrap"
+                          >
+                            {lang === "tr" ? "Toprak / Kayaç" : "Rock / Soil"}
+                            <SortIndicator active={valSortCol === "lithology"} dir={valSortDir} />
                           </th>
-                          <th className="py-2.5 px-4 font-normal">
-                            {lang === "tr" ? "Buz (E8)" : "Ice (E8)"}
+                          <th className="py-2.5 px-4 font-normal text-right whitespace-nowrap">
+                            {lang === "tr" ? "Enlem, Boylam" : "Lat, Lon"}
+                          </th>
+                          <th
+                            onClick={() => handleValSortClick("slope_mean", "desc")}
+                            className="py-2.5 px-4 font-normal text-right cursor-pointer hover:text-[#eef0f5] whitespace-nowrap"
+                          >
+                            {lang === "tr" ? "Eğim / Albedo" : "Slope / Albedo"}
+                            <SortIndicator active={valSortCol === "slope_mean"} dir={valSortDir} />
                           </th>
                           <th className="py-2.5 px-4 font-normal">
                             {lang === "tr" ? "Kaynak (DOI)" : "Reference (DOI)"}
@@ -1847,11 +1664,14 @@ export default function App() {
                               <td className="py-2.5 px-4 text-right font-mono tabular text-[#a3a9b8]">
                                 #{r.surf_rank}
                               </td>
-                              <td className="py-2.5 px-4 font-mono text-[12px] text-[#a3a9b8]">
-                                {v?.expected_v1 ?? "—"}
-                              </td>
                               <td className="py-2.5 px-4 text-[#a3a9b8]">
-                                {lang === "tr" ? v?.ice_e8 : v?.ice_e8_en}
+                                {LITHOLOGY_NAMES[s.lithology]?.[lang] ?? s.lithology}
+                              </td>
+                              <td className="py-2.5 px-4 text-right font-mono tabular text-[12px] text-[#a3a9b8] whitespace-nowrap">
+                                {s.lat.toFixed(2)}°, {s.lon.toFixed(2)}°
+                              </td>
+                              <td className="py-2.5 px-4 text-right font-mono tabular text-[12px] text-[#a3a9b8] whitespace-nowrap">
+                                {s.slope_mean.toFixed(1)}° / {s.albedo.toFixed(3)}
                               </td>
                               <td className="py-2.5 px-4">
                                 {v?.source_url ? (
@@ -1877,112 +1697,39 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Albedo Sensitivity Curve */}
-                <AlbedoSensitivitySvg
-                  rows={craterSensitivity}
-                  sitesById={sitesById}
-                  moonName={moonName}
-                  lang={lang}
-                  onSelectEarth={(sid) => setSelectedEarthId(sid)}
-                />
-
-                {/* 1 km Mixed-Pixel & NASADEM Fallback Audit */}
-                <div className="rounded-xl border hairline bg-[#11141c] p-5 flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <h3 className="text-[14px] font-medium text-[#eef0f5]">
-                        {lang === "tr"
-                          ? "1 km karma piksel ve DEM kaynak kalibrasyon denetimi"
-                          : "1 km mixed-pixel and DEM calibration audit"}
-                      </h3>
-                      <p className="text-[12px] text-[#7a8296] mt-0.5">
-                        {lang === "tr"
-                          ? "ESA WorldCover 10 m ve Sentinel-2 10 m incelemesi: kaba 500 m albedo piksellerindeki su, tarım ve kar karışımları raporlanır (Ağrı N39E044 karosu için NASADEM EGM96 yedeği kullanılmıştır)"
-                          : "ESA WorldCover 10 m and Sentinel-2 10 m audit flagging coarse pixel water, vegetation or crop dilution (with NASADEM EGM96 fallback on Ağrı)"}
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-[#07080d] border hairline text-[#a3a9b8]">
-                      ESA WorldCover 10 m + Sentinel-2 L2A
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[12px] border-collapse">
-                      <thead>
-                        <tr className="border-b hairline text-[#7a8296] text-left bg-[#07080d]">
-                          <th className="py-2 px-3 font-normal">{lang === "tr" ? "Denetlenen saha" : "Audited site"}</th>
-                          <th className="py-2 px-3 font-normal">{lang === "tr" ? "Sınıf" : "Flag"}</th>
-                          <th className="py-2 px-3 font-normal text-right">WC çıplak</th>
-                          <th className="py-2 px-3 font-normal text-right">WC su</th>
-                          <th className="py-2 px-3 font-normal text-right">WC bitki/tarım</th>
-                          <th className="py-2 px-3 font-normal text-right">S2 çıplak / kar</th>
-                        </tr>
-                      </thead>
-                      <tbody className="font-mono tabular">
-                        {data.mixed_pixel_audit.slice(0, 6).map((m) => (
-                          <tr
-                            key={m.site_id}
-                            onClick={() => {
-                              if (sitesById[m.site_id]) setSelectedEarthId(m.site_id);
-                            }}
-                            className="border-b hairline last:border-b-0 hover:bg-[#1a1e28]/60 cursor-pointer"
-                          >
-                            <td className="py-2 px-3 font-sans text-[#eef0f5]">
-                              <div>{sitesById[m.site_id]?.short ?? m.label}</div>
-                              <div className="text-[11px] text-[#7a8296]">{m.note}</div>
-                            </td>
-                            <td className="py-2 px-3 whitespace-nowrap">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10.5px] ${
-                                  m.rule_is_mixed
-                                    ? "bg-[#d9a441]/15 text-[#d9a441]"
-                                    : "bg-[#4cc38a]/15 text-[#4cc38a]"
-                                }`}
-                              >
-                                {m.rule_flag}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3 text-right text-[#eef0f5]">{m.wc_bare_pct.toFixed(1)}%</td>
-                            <td className="py-2 px-3 text-right text-[#a3a9b8]">{m.wc_water_pct.toFixed(1)}%</td>
-                            <td className="py-2 px-3 text-right text-[#a3a9b8]">
-                              {(m.wc_veg_pct + m.wc_crop_pct).toFixed(1)}%
-                            </td>
-                            <td className="py-2 px-3 text-right text-[#a3a9b8] whitespace-nowrap">
-                              {m.s2_bare_or_dark_pct.toFixed(1)}% / {m.s2_snow_pct.toFixed(1)}%
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Positive Achievements Only — Replaced Negative 8-Dimension Grid */}
+                {/* Concrete Interactive Examples with Clickable "bkz." Links to Live Solutions */}
                 <div className="rounded-xl border hairline bg-[#11141c] p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <ShieldCheck className="w-4 h-4 text-[#4cc38a]" strokeWidth={1.6} />
                     <h3 className="text-[15px] font-medium text-[#eef0f5]">{copy.limitsTitle}</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
-                    {ACHIEVEMENT_PILLARS[lang].map((p) => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {SOLUTION_EXAMPLES[lang].map((card) => (
                       <div
-                        key={p.title}
+                        key={card.action}
                         className="rounded-lg border hairline bg-[#07080d] p-4 flex flex-col justify-between gap-3"
                       >
                         <div>
-                          <div className="text-[11px] font-mono text-[#4cc38a] mb-1.5">
-                            {p.badge}
+                          <div className="text-[11px] font-mono text-[#4cc38a] mb-1">
+                            {card.tag}
                           </div>
-                          <div className="text-[13.5px] font-medium text-[#eef0f5] leading-snug">
-                            {p.title}
+                          <div className="text-[14px] font-medium text-[#eef0f5] leading-snug">
+                            {card.title}
                           </div>
-                          <p className="text-[12px] text-[#a3a9b8] mt-1.5 leading-relaxed">
-                            {p.detail}
+                          <p className="text-[12.5px] text-[#a3a9b8] mt-1.5 leading-relaxed">
+                            {card.example}
                           </p>
                         </div>
-                        <div className="text-[11px] font-mono text-[#7a8296] pt-2 border-t hairline">
-                          {p.source}
+                        <div className="pt-2.5 border-t hairline">
+                          <button
+                            type="button"
+                            onClick={() => jumpToExample(card.action)}
+                            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#4c8bf5] hover:text-[#7db0ff] transition-colors duration-150"
+                          >
+                            <span>{card.linkLabel}</span>
+                            <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.8} />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -1990,8 +1737,8 @@ export default function App() {
 
                   <p className="mt-4 pt-3 border-t hairline text-[12px] text-[#7a8296]">
                     {lang === "tr"
-                      ? "Fiziksel sınır notu: 1/6 g düşük yerçekimi, yüksek vakum, elektrostatik toz ve 29.5 günlük Ay termal döngüsü hiçbir Dünya açık sahasında doğal olarak üretilemediği için mühendislik doğrulaması plazma ve vakum test odalarıyla tamamlanır."
-                      : "Physical boundary disclosure: 1/6 g lunar gravity, hard vacuum, electrostatic dust and 29.5-day thermal cycling cannot be reproduced naturally at open-air Earth sites and are verified inside cryo-vacuum facilities."}
+                      ? "Fiziksel sınır notu: Düşük yerçekimi (1/6 g), vakum, radyasyon ve elektrostatik toz hiçbir Dünya sahasında doğal olarak bulunmadığı için bu koşullar laboratuvar testleriyle tamamlanır."
+                      : "Physical boundary disclosure: Low gravity (1/6 g), vacuum, radiation and electrostatic dust cannot be reproduced naturally on Earth and are completed in laboratory test chambers."}
                   </p>
                 </div>
               </div>
@@ -2218,7 +1965,7 @@ export default function App() {
       <footer className="border-t hairline bg-[#07080d] mt-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[#7a8296]">
           <div>
-            Endülüs · NASA Space Apps 2026 · {data.meta.moon_count} Ay × {data.meta.earth_count} Dünya · 0 MOCK
+            Endülüs · NASA Space Apps 2026 · {data.meta.moon_count} Ay bölgesi × {data.meta.earth_count} Dünya sahası
           </div>
           <div className="font-mono">
             NASA LRO LOLA 5 m · Copernicus GLO-30 · ESA Sentinel-2 L2A · MODIS MCD43A3

@@ -81,8 +81,8 @@ export function RadarCompareSvg({ moon, earth, allMoon, allEarth, scoreRow, lang
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-        <div className="sm:col-span-6 flex justify-center">
-          <svg viewBox="0 0 296 254" className="w-full max-w-[290px] h-auto">
+        <div className="sm:col-span-5 flex justify-center">
+          <svg viewBox="0 0 296 254" className="w-full max-w-[260px] h-auto">
             {[0.25, 0.5, 0.75, 1.0].map((lvl) => {
               const pts = axes
                 .map((_, i) => {
@@ -157,13 +157,13 @@ export function RadarCompareSvg({ moon, earth, allMoon, allEarth, scoreRow, lang
           </svg>
         </div>
 
-        <div className="sm:col-span-6 flex flex-col gap-2 text-[12px]">
+        <div className="sm:col-span-7 flex flex-col gap-2 text-[12px]">
           {axes.map((a) => {
             const meta = FEATURE_NAMES[a.key];
             return (
               <div
                 key={a.key}
-                className="px-3 py-2 rounded-lg bg-[#07080d] border hairline flex items-center justify-between gap-2"
+                className="px-3 py-2 rounded-lg bg-[#07080d] border hairline flex items-center justify-between gap-3"
               >
                 <span className="text-[#a3a9b8]">{meta?.[lang] ?? a.key}</span>
                 <span className="font-mono tabular text-[11.5px] whitespace-nowrap">
@@ -174,24 +174,25 @@ export function RadarCompareSvg({ moon, earth, allMoon, allEarth, scoreRow, lang
               </div>
             );
           })}
-          {scoreRow && (
-            <div className="grid grid-cols-2 gap-2 pt-1 font-mono tabular text-[11px]">
-              <div className="px-3 py-2 rounded bg-[#07080d] border hairline flex items-center justify-between">
-                <span className="text-[#a3a9b8] font-sans">
-                  {lang === "tr" ? "Mobilite" : "Mobility"}
-                </span>
-                <strong className="text-[#eef0f5]">{scoreRow.mob.toFixed(3)}</strong>
-              </div>
-              <div className="px-3 py-2 rounded bg-[#07080d] border hairline flex items-center justify-between">
-                <span className="text-[#a3a9b8] font-sans">
-                  {lang === "tr" ? "Yüzey" : "Surface"}
-                </span>
-                <strong className="text-[#eef0f5]">{scoreRow.surf.toFixed(3)}</strong>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {scoreRow && (
+        <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t hairline font-mono tabular text-[12px]">
+          <div className="px-3.5 py-2.5 rounded-lg bg-[#07080d] border hairline flex items-center justify-between gap-2">
+            <span className="text-[#a3a9b8] font-sans">
+              {lang === "tr" ? "Mobilite skoru" : "Mobility score"}
+            </span>
+            <strong className="text-[#eef0f5]">{scoreRow.mob.toFixed(3)}</strong>
+          </div>
+          <div className="px-3.5 py-2.5 rounded-lg bg-[#07080d] border hairline flex items-center justify-between gap-2">
+            <span className="text-[#a3a9b8] font-sans">
+              {lang === "tr" ? "Yüzey skoru" : "Surface score"}
+            </span>
+            <strong className="text-[#eef0f5]">{scoreRow.surf.toFixed(3)}</strong>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
