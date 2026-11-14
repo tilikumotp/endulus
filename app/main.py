@@ -24,6 +24,12 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
+if str(ROOT / "app") not in sys.path:
+    sys.path.insert(0, str(ROOT / "app"))
+
+from i18n import BREAKDOWN, I18N, ROLE_LABELS  # noqa: E402
+from i18n import AXIS_LABELS as AXIS_LABELS_ALL  # noqa: E402
+from i18n import MISSION_LABELS as MISSION_LABELS_ALL  # noqa: E402
 
 from scoring.config import AXES, MISSION_PRESETS  # noqa: E402
 from scoring.similarity import (  # noqa: E402
@@ -69,7 +75,11 @@ st.markdown(
 # ── constants ────────────────────────────────────────────────────────────────
 PROC_DIR = ROOT / "data" / "processed"
 
-AXIS_LABELS = {"mobility": "Mobility", "thermal": "Thermal", "surface": "Surface"}
+AXIS_LABELS = AXIS_LABELS_ALL["en"]     # resolved per language in the sidebar
+MISSION_LABELS = MISSION_LABELS_ALL["en"]
+BREAKDOWN_NOTES = BREAKDOWN["en"]
+S = I18N["en"]                          # per-language UI strings (resolved below)
+LANG = "en"                             # language code, resolved in the sidebar
 
 FEATURE_UNITS = {
     "slope_mean": "deg", "slope_p90": "deg", "roughness": "m",
@@ -83,23 +93,6 @@ MISSION_LABELS = {
     "isru_ice": "ISRU / ice prospecting",
     "radar_calibration": "Subsurface radar calibration",
 }
-
-BREAKDOWN_NOTES = (
-    "**Where the analogy breaks down** — no Earth site can reproduce:\n"
-    "- **Gravity:** Moon ~1/6 g, Mars ~3/8 g (regolith mechanics, dust settling)\n"
-    "- **Vacuum / thin atmosphere:** no Earth surface has <= 1 Pa pressure\n"
-    "- **Radiation:** no magnetosphere-free, ozone-free chronic particle flux\n"
-    "- **Diurnal cycle:** lunar day ≈ 29.5 Earth days\n"
-    "- **Regolith composition:** lunar/Martian mineralogy differs from any Earth rock\n\n"
-    "**Qualitative v1 factors (tracked, NOT in the numeric score — AGENTS.md §2):**\n"
-    "- **Water ice / permanently shadowed regions (PSR):** Earth has no "
-    "permanently shadowed, cryogenically cold terrain\n"
-    "- **Lava tubes / subsurface caves:** presence is site-specific; assessed "
-    "qualitatively from geology maps only\n"
-    "- **Electrostatic dust / wind:** lunar electrostatic dust levitation has "
-    "no Earth counterpart; Earth wind is a different (stronger) process\n\n"
-    "Use Earth analogs only for the matched axes; validate the rest in lab/simulation."
-)
 
 VALIDATION_TOP_K = 5  # analogue counts as recovered when its rank <= k
 
@@ -177,12 +170,12 @@ def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
     fig.add_trace(go.Scatterpolar(
         r=_closed(hi), theta=labels_c,
         line=dict(color="#8A847A", width=1, dash="dash"),
-        name="CI high", hoverinfo="skip",
+        name=S["ci_high"], hoverinfo="skip",
     ))
     fig.add_trace(go.Scatterpolar(
         r=_closed(lo), theta=labels_c,
         line=dict(color="#8A847A", width=1, dash="dot"),
-        name="CI low", hoverinfo="skip",
+        name=S["ci_low"], hoverinfo="skip",
     ))
     fig.update_layout(
         polar=dict(
@@ -226,10 +219,13 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     map_df["radius"] = (map_df["score"].fillna(0.3) * 150_000 + 40_000).astype(int)
     map_df["score_txt"] = (map_df["score"] * 100).round(1).astype(str) + "%"
     map_df["color_val"] = [[60, 130, 255, 220]] * len(map_df)
+    map_df["role_disp"] = map_df["role"].map(
+        lambda r: ROLE_LABELS[LANG].get(r, r))
 
     tooltip = {
-        "html": "<b>{name}</b><br/>Role: {role}<br/>Score: {score_txt}"
-                "<br/>Lithology: {lithology_class}",
+        "html": f"<b>{{name}}</b><br/>{S['tt_role']}: {{role_disp}}"
+                f"<br/>{S['tt_score']}: {{score_txt}}"
+                f"<br/>{S['tt_lith']}: {{lithology_class}}",
         "style": {"background": "#2C2923", "color": "white",
                   "font-size": "13px", "padding": "6px"},
     }
@@ -271,12 +267,9 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
             pdk.Deck(layers=layers, initial_view_state=view, tooltip=tooltip),
             width="stretch",
         )
-        st.caption(
-            "Blue outline = known validation analogue. Candidate marker size "
-            "and colour encode the mission-weighted score (0–1)."
-        )
+        st.caption(S["map_caption"])
     except ImportError:
-        st.info("pydeck not installed — falling back to st.map.")
+        st.info(S["map_fallback"])
         st.map(map_df, size=200_000)
 
 
@@ -317,40 +310,45 @@ moon_df, earth_df = load_data(
 
 # ── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.header("Settings")
+    lang_display = st.radio("Dil / Language", ["Türkçe", "English"],
+                            horizontal=True, key="lang")
+    LANG = "tr" if lang_display == "Türkçe" else "en"
+    S = I18N[LANG]
+    AXIS_LABELS = AXIS_LABELS_ALL[LANG]
+    MISSION_LABELS = MISSION_LABELS_ALL[LANG]
+    BREAKDOWN_NOTES = BREAKDOWN[LANG]
+
+    st.header(S["settings"])
 
     body = "Moon"
-    st.caption("Reference body · Moon")
+    st.caption(S["ref_body"])
     ref_df = moon_df
 
     refs = ref_df[ref_df["role"] == "reference"].reset_index(drop=True)
 
-    ref_name = st.selectbox("Reference site", refs["name"].tolist())
+    ref_name = st.selectbox(S["ref_site"], refs["name"].tolist())
     ref_row = refs[refs["name"] == ref_name].iloc[0]
-    st.caption(f"`site_id`: {ref_row['site_id']} · lat {ref_row['lat']:.2f}°, "
-               f"lon {ref_row['lon']:.2f}° · lithology: "
-               f"{ref_row.get('lithology_class', '—')}")
+    st.caption(S["site_meta"].format(
+        sid=ref_row["site_id"], lat=ref_row["lat"], lon=ref_row["lon"],
+        lith=ref_row.get("lithology_class", "—")))
 
     mission = st.selectbox(
-        "Mission / use case",
+        S["mission_uc"],
         list(MISSION_PRESETS.keys()),
         format_func=lambda k: MISSION_LABELS.get(k, k),
     )
 
     top_n = st.slider(
-        "Top Earth sites shown", 1, max(2, len(earth_df)), min(6, len(earth_df))
+        S["top_n"], 1, max(2, len(earth_df)), min(6, len(earth_df))
     )
     min_score = st.slider(
-        "Portfolio coverage threshold", 0.30, 0.95, 0.70, 0.05,
-        help="A site covers an axis when its score >= this value.",
+        S["thr"], 0.30, 0.95, 0.70, 0.05,
+        help=S["thr_help"],
     )
 
 # ── TITLE ────────────────────────────────────────────────────────────────────
-st.title("Moon / Mars ↔ Earth Analog Finder")
-st.caption(
-    "Compare mobility, thermal and surface conditions across Earth sites, "
-    "with uncertainty shown for each axis."
-)
+st.title(S["app_title"])
+st.caption(S["app_caption"])
 
 # ── COMPUTE SCORES (leader's module) ─────────────────────────────────────────
 result, long_scores = score_earth(ref_row, earth_df, mission)
@@ -367,32 +365,23 @@ ref_tbl = pd.DataFrame({
     "res_m": [ref_row.get(f"{f}_res_m", np.nan) for f in ref_features],
     "source": [str(ref_row.get(f"{f}_src", "—")) for f in ref_features],
 })
-with st.expander(f"Reference measurements · {ref_name}", expanded=False):
+with st.expander(S["ref_meas"].format(ref=ref_name), expanded=False):
     st.dataframe(ref_tbl, width="stretch", hide_index=True)
-    st.caption(
-        "`temp_amplitude` is the diurnal-cycle surface temperature range. "
-        "Feature sources and native resolutions are shown above."
-    )
+    st.caption(S["ref_meas_note"])
 
 # ── TABS ─────────────────────────────────────────────────────────────────────
-tab_map, tab_radar, tab_table, tab_validation, tab_portfolio, tab_breakdown = st.tabs([
-    "Map", "Radar", "Scores", "Validation", "Portfolio", "Analogy limits",
-])
+tab_map, tab_radar, tab_table, tab_validation, tab_portfolio, tab_breakdown = st.tabs(
+    S["tabs"]
+)
 
 # ── TAB 1: MAP ───────────────────────────────────────────────────────────────
 with tab_map:
-    st.markdown(
-        f"**Top {top_n} Earth sites for {ref_name}** · "
-        "Marker size and colour encode the mission-weighted score."
-    )
+    st.markdown(S["map_top"].format(n=top_n, ref=ref_name))
     _map_chart(result, top_n)
 
 # ── TAB 2: RADAR CHARTS ──────────────────────────────────────────────────────
 with tab_radar:
-    st.markdown(
-        "Per-axis scores (0–1). Lines show the 5th–95th Monte Carlo "
-        "percentiles, expanded to include the point estimate."
-    )
+    st.markdown(S["radar_intro"])
     per_row = 3
     for i in range(0, len(top), per_row):
         chunk = top.iloc[i:i + per_row]
@@ -400,22 +389,18 @@ with tab_radar:
         for col, (_, row) in zip(cols, chunk.iterrows()):
             with col:
                 st.plotly_chart(_radar_chart(row, axes), width="stretch")
-                st.caption(f"Overall: **{row['score']:.2f}** "
-                           f"({row['n_axes_used']} axes used) · "
-                           f"lithology: {row.get('lithology_class', '—')}")
+                st.caption(S["radar_overall"].format(
+                    score=row["score"], n=row["n_axes_used"],
+                    lith=row.get("lithology_class", "—")))
 
 # ── TAB 3: SCORE TABLE ───────────────────────────────────────────────────────
 with tab_table:
-    st.markdown(
-        "Mission-weighted overall score and per-axis scores. Brackets show "
-        "the 5th–95th Monte Carlo percentiles, expanded to include the point "
-        "estimate, for each axis."
-    )
+    st.markdown(S["table_intro"])
     role_filter = st.multiselect(
-        "Filter by role", ["validation", "candidate"],
+        S["filter_role"], ["validation", "candidate"],
         default=["validation", "candidate"],
-        help="validation = known analogues (blind check) · candidate = test "
-             "candidates, never confirmed analogues.",
+        format_func=lambda r: ROLE_LABELS[LANG].get(r, r),
+        help=S["filter_help"],
     )
     shown = result if not role_filter else result[result["role"].isin(role_filter)]
 
@@ -431,13 +416,13 @@ with tab_table:
     for _, r in shown.iterrows():
         lith = str(r.get("lithology_class", "—"))
         rec = {
-            "Site": r["name"],
-            "Role": r["role"],
-            "Lithology": (
-                f"{lith} (matches reference)"
+            S["col_site"]: r["name"],
+            S["col_role"]: ROLE_LABELS[LANG].get(r["role"], r["role"]),
+            S["col_lith"]: (
+                S["matches_ref"].format(lith=lith)
                 if ref_lith and lith == ref_lith else lith
             ),
-            "Overall": "—" if np.isnan(r["score"]) else f"{r['score']:.3f}",
+            S["col_overall"]: "—" if np.isnan(r["score"]) else f"{r['score']:.3f}",
         }
         for a in axes:
             rec[AXIS_LABELS[a]] = _fmt(
@@ -447,25 +432,16 @@ with tab_table:
             )
         rows.append(rec)
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-    st.caption(
-        "— = axis not scoreable because required features are missing. "
-        "Lithology is qualitative and is not included in the numeric score."
-    )
+    st.caption(S["table_caption"])
 
 # ── TAB 4: VALIDATION (blind recovery of known analogues) ────────────────────
 with tab_validation:
-    st.markdown(
-        "Blind check (leader's `run_blind_validation`): sites with role "
-        "`validation` — the known analogues — should rank near the top per "
-        f"axis. Recovery = rank ≤ {VALIDATION_TOP_K} of {len(earth_df)} "
-        "scored sites. The scorer itself never sees roles."
-    )
+    st.markdown(S["val_intro"].format(k=VALIDATION_TOP_K, n=len(earth_df)))
     val = run_blind_validation(long_scores, earth_df, top_k=VALIDATION_TOP_K)
     val = val.merge(earth_df[["site_id", "name"]], on="site_id", how="left")
 
     recovered = int(val["in_top_k"].sum())
-    st.metric("Recovered (site × axis) pairs",
-              f"{recovered} / {len(val)}")
+    st.metric(S["val_metric"], f"{recovered} / {len(val)}")
 
     fig = go.Figure()
     for axis in axes:
@@ -479,7 +455,7 @@ with tab_validation:
         barmode="group",
         xaxis=dict(
             autorange="reversed",
-            title="Rank (1 = best)",
+            title=S["rank_axis"],
             gridcolor="rgba(55,48,38,0.14)",
             zeroline=False,
         ),
@@ -496,24 +472,23 @@ with tab_validation:
 
     st.dataframe(
         val[["name", "axis", "rank", "n_sites", "in_top_k"]]
-        .rename(columns={"in_top_k": f"in_top_{VALIDATION_TOP_K}"})
-        .sort_values(["name", "axis"]),
+        .rename(columns={
+            "name": S["val_col_site"],
+            "axis": S["val_col_axis"],
+            "rank": S["val_col_rank"],
+            "n_sites": S["val_col_nsites"],
+            "in_top_k": f"in_top_{VALIDATION_TOP_K}",
+        })
+        .sort_values([S["val_col_site"], S["val_col_axis"]]),
         width="stretch", hide_index=True,
     )
 
 # ── TAB 5: PORTFOLIO (greedy set-cover heuristic) ────────────────────────────
 with tab_portfolio:
-    st.markdown(
-        "Greedy set-cover heuristic (leader's `select_portfolio`): selects a "
-        f"compact portfolio of Earth sites covering the maximum number of axes "
-        f"with score ≥ **{min_score:.2f}**. "
-        "Greedy is fast and transparent but does not guarantee the global "
-        "minimum set; axes no site covers must be validated in lab/simulation."
-    )
+    st.markdown(S["port_intro"].format(thr=min_score))
     selected_ids, uncovered = select_portfolio(long_scores, min_score, axes=axes)
     if not selected_ids:
-        st.info(f"No Earth site reaches {min_score:.2f} on any axis — lower "
-                "the threshold in the sidebar.")
+        st.info(S["port_none"].format(thr=min_score))
     else:
         rows = []
         for sid in selected_ids:
@@ -524,16 +499,16 @@ with tab_portfolio:
                        if s >= min_score]
             name = earth_df.loc[earth_df["site_id"] == sid, "name"].iloc[0]
             rows.append({
-                "Pick": len(rows) + 1,
-                "Site": name,
-                "Covers (score ≥ threshold)": ", ".join(covered),
+                S["col_pick"]: len(rows) + 1,
+                S["col_site"]: name,
+                S["col_covers"]: ", ".join(covered),
             })
         st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 
         st.markdown(
-            "**Uncovered axes:** "
+            S["uncovered"]
             + (", ".join(AXIS_LABELS[a] for a in uncovered)
-               if uncovered else "none — all axes covered")
+               if uncovered else S["covered_all"])
         )
 
 # ── TAB 6: ANALOGY LIMITS ────────────────────────────────────────────────────
@@ -541,8 +516,8 @@ with tab_breakdown:
     st.markdown(BREAKDOWN_NOTES)
     st.divider()
     sel_name = st.selectbox(
-        "Inspect candidate site", result["name"].tolist(), index=0,
-        help="Feature-gap breakdown for any candidate, not only the top one.",
+        S["inspect"], result["name"].tolist(), index=0,
+        help=S["inspect_help"],
     )
     inspected = result[result["name"] == sel_name].iloc[0]
     cand_row = earth_df[earth_df["site_id"] == inspected["site_id"]].iloc[0]
@@ -575,11 +550,11 @@ with tab_breakdown:
         moon_bbox = (f"{x_m - pad_m:.1f},{y_m - pad_m:.1f},"
                      f"{x_m + pad_m:.1f},{y_m + pad_m:.1f}")
 
-    st.markdown(f"### Visual and topographic context · {ref_name} vs {sel_name}")
+    st.markdown(S["visual_head"].format(ref=ref_name, cand=sel_name))
     c_moon_wac, c_moon_lola, c_earth_opt = st.columns(3)
 
     with c_moon_wac:
-        st.markdown("**Moon Optical Context**")
+        st.markdown(f"**{S['moon_opt']}**")
         if is_moon_ref and moon_bbox:
             wac_url = (
                 "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
@@ -591,20 +566,17 @@ with tab_breakdown:
             if img is not None:
                 st.image(
                     img,
-                    caption=f"{ref_name} — LRO WAC Orthomosaic (~30×30 km "
-                            f"window, display ~71 m/px; centered on "
-                            f"{lat_r:.2f}°, {lon_r:.2f}°)",
+                    caption=S["wac_cap"].format(
+                        ref=ref_name, lat=lat_r, lon=lon_r),
                 )
             else:
-                st.info(f"Lunar WAC preview unavailable ({err}).")
+                st.info(S["wac_err"].format(err=err))
         else:
-            st.info("Live lunar South Pole WMS applies to Moon reference "
-                    "sites only.")
-        st.caption("Imagery source: NASA LRO Wide Angle Camera (WAC) via "
-                   "USGS Astrogeology WMS.")
+            st.info(S["wms_moon_only"])
+        st.caption(S["src_wac"])
 
     with c_moon_lola:
-        st.markdown("**Moon Topographic / Relief Context**")
+        st.markdown(f"**{S['moon_topo']}**")
         if is_moon_ref and moon_bbox:
             lola_url = (
                 "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
@@ -616,20 +588,17 @@ with tab_breakdown:
             if img is not None:
                 st.image(
                     img,
-                    caption=f"{ref_name} — LOLA Shaded Relief (~30×30 km "
-                            f"window; DEM feature extraction radius = "
-                            f"{rad_r_m:.0f} m)",
+                    caption=S["lola_cap"].format(
+                        ref=ref_name, rad=rad_r_m),
                 )
             else:
-                st.info(f"Lunar LOLA preview unavailable ({err}).")
+                st.info(S["lola_err"].format(err=err))
         else:
-            st.info("Live lunar South Pole WMS applies to Moon reference "
-                    "sites only.")
-        st.caption("Relief preview: NASA LRO LOLA via USGS Astrogeology WMS. "
-                   "Numeric features come from row `*_src`.")
+            st.info(S["wms_moon_only"])
+        st.caption(S["src_lola"])
 
     with c_earth_opt:
-        st.markdown("**Earth Candidate Optical Context**")
+        st.markdown(f"**{S['earth_opt']}**")
         img = used_km = None
         err = ""
         # First try the ~2x-radius window; if the export service has no
@@ -652,18 +621,13 @@ with tab_breakdown:
         if img is not None:
             st.image(
                 img,
-                caption=f"{sel_name} ({lat_c:.4f}°, {lon_c:.4f}°) — "
-                        f"~{used_km:.1f}×{used_km:.1f} km window "
-                        f"(analysis radius = {rad_c_m:.0f} m)",
+                caption=S["esri_cap"].format(
+                    cand=sel_name, lat=lat_c, lon=lon_c, km=used_km,
+                    rad=rad_c_m),
             )
         else:
-            st.info(f"Esri imagery preview unavailable ({err}).")
-        st.caption(
-            "**Optical preview source:** Esri World Imagery (Esri, Maxar, "
-            "Earthstar Geographics). Note: Numeric scores use the satellite "
-            "datasets listed in the table below (`*_src`), not this optical "
-            "preview."
-        )
+            st.info(S["esri_err"].format(err=err))
+        st.caption(S["src_esri"])
         wv_url = (
             f"https://worldview.earthdata.nasa.gov/"
             f"?v={lon_c - 0.15:.4f},{lat_c - 0.15:.4f},"
@@ -672,8 +636,8 @@ with tab_breakdown:
             "Coastlines_15m"
         )
         st.markdown(
-            f"[Open region in NASA EOSDIS Worldview]({wv_url}) · "
-            f"[Google Maps Satellite](https://www.google.com/maps/@"
+            f"[{S['wv_link']}]({wv_url}) · "
+            f"[{S['gmaps_link']}](https://www.google.com/maps/@"
             f"{lat_c:.5f},{lon_c:.5f},14z/data=!3m1!1e3)"
         )
 
@@ -681,24 +645,16 @@ with tab_breakdown:
     ci_lines = [
         f"**{AXIS_LABELS[a]}:** "
         f"{float(inspected.get(f'score_{a}', np.nan)):.2f} "
-        f"(Monte Carlo range: [{float(inspected.get(f'ci_low_{a}', np.nan)):.2f}, "
-        f"{float(inspected.get(f'ci_high_{a}', np.nan)):.2f}])"
+        f"({S['quant_range'].format(lo=float(inspected.get(f'ci_low_{a}', np.nan)), hi=float(inspected.get(f'ci_high_{a}', np.nan)))})"
         for a in AXIS_LABELS
     ]
-    st.info(
-        "Quantitative context for the imagery above — "
-        + " · ".join(ci_lines)
-        + "\n\nVisual similarity alone is not enough: compare the orbital "
-        "imagery above against the quantitative per-axis scores, uncertainty "
-        "intervals, and instrument resolutions below."
-    )
+    st.info(S["quant_head"] + " · ".join(ci_lines) + S["quant_tail"])
 
-    st.markdown(f"### Feature gaps: {sel_name} vs {ref_name} "
-                "(leader's `axis_gaps`)")
+    st.markdown(S["gaps_head"].format(cand=sel_name, ref=ref_name))
     gaps = axis_gaps(ref_row, earth_df)
     gaps = gaps[gaps["site_id"] == inspected["site_id"]]
     if gaps.empty:
-        st.info("No comparable features for this site.")
+        st.info(S["gaps_none"])
     else:
         gaps = gaps.sort_values("z_diff", key=lambda s: s.abs(), ascending=False)
         # Source + native-resolution transparency (AGENTS.md §5): the jury
@@ -715,13 +671,8 @@ with tab_breakdown:
         show = gaps[["feature", "ref_value", "cand_value", "diff", "z_diff",
                      "ref_src", "ref_res_m", "cand_src", "cand_res_m"]]
         st.dataframe(show.round(3), width="stretch", hide_index=True)
-        st.caption(
-            "|z_diff| large → biggest physical mismatch (sort order: largest "
-            "first). `*_src` = dataset per AGENTS.md §5; `*_res_m` = native "
-            "resolution — a coarse product (e.g. ~1 km MODIS) cannot resolve "
-            "a 500 m site even when the DEM is 30 m."
-        )
+        st.caption(S["gaps_caption"])
 
 # ── FOOTER ───────────────────────────────────────────────────────────────────
 st.divider()
-st.caption("NASA Space Apps 2026 · Moon South Pole ↔ Earth Multi-Axis Analog Scorer")
+st.caption(S["footer"])
