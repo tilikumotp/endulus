@@ -103,6 +103,12 @@ def fetch_mod11a2_temp_amplitude(
     if cache_file.exists():
         return json.loads(cache_file.read_text(encoding="utf-8"))
 
+    tr = pyproj.Transformer.from_crs("EPSG:4326", MODIS_SINU_PROJ4, always_xy=True)
+    x_s, y_s = tr.transform(lon, lat)
+    h_idx = int((x_s + 18.0 * MODIS_SINU_TILE_M) // MODIS_SINU_TILE_M)
+    v_idx = int((9.0 * MODIS_SINU_TILE_M - y_s) // MODIS_SINU_TILE_M)
+    tile_id = f"h{h_idx:02d}v{v_idx:02d}"
+
     sess = requests.Session()
     sas_resp = sess.get(PC_MODIS_SAS_URL, timeout=15)
     sas_resp.raise_for_status()
@@ -114,14 +120,18 @@ def fetch_mod11a2_temp_amplitude(
             "collections": ["modis-11A2-061"],
             "intersects": {"type": "Point", "coordinates": [lon, lat]},
             "datetime": datetime_range,
-            "limit": 120,
+            "limit": 250,
         },
         timeout=15,
     )
     stac_resp.raise_for_status()
     features = stac_resp.json().get("features", [])
     all_terra = sorted(
-        [it for it in features if it["id"].startswith("MOD11A2.")],
+        [
+            it
+            for it in features
+            if it["id"].startswith("MOD11A2.") and f".{tile_id}." in it["id"]
+        ],
         key=lambda x: x["id"],
     )
     if len(all_terra) > max_composites:

@@ -390,4 +390,160 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
             "Dalangtan high-altitude (~2700 m) hyperarid sulfate/halite evaporite flats, Qaidam Basin (38°28'48\"N, 91°27'00\"E)."
         ),
     },
+    {
+        "site_id": "earth_karapinar_meke",
+        "name": "Karapınar Volcanic Field (Meke Maar & Scoria Apron, Konya)",
+        "role": "candidate",
+        "lat": 37.6750,
+        "lon": 33.6650,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Keller (1974, Bull. Volcanol. 38:378-396) & Reid et al. (2017, JVGR 338:1-13), "
+            "Karapınar Quaternary basaltic maar and scoria cone field, Konya Basin (37°40'30\"N, 33°39'54\"E)."
+        ),
+    },
+    {
+        "site_id": "earth_suphan_south_apron",
+        "name": "Mount Süphan (Adilcevaz Basalt-Andesite Lava Apron, Bitlis)",
+        "role": "candidate",
+        "lat": 38.9000,
+        "lon": 42.8200,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Özdemir et al. (2011, Lithos 127:68-85) & Yılmaz et al. (1998, JVGR 85:173-210), "
+            "Mount Süphan Quaternary stratovolcano basaltic-trachyandesitic flank flows (38°54'00\"N, 42°49'12\"E)."
+        ),
+    },
+    {
+        "site_id": "earth_nemrut_caldera_flank",
+        "name": "Nemrut Volcano (Tatvan Eastern Ignimbrite & Lava Flank, Bitlis)",
+        "role": "candidate",
+        "lat": 38.6100,
+        "lon": 42.3100,
+        "radius_m": 1000.0,
+        "lithology_class": "pyroclastic_tuff",
+        "citation": (
+            "Çubukçu et al. (2012, JVGR 209-210:33-60) & Ulusoy et al. (2008), "
+            "Nemrut Quaternary caldera eastern pyroclastic and pre-caldera lava apron (38°36'36\"N, 42°18'36\"E)."
+        ),
+    },
+    {
+        "site_id": "earth_agri_dogubayazit_flow",
+        "name": "Mount Ararat / Ağrı Dağı (Western Basalt Plateau, Ağrı)",
+        "role": "candidate",
+        "lat": 39.6800,
+        "lon": 43.9200,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Yılmaz et al. (1998, JVGR 85:173-210) & Pearce et al. (1990, JVGR 44:189-229), "
+            "Mount Ararat (Ağrı) western flank Quaternary basalt lava plateau (39°40'48\"N, 43°55'12\"E)."
+        ),
+    },
+    {
+        "site_id": "earth_payunia_pampa_negra",
+        "name": "Payunia Volcanic Province (Pampa Negra Basalt & Lapilli Plain, Argentina)",
+        "role": "candidate",
+        "lat": -36.1800,
+        "lon": -69.1800,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Søager et al. (2013, Chem. Geol. 349-350:36-53) & Hernando et al. (2014, JVGR 272:1-19), "
+            "Payunia back-arc basaltic cinder cone and dark lapilli sheet, Mendoza (36°10'48\"S, 69°10'48\"W)."
+        ),
+    },
+    {
+        "site_id": "earth_chajnantor_plateau",
+        "name": "Altiplano-Puna Complex (Chajnantor High-Altitude Ignimbrite Plateau, Chile)",
+        "role": "candidate",
+        "lat": -23.0230,
+        "lon": -67.7540,
+        "radius_m": 1000.0,
+        "lithology_class": "pyroclastic_tuff",
+        "citation": (
+            "Salisbury et al. (2011, GSA Bull. 123:821-840) & de Silva (1989, Geology 17:1102-1106), "
+            "Chajnantor hyperarid high-altitude (~5050 m) dacitic-rhyodacitic ignimbrite tableland (23°01'23\"S, 67°45'14\"W)."
+        ),
+    },
+    {
+        "site_id": "earth_waw_an_namus_apron",
+        "name": "Waw an Namus Volcano (Dark Basaltic Tephra Apron, Fezzan, Libya)",
+        "role": "candidate",
+        "lat": 24.9500,
+        "lon": 17.7600,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Bardintzeff et al. (2012, Chemie der Erde 72:135-145) & Busrewil & Wadsworth (1983), "
+            "Waw an Namus Saharan intraplate maar dark basaltic tephra apron (24°57'00\"N, 17°45'36\"E)."
+        ),
+    },
+    {
+        "site_id": "earth_tibesti_tarso_voon",
+        "name": "Tibesti Volcanic Massif (Tarso Voon Ignimbrite & Basalt Plateau, Chad)",
+        "role": "candidate",
+        "lat": 20.9200,
+        "lon": 17.2800,
+        "radius_m": 1000.0,
+        "lithology_class": "pyroclastic_tuff",
+        "citation": (
+            "Permenter & Oppenheimer (2007, Bull. Volcanol. 69:609-626) & Gourgaud & Vincent (2004, JVGR 129:261-294), "
+            "Tibesti intracontinental volcanic plateau, northern Chad (20°55'12\"N, 17°16'48\"E)."
+        ),
+    },
+    {
+        "site_id": "earth_paricutin_lava_field",
+        "name": "Michoacán-Guanajuato Field (Parícutin Basaltic-Andesite Flow, Mexico)",
+        "role": "candidate",
+        "lat": 19.4930,
+        "lon": -102.2510,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Luhr & Simkin (1993) & Erlund et al. (2010, Bull. Volcanol. 72:347-363), "
+            "Parícutin 1943-1952 basaltic-andesite lava field, Michoacán (19°29'35\"N, 102°15'04\"W)."
+        ),
+    },
+    {
+        "site_id": "earth_tolbachik_apron",
+        "name": "Tolbachik Volcanic Massif (Basalt Scoria & Lava Plain, Kamchatka)",
+        "role": "candidate",
+        "lat": 55.7550,
+        "lon": 160.2950,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Belousov et al. (2015, JVGR 307:22-37) & Fedotov et al. (1991), "
+            "Tolbachik fissure eruption basaltic scoria cones and lava apron, Kamchatka (55°45'18\"N, 160°17'42\"E)."
+        ),
+    },
+    {
+        "site_id": "earth_kilauea_kau_desert",
+        "name": "Kīlauea SW Rift Zone (Kaʻū Desert Basalt & Tephra Plain, Hawaii)",
+        "role": "candidate",
+        "lat": 19.3650,
+        "lon": -155.3350,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Craddock et al. (2012, JGR Planets 117:E08009) & Schiffman et al. (2006, Geology 34:921-924), "
+            "Kaʻū Desert acid-sulfate altered tholeiitic basalt and ash plain, Kīlauea (19°21'54\"N, 155°20'06\"W)."
+        ),
+    },
+    {
+        "site_id": "earth_tongariro_rangipo",
+        "name": "Tongariro Volcanic Centre (Rangipo Andesitic-Basaltic Tephra Plain, NZ)",
+        "role": "candidate",
+        "lat": -39.2850,
+        "lon": 175.7200,
+        "radius_m": 1000.0,
+        "lithology_class": "basalt",
+        "citation": (
+            "Donoghue et al. (1995, Bull. Volcanol. 57:563-576) & Hobden et al. (1999, J. Petrology 40:1965-1990), "
+            "Rangipo high-altitude volcaniclastic andesitic-basaltic ring plain, Ruapehu-Tongariro (39°17'06\"S, 175°43'12\"E)."
+        ),
+    },
 ]
