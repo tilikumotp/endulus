@@ -11,11 +11,11 @@ buraya lider onayı olmadan girmez.
 | Eğim hesabı | Yerel metrik CRS (UTM zon; lat>=84 → EPSG:3413, lat<=-80 → EPSG:3031), 30 m native grid, `np.gradient` → atan. Derece tabanlı eğim yasak. | Aktif (p3 uyguluyor) |
 | slope_mean/p90 belirsizliği | Radius içi piksellerin 200 çekiliş bootstrap'ı; mean/p90 bootstrap std'si = 1-sigma. | Aktif (p3 uyguluyor) |
 | roughness detrend yöntemi | Radius içi elevasyona planar fit (en küçük kareler) uygulanıp artıkların std'si (ddof=1). | Aktif — p3 uygulaması (lstsq planar fit) onaylandı 2026-11-14 |
-| temp_amplitude mevsimsellik | Yıllık çevrim ortalaması tercih edilir (mevsimsel pencere Earth'ü yaz tarafına önyargılı yapar); mevsimsel pencere kaçınılmazsa `_src` etiketlenir (ör. `MOD11A2.061_summer_2025`). | Karar: yıllık — p3'e iletildi, uygulama bekleniyor |
+| temp_amplitude mevsimsellik | Yıllık çevrim ortalaması tercih edilir (mevsimsel pencere Earth'ü yaz tarafına önyargılı yapar); mevsimsel pencere kaçınılmazsa `_src` etiketlenir (ör. `MOD11A2.061_summer_2025`). | Aktif — p3 yıllık çevrime geçti (`2024-01-01/2024-12-31`, `max_composites=24`) |
 | z-mesafe saturation (similarity) | Referans havuza dahil standardizasyon + z değerlerinin ±3σ'da kırpılması (skora farkta değil değerde kırpma → sıralama korunur). Kanıt: yalnız-aday σ ile thermal 1e-10 (k=4); havuza dahil edince z ~√(k+1) ile BÜYÜYOR (k=28 → z 5.4, skor 0.0045'e yeniden çakıldı — 28-sahalı grid'de ölçüldü); kırpma ile skorlar [e^-3, 1] bandında, havuz boyutundan bağımsız. | Aktif — similarity.py'de uygulandı, 21 test yeşil (3.11 ve 3.13) |
 | Bootstrap gürültüsü | Aday perturbasyonu adayın kendi `cands[f_sd]`, referans perturbasyonu `ref[f_sd]` ile yapılır (NaN sd → 0). Düzeltme: eskisi ikisine de ref sd kullanıyordu (hata, 2026-11-14 giderildi). | Aktif |
-| temp_amplitude | Gündüz-gece LST farkı (MOD11A2.061, DN x 0.02 K); yıllık çevre ortalaması kullanılırsa `_src`'e `..._annual_mean` eklenir. | Aktif |
-| albedo | MCD43A3.061 shortwave (BSA/WSA seçimi için not: BSA, sabit güneş açısı analoguna daha yakın — lider kararı TODO(verify)). | TODO(verify) |
+| temp_amplitude | Gündüz-gece LST farkı (MOD11A2.061, DN x 0.02 K); yıllık çevrim ortalaması kullanılırsa `_src`'e `MOD11A2.061_annual_mean` eklenir (`temp_amplitude_sd` v0'da 3x3 piksel + granül birleşik std, `ddof=1`). | Aktif |
+| albedo | MCD43A3.061 shortwave (`Albedo_BSA_shortwave`, DN x 0.001, 500 m Sinusoidal grid; `albedo_sd` 5x5 piksel + çoklu granül birleşik std, `ddof=1`). | Aktif (p3 uyguladı) |
 | thermal_inertia (Earth) | Doğrudan küresel ürün yok; ATI (apparent thermal inertia) türetmesi kalibrasyon gerektiriyor. | Onaysız sayı yasak → NaN |
 
 ## 1b. Site koordinat görsel teyidi (AGENTS.md §5 kural 2)
