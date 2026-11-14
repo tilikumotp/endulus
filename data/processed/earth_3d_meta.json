@@ -1,0 +1,2271 @@
+{
+  "purpose": "Compact 3D terrain visualization grids aligned to E5 Sentinel-2 patch centers; visualization only — does not generate new contract features or alter features_earth.parquet *_src.",
+  "primary_source": "Copernicus_DEM_GLO-30",
+  "primary_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+  "fallback_source": "NASADEM_HGT_v001",
+  "fallback_version": "NASADEM Merged DEM Global 1 arc second V001 (fallback only where Copernicus GLO-30 tile N39E044 is absent)",
+  "fallback_sites": [
+    "earth_agri_dogubayazit_flow"
+  ],
+  "source_counts": {
+    "Copernicus_DEM_GLO-30": 39,
+    "NASADEM_HGT_v001": 1
+  },
+  "glo30_sigma_z_rel_m": 1.0,
+  "glo30_sigma_z_rel_ref": "Airbus / ESA Copernicus DEM Product Handbook (2022, GEO.2018-1988-2, Sec 4.2: LE90 < 2.0 m)",
+  "window_side_m": 2220.0,
+  "grid_res_m": 30.0,
+  "grid_shape": [
+    74,
+    74
+  ],
+  "dtype": "float32",
+  "units": "meters",
+  "vertical_reference": "EGM2008 orthometric height for Copernicus_DEM_GLO-30 (39 sites); EGM96 orthometric height for NASADEM_HGT_v001 fallback (earth_agri_dogubayazit_flow)",
+  "e5_alignment": "Grid center (x_center_m, y_center_m) matches the exact geometric center of the 512x512 (5120x5120 m) Sentinel-2 L2A visual patch in data/processed/earth_atlas/<site_id>.webp; grid edges correspond to exact E5 pixels [145:367, 145:367] (UV [0.283203125, 0.716796875]).",
+  "site_count": 40,
+  "npz_file": "earth_3d_grids.npz",
+  "npz_size_bytes": 687085,
+  "sites": [
+    {
+      "site_id": "earth_etna_cisternazza",
+      "name": "Mount Etna (Cisternazza / Piano del Lago)",
+      "role": "validation",
+      "site_lat": 37.7257,
+      "site_lon": 15.0084,
+      "crs_epsg": "EPSG:32633",
+      "x_center_m": 500740.0,
+      "y_center_m": 4175380.0,
+      "center_lat": 37.7256855,
+      "center_lon": 15.0083973,
+      "center_offset_from_site_m": 1.626,
+      "e5_scene_id": "S2B_MSIL2A_20240715T094549_R079_T33SVB_20240715T135442",
+      "e5_file": "earth_etna_cisternazza.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        499630.0,
+        0.0,
+        -30.0,
+        4176490.0
+      ],
+      "bounds_utm_m": [
+        499630.0,
+        4174270.0,
+        501850.0,
+        4176490.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1902.16,
+      "elev_max_m": 2925.9,
+      "elev_mean_m": 2493.01,
+      "elev_std_m": 230.98,
+      "relief_m": 1023.74
+    },
+    {
+      "site_id": "earth_atacama_yungay",
+      "name": "Atacama Desert (Yungay Station)",
+      "role": "validation",
+      "site_lat": -24.1052,
+      "site_lon": -70.0321,
+      "crs_epsg": "EPSG:32719",
+      "x_center_m": 395110.0,
+      "y_center_m": 7333740.0,
+      "center_lat": -24.1052039,
+      "center_lon": -70.0320578,
+      "center_offset_from_site_m": 4.313,
+      "e5_scene_id": "S2A_MSIL2A_20231214T143741_R096_T19KCP_20231219T212001",
+      "e5_file": "earth_atacama_yungay.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        394000.0,
+        0.0,
+        -30.0,
+        7334850.0
+      ],
+      "bounds_utm_m": [
+        394000.0,
+        7332630.0,
+        396220.0,
+        7334850.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1008.32,
+      "elev_max_m": 1161.36,
+      "elev_mean_m": 1034.36,
+      "elev_std_m": 29.6,
+      "relief_m": 153.04
+    },
+    {
+      "site_id": "earth_haughton_crater",
+      "name": "Haughton Impact Crater (Devon Island)",
+      "role": "validation",
+      "site_lat": 75.37,
+      "site_lon": -89.68,
+      "crs_epsg": "EPSG:32616",
+      "x_center_m": 424460.0,
+      "y_center_m": 8366600.0,
+      "center_lat": 75.3700034,
+      "center_lon": -89.6801586,
+      "center_offset_from_site_m": 4.488,
+      "e5_scene_id": "S2A_MSIL2A_20240708T190921_R056_T16XDJ_20240709T021834",
+      "e5_file": "earth_haughton_crater.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        423350.0,
+        0.0,
+        -30.0,
+        8367710.0
+      ],
+      "bounds_utm_m": [
+        423350.0,
+        8365490.0,
+        425570.0,
+        8367710.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 129.46,
+      "elev_max_m": 199.33,
+      "elev_mean_m": 161.18,
+      "elev_std_m": 13.73,
+      "relief_m": 69.87
+    },
+    {
+      "site_id": "earth_mauna_loa_hiseas",
+      "name": "Mauna Loa North Flank (HI-SEAS Basalt Field, Hawaii)",
+      "role": "validation",
+      "site_lat": 19.6028,
+      "site_lon": -155.4878,
+      "crs_epsg": "EPSG:32605",
+      "x_center_m": 239050.0,
+      "y_center_m": 2169430.0,
+      "center_lat": 19.6028029,
+      "center_lon": -155.4878251,
+      "center_offset_from_site_m": 2.657,
+      "e5_scene_id": "S2A_MSIL2A_20240814T205941_R014_T05QKB_20240815T011751",
+      "e5_file": "earth_mauna_loa_hiseas.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        237940.0,
+        0.0,
+        -30.0,
+        2170540.0
+      ],
+      "bounds_utm_m": [
+        237940.0,
+        2168320.0,
+        240160.0,
+        2170540.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2324.37,
+      "elev_max_m": 2575.8,
+      "elev_mean_m": 2443.2,
+      "elev_std_m": 67.07,
+      "relief_m": 251.43
+    },
+    {
+      "site_id": "earth_mcmurdo_wright_valley",
+      "name": "McMurdo Dry Valleys (Wright Valley, Antarctica)",
+      "role": "validation",
+      "site_lat": -77.518,
+      "site_lon": 161.85,
+      "crs_epsg": "EPSG:32758",
+      "x_center_m": 424030.0,
+      "y_center_m": 1393380.0,
+      "center_lat": -77.5180115,
+      "center_lon": 161.8498416,
+      "center_offset_from_site_m": 4.035,
+      "e5_scene_id": "S2B_MSIL2A_20231211T204609_R128_T58CDV_20240903T020626",
+      "e5_file": "earth_mcmurdo_wright_valley.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        422920.0,
+        0.0,
+        -30.0,
+        1394490.0
+      ],
+      "bounds_utm_m": [
+        422920.0,
+        1392270.0,
+        425140.0,
+        1394490.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 137.26,
+      "elev_max_m": 505.04,
+      "elev_mean_m": 199.8,
+      "elev_std_m": 80.93,
+      "relief_m": 367.78
+    },
+    {
+      "site_id": "earth_lanzarote_timanfaya",
+      "name": "Lanzarote Tinguatón / Timanfaya (ESA PANGAEA, Canary Islands)",
+      "role": "validation",
+      "site_lat": 29.015,
+      "site_lon": -13.715,
+      "crs_epsg": "EPSG:32628",
+      "x_center_m": 625150.0,
+      "y_center_m": 3210330.0,
+      "center_lat": 29.0150155,
+      "center_lon": -13.7149632,
+      "center_offset_from_site_m": 3.973,
+      "e5_scene_id": "S2B_MSIL2A_20240715T113319_R080_T28RFT_20240715T170157",
+      "e5_file": "earth_lanzarote_timanfaya.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        624040.0,
+        0.0,
+        -30.0,
+        3211440.0
+      ],
+      "bounds_utm_m": [
+        624040.0,
+        3209220.0,
+        626260.0,
+        3211440.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 281.39,
+      "elev_max_m": 486.58,
+      "elev_mean_m": 332.7,
+      "elev_std_m": 38.11,
+      "relief_m": 205.19
+    },
+    {
+      "site_id": "earth_meteor_crater_arizona",
+      "name": "Meteor Crater / Barringer Impact Crater (Arizona)",
+      "role": "validation",
+      "site_lat": 35.0272,
+      "site_lon": -111.0225,
+      "crs_epsg": "EPSG:32612",
+      "x_center_m": 497950.0,
+      "y_center_m": 3876060.0,
+      "center_lat": 35.0272029,
+      "center_lon": -111.0224728,
+      "center_offset_from_site_m": 2.503,
+      "e5_scene_id": "S2A_MSIL2A_20240707T175911_R041_T12SVD_20240708T004658",
+      "e5_file": "earth_meteor_crater_arizona.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        496840.0,
+        0.0,
+        -30.0,
+        3877170.0
+      ],
+      "bounds_utm_m": [
+        496840.0,
+        3874950.0,
+        499060.0,
+        3877170.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1562.37,
+      "elev_max_m": 1743.52,
+      "elev_mean_m": 1680.64,
+      "elev_std_m": 39.93,
+      "relief_m": 181.15
+    },
+    {
+      "site_id": "earth_craters_of_the_moon",
+      "name": "Craters of the Moon Lava Field (Idaho)",
+      "role": "validation",
+      "site_lat": 43.4617,
+      "site_lon": -113.5625,
+      "crs_epsg": "EPSG:32611",
+      "x_center_m": 778090.0,
+      "y_center_m": 4817830.0,
+      "center_lat": 43.4617021,
+      "center_lon": -113.5624647,
+      "center_offset_from_site_m": 2.866,
+      "e5_scene_id": "S2B_MSIL2A_20240830T182919_R027_T11TQJ_20240830T235532",
+      "e5_file": "earth_craters_of_the_moon.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        776980.0,
+        0.0,
+        -30.0,
+        4818940.0
+      ],
+      "bounds_utm_m": [
+        776980.0,
+        4816720.0,
+        779200.0,
+        4818940.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1756.88,
+      "elev_max_m": 1950.11,
+      "elev_mean_m": 1812.25,
+      "elev_std_m": 35.78,
+      "relief_m": 193.23
+    },
+    {
+      "site_id": "earth_svalbard_bockfjorden",
+      "name": "Svalbard Bockfjorden (Sverrefjellet AMASE, Norway)",
+      "role": "validation",
+      "site_lat": 79.428,
+      "site_lon": 13.385,
+      "crs_epsg": "EPSG:32633",
+      "x_center_m": 466930.0,
+      "y_center_m": 8818200.0,
+      "center_lat": 79.4279899,
+      "center_lon": 13.3852203,
+      "center_offset_from_site_m": 4.652,
+      "e5_scene_id": "S2A_MSIL2A_20240717T125711_R038_T33XVJ_20240717T172120",
+      "e5_file": "earth_svalbard_bockfjorden.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        465820.0,
+        0.0,
+        -30.0,
+        8819310.0
+      ],
+      "bounds_utm_m": [
+        465820.0,
+        8817090.0,
+        468040.0,
+        8819310.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": -0.19,
+      "elev_max_m": 270.24,
+      "elev_mean_m": 29.36,
+      "elev_std_m": 49.44,
+      "relief_m": 270.43
+    },
+    {
+      "site_id": "earth_lunar_crater_nevada",
+      "name": "Lunar Crater Volcanic Field (Black Rock Flow, Nevada)",
+      "role": "validation",
+      "site_lat": 38.384,
+      "site_lon": -116.068,
+      "crs_epsg": "EPSG:32611",
+      "x_center_m": 581400.0,
+      "y_center_m": 4248830.0,
+      "center_lat": 38.3839719,
+      "center_lon": -116.0679937,
+      "center_offset_from_site_m": 3.168,
+      "e5_scene_id": "S2B_MSIL2A_20240731T182919_R027_T11SNC_20240731T220220",
+      "e5_file": "earth_lunar_crater_nevada.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        580290.0,
+        0.0,
+        -30.0,
+        4249940.0
+      ],
+      "bounds_utm_m": [
+        580290.0,
+        4247720.0,
+        582510.0,
+        4249940.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1697.68,
+      "elev_max_m": 1937.82,
+      "elev_mean_m": 1816.27,
+      "elev_std_m": 46.15,
+      "relief_m": 240.14
+    },
+    {
+      "site_id": "earth_karacadag_summit",
+      "name": "Karacadağ Shield Volcano (Kollubaba / Lav Platosu)",
+      "role": "candidate",
+      "site_lat": 37.67,
+      "site_lon": 39.83,
+      "crs_epsg": "EPSG:32637",
+      "x_center_m": 573200.0,
+      "y_center_m": 4169530.0,
+      "center_lat": 37.670037,
+      "center_lon": 39.8300257,
+      "center_offset_from_site_m": 4.689,
+      "e5_scene_id": "S2B_MSIL2A_20240824T080609_R078_T37SEB_20240824T111913",
+      "e5_file": "earth_karacadag_summit.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        572090.0,
+        0.0,
+        -30.0,
+        4170640.0
+      ],
+      "bounds_utm_m": [
+        572090.0,
+        4168420.0,
+        574310.0,
+        4170640.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1728.98,
+      "elev_max_m": 1911.83,
+      "elev_mean_m": 1810.83,
+      "elev_std_m": 34.96,
+      "relief_m": 182.85
+    },
+    {
+      "site_id": "earth_karacadag_ovabag",
+      "name": "Karacadağ NE Flank (Ovabağ Low-Slope Basalt Flow, Diyarbakır)",
+      "role": "candidate",
+      "site_lat": 37.785,
+      "site_lon": 40.025,
+      "crs_epsg": "EPSG:32637",
+      "x_center_m": 590260.0,
+      "y_center_m": 4182460.0,
+      "center_lat": 37.7850407,
+      "center_lon": 40.0250509,
+      "center_offset_from_site_m": 6.36,
+      "e5_scene_id": "S2B_MSIL2A_20240824T080609_R078_T37SEB_20240824T111913",
+      "e5_file": "earth_karacadag_ovabag.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        589150.0,
+        0.0,
+        -30.0,
+        4183570.0
+      ],
+      "bounds_utm_m": [
+        589150.0,
+        4181350.0,
+        591370.0,
+        4183570.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 863.6,
+      "elev_max_m": 975.81,
+      "elev_mean_m": 917.48,
+      "elev_std_m": 23.34,
+      "relief_m": 112.21
+    },
+    {
+      "site_id": "earth_kula_divlit",
+      "name": "Kula Volcanic Geopark (Divlit Scoria Cone & ʻAʻā Basalt, Manisa)",
+      "role": "candidate",
+      "site_lat": 38.566,
+      "site_lon": 28.636,
+      "crs_epsg": "EPSG:32635",
+      "x_center_m": 642530.0,
+      "y_center_m": 4269890.0,
+      "center_lat": 38.5660388,
+      "center_lon": 28.6360031,
+      "center_offset_from_site_m": 4.311,
+      "e5_scene_id": "S2B_MSIL2A_20240809T085559_R007_T35SPC_20240809T120033",
+      "e5_file": "earth_kula_divlit.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        641420.0,
+        0.0,
+        -30.0,
+        4271000.0
+      ],
+      "bounds_utm_m": [
+        641420.0,
+        4268780.0,
+        643640.0,
+        4271000.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 662.41,
+      "elev_max_m": 844.77,
+      "elev_mean_m": 719.81,
+      "elev_std_m": 41.98,
+      "relief_m": 182.36
+    },
+    {
+      "site_id": "earth_tendurek_shield",
+      "name": "Tendürek Shield Volcano (Çaldıran Basalt Lava Apron, Ağrı-Van)",
+      "role": "candidate",
+      "site_lat": 39.32,
+      "site_lon": 43.92,
+      "crs_epsg": "EPSG:32638",
+      "x_center_m": 406900.0,
+      "y_center_m": 4352840.0,
+      "center_lat": 39.3199608,
+      "center_lon": 43.9199715,
+      "center_offset_from_site_m": 4.998,
+      "e5_scene_id": "S2B_MSIL2A_20240821T075609_R035_T38SMJ_20240821T113401",
+      "e5_file": "earth_tendurek_shield.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        405790.0,
+        0.0,
+        -30.0,
+        4353950.0
+      ],
+      "bounds_utm_m": [
+        405790.0,
+        4351730.0,
+        408010.0,
+        4353950.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2656.96,
+      "elev_max_m": 2968.52,
+      "elev_mean_m": 2811.33,
+      "elev_std_m": 61.17,
+      "relief_m": 311.56
+    },
+    {
+      "site_id": "earth_erciyes_kojugedigi",
+      "name": "Mount Erciyes (Koçdağ SE Flank Basalt-Andesite Plateau, Kayseri)",
+      "role": "candidate",
+      "site_lat": 38.505,
+      "site_lon": 35.535,
+      "crs_epsg": "EPSG:32636",
+      "x_center_m": 721050.0,
+      "y_center_m": 4264890.0,
+      "center_lat": 38.5049652,
+      "center_lon": 35.5350251,
+      "center_offset_from_site_m": 4.438,
+      "e5_scene_id": "S2A_MSIL2A_20240815T082601_R021_T36SYH_20240815T130452",
+      "e5_file": "earth_erciyes_kojugedigi.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        719940.0,
+        0.0,
+        -30.0,
+        4266000.0
+      ],
+      "bounds_utm_m": [
+        719940.0,
+        4263780.0,
+        722160.0,
+        4266000.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2007.13,
+      "elev_max_m": 2374.52,
+      "elev_mean_m": 2155.98,
+      "elev_std_m": 79.35,
+      "relief_m": 367.39
+    },
+    {
+      "site_id": "earth_hasandagi_kecekalecik",
+      "name": "Mount Hasan / Hasandağı (NW Flank Basalt-Andesite Apron, Aksaray)",
+      "role": "candidate",
+      "site_lat": 38.175,
+      "site_lon": 34.12,
+      "crs_epsg": "EPSG:32636",
+      "x_center_m": 598100.0,
+      "y_center_m": 4225820.0,
+      "center_lat": 38.1749588,
+      "center_lon": 34.1199952,
+      "center_offset_from_site_m": 4.592,
+      "e5_scene_id": "S2B_MSIL2A_20240721T082609_R021_T36SWH_20240721T122421",
+      "e5_file": "earth_hasandagi_kecekalecik.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        596990.0,
+        0.0,
+        -30.0,
+        4226930.0
+      ],
+      "bounds_utm_m": [
+        596990.0,
+        4224710.0,
+        599210.0,
+        4226930.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1201.15,
+      "elev_max_m": 1702.07,
+      "elev_mean_m": 1442.73,
+      "elev_std_m": 130.54,
+      "relief_m": 500.92
+    },
+    {
+      "site_id": "earth_acigol_guneydag",
+      "name": "Acıgöl-Nevşehir Caldera (Güneydağ Maar & Tephra Ring, Nevşehir)",
+      "role": "candidate",
+      "site_lat": 38.525,
+      "site_lon": 34.555,
+      "crs_epsg": "EPSG:32636",
+      "x_center_m": 635550.0,
+      "y_center_m": 4265210.0,
+      "center_lat": 38.5249701,
+      "center_lon": 34.5550042,
+      "center_offset_from_site_m": 3.337,
+      "e5_scene_id": "S2A_MSIL2A_20240815T082601_R021_T36SXH_20240815T130452",
+      "e5_file": "earth_acigol_guneydag.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        634440.0,
+        0.0,
+        -30.0,
+        4266320.0
+      ],
+      "bounds_utm_m": [
+        634440.0,
+        4264100.0,
+        636660.0,
+        4266320.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1284.61,
+      "elev_max_m": 1472.02,
+      "elev_mean_m": 1315.56,
+      "elev_std_m": 25.92,
+      "relief_m": 187.42
+    },
+    {
+      "site_id": "earth_cappadocia_kavakkoy",
+      "name": "Cappadocia Ignimbrite Plateau (Kavak / Göreme Tuff Tableland, Nevşehir)",
+      "role": "candidate",
+      "site_lat": 38.65,
+      "site_lon": 34.86,
+      "crs_epsg": "EPSG:32636",
+      "x_center_m": 661860.0,
+      "y_center_m": 4279580.0,
+      "center_lat": 38.6500081,
+      "center_lon": 34.8600296,
+      "center_offset_from_site_m": 2.728,
+      "e5_scene_id": "S2A_MSIL2A_20240815T082601_R021_T36SXH_20240815T130452",
+      "e5_file": "earth_cappadocia_kavakkoy.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        660750.0,
+        0.0,
+        -30.0,
+        4280690.0
+      ],
+      "bounds_utm_m": [
+        660750.0,
+        4278470.0,
+        662970.0,
+        4280690.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1059.24,
+      "elev_max_m": 1327.9,
+      "elev_mean_m": 1175.45,
+      "elev_std_m": 54.67,
+      "relief_m": 268.67
+    },
+    {
+      "site_id": "earth_tuz_golu_south",
+      "name": "Tuz Gölü Basin (Southern Evaporite Marginal Flat, Aksaray)",
+      "role": "candidate",
+      "site_lat": 38.55,
+      "site_lon": 33.62,
+      "crs_epsg": "EPSG:32636",
+      "x_center_m": 554030.0,
+      "y_center_m": 4267020.0,
+      "center_lat": 38.5499664,
+      "center_lon": 33.6200511,
+      "center_offset_from_site_m": 5.804,
+      "e5_scene_id": "S2B_MSIL2A_20240823T083559_R064_T36SWH_20240823T130614",
+      "e5_file": "earth_tuz_golu_south.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        552920.0,
+        0.0,
+        -30.0,
+        4268130.0
+      ],
+      "bounds_utm_m": [
+        552920.0,
+        4265910.0,
+        555140.0,
+        4268130.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 904.0,
+      "elev_max_m": 906.93,
+      "elev_mean_m": 905.67,
+      "elev_std_m": 0.36,
+      "relief_m": 2.93
+    },
+    {
+      "site_id": "earth_salda_terrace",
+      "name": "Lake Salda Onshore Terrace (Hydromagnesite/Ultramafic Shore, Burdur)",
+      "role": "candidate",
+      "site_lat": 37.515,
+      "site_lon": 29.635,
+      "crs_epsg": "EPSG:32636",
+      "x_center_m": 202580.0,
+      "y_center_m": 4157330.0,
+      "center_lat": 37.5150215,
+      "center_lon": 29.6349724,
+      "center_offset_from_site_m": 3.412,
+      "e5_scene_id": "S2B_MSIL2A_20240816T084559_R107_T36STG_20240816T111352",
+      "e5_file": "earth_salda_terrace.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        201470.0,
+        0.0,
+        -30.0,
+        4158440.0
+      ],
+      "bounds_utm_m": [
+        201470.0,
+        4156220.0,
+        203690.0,
+        4158440.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1143.83,
+      "elev_max_m": 1347.1,
+      "elev_mean_m": 1192.02,
+      "elev_std_m": 42.21,
+      "relief_m": 203.28
+    },
+    {
+      "site_id": "earth_askja_holuhraun",
+      "name": "Askja / Holuhraun Basalt Sand & Lava Plain (Dyngjusandur, Iceland)",
+      "role": "candidate",
+      "site_lat": 64.88,
+      "site_lon": -16.82,
+      "crs_epsg": "EPSG:32628",
+      "x_center_m": 413800.0,
+      "y_center_m": 7196320.0,
+      "center_lat": 64.8799942,
+      "center_lon": -16.8199853,
+      "center_offset_from_site_m": 0.949,
+      "e5_scene_id": "S2A_MSIL2A_20240905T130301_R038_T28WDT_20240905T155849",
+      "e5_file": "earth_askja_holuhraun.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        412690.0,
+        0.0,
+        -30.0,
+        7197430.0
+      ],
+      "bounds_utm_m": [
+        412690.0,
+        7195210.0,
+        414910.0,
+        7197430.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 712.88,
+      "elev_max_m": 750.17,
+      "elev_mean_m": 723.07,
+      "elev_std_m": 6.3,
+      "relief_m": 37.28
+    },
+    {
+      "site_id": "earth_harrat_rahat_madinah",
+      "name": "Harrat Rahat Volcanic Field (Northern Basalt Plateau, Saudi Arabia)",
+      "role": "candidate",
+      "site_lat": 24.33,
+      "site_lon": 39.77,
+      "crs_epsg": "EPSG:32637",
+      "x_center_m": 578120.0,
+      "y_center_m": 2690980.0,
+      "center_lat": 24.3300072,
+      "center_lon": 39.7700189,
+      "center_offset_from_site_m": 2.077,
+      "e5_scene_id": "S2A_MSIL2A_20240704T074611_R135_T37QEG_20240705T225617",
+      "e5_file": "earth_harrat_rahat_madinah.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        577010.0,
+        0.0,
+        -30.0,
+        2692090.0
+      ],
+      "bounds_utm_m": [
+        577010.0,
+        2689870.0,
+        579230.0,
+        2692090.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 860.22,
+      "elev_max_m": 901.26,
+      "elev_mean_m": 877.58,
+      "elev_std_m": 9.15,
+      "relief_m": 41.05
+    },
+    {
+      "site_id": "earth_pinacate_el_elegante",
+      "name": "Sierra del Pinacate Volcanic Field (El Elegante Maar Rim, Sonora, Mexico)",
+      "role": "candidate",
+      "site_lat": 31.8403,
+      "site_lon": -113.3951,
+      "crs_epsg": "EPSG:32612",
+      "x_center_m": 273350.0,
+      "y_center_m": 3525230.0,
+      "center_lat": 31.8402601,
+      "center_lon": -113.3950913,
+      "center_offset_from_site_m": 4.497,
+      "e5_scene_id": "S2B_MSIL2A_20240814T180919_R084_T12STA_20240814T220020",
+      "e5_file": "earth_pinacate_el_elegante.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        272240.0,
+        0.0,
+        -30.0,
+        3526340.0
+      ],
+      "bounds_utm_m": [
+        272240.0,
+        3524120.0,
+        274460.0,
+        3526340.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 68.96,
+      "elev_max_m": 339.91,
+      "elev_mean_m": 235.85,
+      "elev_std_m": 70.55,
+      "relief_m": 270.95
+    },
+    {
+      "site_id": "earth_puna_campo_piedra_pomez",
+      "name": "Puna de Atacama (Campo de Piedra Pómez Ignimbrite & Basalt, Argentina)",
+      "role": "candidate",
+      "site_lat": -26.57,
+      "site_lon": -67.44,
+      "crs_epsg": "EPSG:32719",
+      "x_center_m": 655370.0,
+      "y_center_m": 7060240.0,
+      "center_lat": -26.5700319,
+      "center_lon": -67.440016,
+      "center_offset_from_site_m": 3.88,
+      "e5_scene_id": "S2A_MSIL2A_20231211T142711_R053_T19JFL_20231213T004036",
+      "e5_file": "earth_puna_campo_piedra_pomez.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        654260.0,
+        0.0,
+        -30.0,
+        7061350.0
+      ],
+      "bounds_utm_m": [
+        654260.0,
+        7059130.0,
+        656480.0,
+        7061350.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 3010.46,
+      "elev_max_m": 3192.83,
+      "elev_mean_m": 3118.8,
+      "elev_std_m": 47.17,
+      "relief_m": 182.37
+    },
+    {
+      "site_id": "earth_deccan_mahabaleshwar",
+      "name": "Deccan Traps Flood Basalt Plateau (Panchgani Tableland, India)",
+      "role": "candidate",
+      "site_lat": 17.924,
+      "site_lon": 73.805,
+      "crs_epsg": "EPSG:32643",
+      "x_center_m": 373430.0,
+      "y_center_m": 1982180.0,
+      "center_lat": 17.9239685,
+      "center_lon": 73.8049757,
+      "center_offset_from_site_m": 4.338,
+      "e5_scene_id": "S2B_MSIL2A_20241005T052649_R105_T43QCV_20241005T081613",
+      "e5_file": "earth_deccan_mahabaleshwar.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        372320.0,
+        0.0,
+        -30.0,
+        1983290.0
+      ],
+      "bounds_utm_m": [
+        372320.0,
+        1981070.0,
+        374540.0,
+        1983290.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 838.04,
+      "elev_max_m": 1333.56,
+      "elev_mean_m": 1226.52,
+      "elev_std_m": 96.81,
+      "relief_m": 495.52
+    },
+    {
+      "site_id": "earth_harrat_ash_shaam",
+      "name": "Harrat Ash Shaam Basalt Desert (Badia Black Basalt Plateau, Jordan)",
+      "role": "candidate",
+      "site_lat": 32.22,
+      "site_lon": 37.15,
+      "crs_epsg": "EPSG:32637",
+      "x_center_m": 325660.0,
+      "y_center_m": 3566320.0,
+      "center_lat": 32.2199778,
+      "center_lon": 37.1499689,
+      "center_offset_from_site_m": 3.828,
+      "e5_scene_id": "S2A_MSIL2A_20240710T080611_R078_T37SCR_20240710T133142",
+      "e5_file": "earth_harrat_ash_shaam.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        324550.0,
+        0.0,
+        -30.0,
+        3567430.0
+      ],
+      "bounds_utm_m": [
+        324550.0,
+        3565210.0,
+        326770.0,
+        3567430.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 707.39,
+      "elev_max_m": 751.98,
+      "elev_mean_m": 730.43,
+      "elev_std_m": 8.51,
+      "relief_m": 44.59
+    },
+    {
+      "site_id": "earth_kilbourne_hole_nm",
+      "name": "Potrillo Volcanic Field (Kilbourne Hole Maar & Basalt Rim, New Mexico)",
+      "role": "candidate",
+      "site_lat": 31.968,
+      "site_lon": -106.972,
+      "crs_epsg": "EPSG:32613",
+      "x_center_m": 313650.0,
+      "y_center_m": 3538590.0,
+      "center_lat": 31.9680265,
+      "center_lon": -106.9720335,
+      "center_offset_from_site_m": 4.319,
+      "e5_scene_id": "S2A_MSIL2A_20240909T173901_R098_T13SCR_20240910T005106",
+      "e5_file": "earth_kilbourne_hole_nm.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        312540.0,
+        0.0,
+        -30.0,
+        3539700.0
+      ],
+      "bounds_utm_m": [
+        312540.0,
+        3537480.0,
+        314760.0,
+        3539700.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1194.65,
+      "elev_max_m": 1301.07,
+      "elev_mean_m": 1237.92,
+      "elev_std_m": 34.86,
+      "relief_m": 106.43
+    },
+    {
+      "site_id": "earth_qaidam_dalangtan",
+      "name": "Qaidam Basin (Dalangtan Hyperarid Evaporite Flat, China)",
+      "role": "candidate",
+      "site_lat": 38.48,
+      "site_lon": 91.45,
+      "crs_epsg": "EPSG:32646",
+      "x_center_m": 364800.0,
+      "y_center_m": 4260210.0,
+      "center_lat": 38.4799793,
+      "center_lon": 91.4499756,
+      "center_offset_from_site_m": 3.137,
+      "e5_scene_id": "S2B_MSIL2A_20240814T044659_R076_T46SCH_20240814T080440",
+      "e5_file": "earth_qaidam_dalangtan.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        363690.0,
+        0.0,
+        -30.0,
+        4261320.0
+      ],
+      "bounds_utm_m": [
+        363690.0,
+        4259100.0,
+        365910.0,
+        4261320.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2712.98,
+      "elev_max_m": 2754.06,
+      "elev_mean_m": 2725.59,
+      "elev_std_m": 8.24,
+      "relief_m": 41.08
+    },
+    {
+      "site_id": "earth_karapinar_meke",
+      "name": "Karapınar Volcanic Field (Meke Maar & Scoria Apron, Konya)",
+      "role": "candidate",
+      "site_lat": 37.675,
+      "site_lon": 33.665,
+      "crs_epsg": "EPSG:32636",
+      "x_center_m": 558640.0,
+      "y_center_m": 4169960.0,
+      "center_lat": 37.6749588,
+      "center_lon": 33.6649737,
+      "center_offset_from_site_m": 5.128,
+      "e5_scene_id": "S2B_MSIL2A_20240820T082559_R021_T36SWG_20240820T130351",
+      "e5_file": "earth_karapinar_meke.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        557530.0,
+        0.0,
+        -30.0,
+        4171070.0
+      ],
+      "bounds_utm_m": [
+        557530.0,
+        4168850.0,
+        559750.0,
+        4171070.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1047.48,
+      "elev_max_m": 1273.73,
+      "elev_mean_m": 1103.48,
+      "elev_std_m": 45.61,
+      "relief_m": 226.26
+    },
+    {
+      "site_id": "earth_suphan_south_apron",
+      "name": "Mount Süphan (Lower Adilcevaz Basalt-Andesite Lava Apron, Bitlis)",
+      "role": "candidate",
+      "site_lat": 38.865,
+      "site_lon": 42.83,
+      "crs_epsg": "EPSG:32638",
+      "x_center_m": 311730.0,
+      "y_center_m": 4304030.0,
+      "center_lat": 38.8649694,
+      "center_lon": 42.8300046,
+      "center_offset_from_site_m": 3.418,
+      "e5_scene_id": "S2A_MSIL2A_20240905T075611_R035_T38SLJ_20240905T123250",
+      "e5_file": "earth_suphan_south_apron.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        310620.0,
+        0.0,
+        -30.0,
+        4305140.0
+      ],
+      "bounds_utm_m": [
+        310620.0,
+        4302920.0,
+        312840.0,
+        4305140.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2100.2,
+      "elev_max_m": 2481.71,
+      "elev_mean_m": 2261.63,
+      "elev_std_m": 80.23,
+      "relief_m": 381.51
+    },
+    {
+      "site_id": "earth_nemrut_caldera_flank",
+      "name": "Nemrut Volcano (Tatvan Eastern Ignimbrite & Lava Flank, Bitlis)",
+      "role": "candidate",
+      "site_lat": 38.61,
+      "site_lon": 42.31,
+      "crs_epsg": "EPSG:32638",
+      "x_center_m": 265780.0,
+      "y_center_m": 4276930.0,
+      "center_lat": 38.6099851,
+      "center_lon": 42.3100504,
+      "center_offset_from_site_m": 4.688,
+      "e5_scene_id": "S2A_MSIL2A_20240905T075611_R035_T38SKH_20240905T123250",
+      "e5_file": "earth_nemrut_caldera_flank.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        264670.0,
+        0.0,
+        -30.0,
+        4278040.0
+      ],
+      "bounds_utm_m": [
+        264670.0,
+        4275820.0,
+        266890.0,
+        4278040.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2023.46,
+      "elev_max_m": 2512.71,
+      "elev_mean_m": 2241.13,
+      "elev_std_m": 105.41,
+      "relief_m": 489.25
+    },
+    {
+      "site_id": "earth_agri_dogubayazit_flow",
+      "name": "Mount Ararat / Ağrı Dağı (Western Basalt Lava Flank, Doğubayazıt)",
+      "role": "candidate",
+      "site_lat": 39.68,
+      "site_lon": 44.14,
+      "crs_epsg": "EPSG:32638",
+      "x_center_m": 426250.0,
+      "y_center_m": 4392590.0,
+      "center_lat": 39.6799573,
+      "center_lon": 44.1400166,
+      "center_offset_from_site_m": 4.95,
+      "e5_scene_id": "S2B_MSIL2A_20240821T075609_R035_T38SMJ_20240821T113401",
+      "e5_file": "earth_agri_dogubayazit_flow.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        425140.0,
+        0.0,
+        -30.0,
+        4393700.0
+      ],
+      "bounds_utm_m": [
+        425140.0,
+        4391480.0,
+        427360.0,
+        4393700.0
+      ],
+      "dem_source": "NASADEM_HGT_v001",
+      "dem_version": "NASADEM Merged DEM Global 1 arc second V001 (fallback only where Copernicus GLO-30 tile N39E044 is absent)",
+      "vertical_datum": "EGM96",
+      "sigma_z_rel_m": null,
+      "elev_min_m": 1582.77,
+      "elev_max_m": 1863.68,
+      "elev_mean_m": 1727.26,
+      "elev_std_m": 52.78,
+      "relief_m": 280.91
+    },
+    {
+      "site_id": "earth_payunia_pampa_negra",
+      "name": "Payunia Volcanic Province (Pampa Negra Basalt & Lapilli Plain, Argentina)",
+      "role": "candidate",
+      "site_lat": -36.18,
+      "site_lon": -69.18,
+      "crs_epsg": "EPSG:32719",
+      "x_center_m": 483810.0,
+      "y_center_m": 5996070.0,
+      "center_lat": -36.1800144,
+      "center_lon": -69.1800441,
+      "center_offset_from_site_m": 4.279,
+      "e5_scene_id": "S2B_MSIL2A_20240214T142719_R053_T19HDV_20240214T201044",
+      "e5_file": "earth_payunia_pampa_negra.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        482700.0,
+        0.0,
+        -30.0,
+        5997180.0
+      ],
+      "bounds_utm_m": [
+        482700.0,
+        5994960.0,
+        484920.0,
+        5997180.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1463.62,
+      "elev_max_m": 1530.07,
+      "elev_mean_m": 1492.06,
+      "elev_std_m": 12.86,
+      "relief_m": 66.45
+    },
+    {
+      "site_id": "earth_chajnantor_plateau",
+      "name": "Altiplano-Puna Complex (Chajnantor High-Altitude Ignimbrite Plateau, Chile)",
+      "role": "candidate",
+      "site_lat": -23.023,
+      "site_lon": -67.754,
+      "crs_epsg": "EPSG:32719",
+      "x_center_m": 627680.0,
+      "y_center_m": 7453390.0,
+      "center_lat": -23.0230099,
+      "center_lon": -67.7539743,
+      "center_offset_from_site_m": 2.858,
+      "e5_scene_id": "S2B_MSIL2A_20240108T143739_R096_T19KFQ_20240108T211337",
+      "e5_file": "earth_chajnantor_plateau.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        626570.0,
+        0.0,
+        -30.0,
+        7454500.0
+      ],
+      "bounds_utm_m": [
+        626570.0,
+        7452280.0,
+        628790.0,
+        7454500.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 4983.18,
+      "elev_max_m": 5040.86,
+      "elev_mean_m": 5020.41,
+      "elev_std_m": 12.18,
+      "relief_m": 57.68
+    },
+    {
+      "site_id": "earth_waw_an_namus_apron",
+      "name": "Waw an Namus Volcano (Dark Basaltic Tephra Apron, Fezzan, Libya)",
+      "role": "candidate",
+      "site_lat": 24.95,
+      "site_lon": 17.76,
+      "crs_epsg": "EPSG:32633",
+      "x_center_m": 778690.0,
+      "y_center_m": 2762240.0,
+      "center_lat": 24.9499617,
+      "center_lon": 17.7599663,
+      "center_offset_from_site_m": 5.436,
+      "e5_scene_id": "S2A_MSIL2A_20240711T092031_R093_T33RYH_20240711T152307",
+      "e5_file": "earth_waw_an_namus_apron.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        777580.0,
+        0.0,
+        -30.0,
+        2763350.0
+      ],
+      "bounds_utm_m": [
+        777580.0,
+        2761130.0,
+        779800.0,
+        2763350.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 413.77,
+      "elev_max_m": 431.39,
+      "elev_mean_m": 424.36,
+      "elev_std_m": 3.7,
+      "relief_m": 17.62
+    },
+    {
+      "site_id": "earth_tibesti_tarso_voon",
+      "name": "Tibesti Volcanic Massif (Tarso Voon Ignimbrite & Basalt Plateau, Chad)",
+      "role": "candidate",
+      "site_lat": 20.92,
+      "site_lon": 17.28,
+      "crs_epsg": "EPSG:32633",
+      "x_center_m": 737130.0,
+      "y_center_m": 2314980.0,
+      "center_lat": 20.9200077,
+      "center_lon": 17.2799937,
+      "center_offset_from_site_m": 1.08,
+      "e5_scene_id": "S2A_MSIL2A_20240711T092031_R093_T33QYD_20240711T152310",
+      "e5_file": "earth_tibesti_tarso_voon.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        736020.0,
+        0.0,
+        -30.0,
+        2316090.0
+      ],
+      "bounds_utm_m": [
+        736020.0,
+        2313870.0,
+        738240.0,
+        2316090.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2012.84,
+      "elev_max_m": 2029.13,
+      "elev_mean_m": 2020.15,
+      "elev_std_m": 3.06,
+      "relief_m": 16.29
+    },
+    {
+      "site_id": "earth_paricutin_lava_field",
+      "name": "Michoacán-Guanajuato Field (Parícutin Basaltic-Andesite Flow, Mexico)",
+      "role": "candidate",
+      "site_lat": 19.493,
+      "site_lon": -102.251,
+      "crs_epsg": "EPSG:32613",
+      "x_center_m": 788560.0,
+      "y_center_m": 2157690.0,
+      "center_lat": 19.4930044,
+      "center_lon": -102.2509604,
+      "center_offset_from_site_m": 4.183,
+      "e5_scene_id": "S2A_MSIL2A_20241020T171341_R112_T13QGB_20241020T232550",
+      "e5_file": "earth_paricutin_lava_field.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        787450.0,
+        0.0,
+        -30.0,
+        2158800.0
+      ],
+      "bounds_utm_m": [
+        787450.0,
+        2156580.0,
+        789670.0,
+        2158800.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 2407.97,
+      "elev_max_m": 2797.8,
+      "elev_mean_m": 2573.83,
+      "elev_std_m": 56.69,
+      "relief_m": 389.83
+    },
+    {
+      "site_id": "earth_tolbachik_apron",
+      "name": "Tolbachik Volcanic Massif (Basalt Scoria & Lava Plain, Kamchatka)",
+      "role": "candidate",
+      "site_lat": 55.755,
+      "site_lon": 160.295,
+      "crs_epsg": "EPSG:32657",
+      "x_center_m": 581270.0,
+      "y_center_m": 6179570.0,
+      "center_lat": 55.7549863,
+      "center_lon": 160.2949361,
+      "center_offset_from_site_m": 4.29,
+      "e5_scene_id": "S2B_MSIL2A_20240905T002609_R102_T57UWB_20240905T020902",
+      "e5_file": "earth_tolbachik_apron.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        580160.0,
+        0.0,
+        -30.0,
+        6180680.0
+      ],
+      "bounds_utm_m": [
+        580160.0,
+        6178460.0,
+        582380.0,
+        6180680.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1184.58,
+      "elev_max_m": 1648.73,
+      "elev_mean_m": 1370.69,
+      "elev_std_m": 94.81,
+      "relief_m": 464.16
+    },
+    {
+      "site_id": "earth_kilauea_kau_desert",
+      "name": "Kīlauea SW Rift Zone (Kaʻū Desert Basalt & Tephra Plain, Hawaii)",
+      "role": "candidate",
+      "site_lat": 19.365,
+      "site_lon": -155.335,
+      "crs_epsg": "EPSG:32604",
+      "x_center_m": 885100.0,
+      "y_center_m": 2145300.0,
+      "center_lat": 19.3649758,
+      "center_lon": -155.3349842,
+      "center_offset_from_site_m": 3.154,
+      "e5_scene_id": "S2B_MSIL2A_20240908T205939_R014_T04QHG_20240909T000602",
+      "e5_file": "earth_kilauea_kau_desert.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        883990.0,
+        0.0,
+        -30.0,
+        2146410.0
+      ],
+      "bounds_utm_m": [
+        883990.0,
+        2144190.0,
+        886210.0,
+        2146410.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 918.6,
+      "elev_max_m": 1007.04,
+      "elev_mean_m": 961.53,
+      "elev_std_m": 20.71,
+      "relief_m": 88.44
+    },
+    {
+      "site_id": "earth_tongariro_rangipo",
+      "name": "Tongariro Volcanic Centre (Rangipo Andesitic-Basaltic Tephra Plain, NZ)",
+      "role": "candidate",
+      "site_lat": -39.285,
+      "site_lon": 175.72,
+      "crs_epsg": "EPSG:32760",
+      "x_center_m": 389610.0,
+      "y_center_m": 5650820.0,
+      "center_lat": -39.2849557,
+      "center_lon": 175.7200387,
+      "center_offset_from_site_m": 5.94,
+      "e5_scene_id": "S2B_MSIL2A_20240229T221559_R129_T60HUB_20240301T022210",
+      "e5_file": "earth_tongariro_rangipo.webp",
+      "e5_uv_box": [
+        0.283203125,
+        0.283203125,
+        0.716796875,
+        0.716796875
+      ],
+      "e5_px_crop_xyxy": [
+        145.0,
+        145.0,
+        367.0,
+        367.0
+      ],
+      "window_side_m": 2220.0,
+      "res_m": 30.0,
+      "shape": [
+        74,
+        74
+      ],
+      "affine_utm": [
+        30.0,
+        0.0,
+        388500.0,
+        0.0,
+        -30.0,
+        5651930.0
+      ],
+      "bounds_utm_m": [
+        388500.0,
+        5649710.0,
+        390720.0,
+        5651930.0
+      ],
+      "dem_source": "Copernicus_DEM_GLO-30",
+      "dem_version": "Copernicus DEM GLO-30 DGED (COP-DEM_GLO-30-DGED; AWS COG / Planetary Computer cop-dem-glo-30, TanDEM-X 2021-04-22; ESA Product Handbook GEO.2018-1988-2)",
+      "vertical_datum": "EGM2008",
+      "sigma_z_rel_m": 1.0,
+      "elev_min_m": 1059.92,
+      "elev_max_m": 1120.71,
+      "elev_mean_m": 1080.86,
+      "elev_std_m": 13.52,
+      "relief_m": 60.8
+    }
+  ]
+}
