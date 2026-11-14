@@ -1,4 +1,4 @@
-"""Earth DEM feature extraction pipeline (Copernicus DEM GLO-30) following AGENTS.md contract."""
+"""Earth DEM & MODIS feature extraction pipeline following AGENTS.md contract."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from rasterio.merge import merge
 from rasterio.warp import calculate_default_transform, reproject
 from rasterio.windows import Window, from_bounds as window_from_bounds
 
+from src.earth.modis_pipeline import check_mcd43a3_access, fetch_mod11a2_temp_amplitude
 from src.earth.sites import VERIFIED_EARTH_SITES, SiteSpec
 
 COPERNICUS_DEM_SRC = "Copernicus_DEM_GLO-30"
@@ -82,6 +83,31 @@ def copernicus_tile_url(lat_floor: int, lon_floor: int) -> str:
     return f"https://copernicus-dem-30m.s3.amazonaws.com/{tile_id}/{tile_id}.tif"
 
 
+def _vsicurl_fallback(
+    url: str,
+    west: float,
+    south: float,
+    east: float,
+    north: float,
+) -> tuple[np.ndarray, rasterio.Affine, rasterio.crs.CRS] | None:
+    """Fallback to GDAL /vsicurl/ if custom HTTP Range TIFF header parsing encounters BigTIFF or >16KB IFD."""
+    with rasterio.open(f"/vsicurl/{url}") as src:
+        t_west = max(west, src.bounds.left)
+        t_south = max(south, src.bounds.bottom)
+        t_east = min(east, src.bounds.right)
+        t_north = min(north, src.bounds.top)
+        if t_west >= t_east or t_south >= t_north:
+            return None
+        raw_win = window_from_bounds(t_west, t_south, t_east, t_north, transform=src.transform)
+        r0 = max(0, math.floor(raw_win.row_off))
+        r1 = min(src.height, math.ceil(raw_win.row_off + raw_win.height))
+        c0 = max(0, math.floor(raw_win.col_off))
+        c1 = min(src.width, math.ceil(raw_win.col_off + raw_win.width))
+        win = Window(col_off=c0, row_off=r0, width=c1 - c0, height=r1 - r0)
+        data = src.read(1, window=win).astype(np.float32)
+        return data, src.window_transform(win), src.crs
+
+
 def _read_cog_window_via_range(
     url: str,
     west: float,
@@ -89,83 +115,88 @@ def _read_cog_window_via_range(
     east: float,
     north: float,
 ) -> tuple[np.ndarray, rasterio.Affine, rasterio.crs.CRS] | None:
-    """Fetch only the intersecting internal TIFF tiles via HTTP Range requests and read the window."""
-    r_hdr = requests.get(url, headers={"Range": "bytes=0-16383"}, timeout=15)
-    if r_hdr.status_code not in (200, 206):
-        return None
-    hdr = bytearray(r_hdr.content)
+    """Fetch only the intersecting internal TIFF tiles via HTTP Range requests, with /vsicurl/ fallback."""
+    try:
+        r_hdr = requests.get(url, headers={"Range": "bytes=0-16383"}, timeout=15)
+        if r_hdr.status_code not in (200, 206):
+            return None
+        hdr = bytearray(r_hdr.content)
+        if hdr[:4] != b"II*\x00":
+            return _vsicurl_fallback(url, west, south, east, north)
 
-    ifd_off = struct.unpack("<I", hdr[4:8])[0]
-    n_entries = struct.unpack("<H", hdr[ifd_off : ifd_off + 2])[0]
-    tags: dict[int, tuple[int, int, int, int]] = {}
-    for i in range(n_entries):
-        pos = ifd_off + 2 + i * 12
-        tag, typ, cnt, val_off = struct.unpack("<HHII", hdr[pos : pos + 12])
-        tags[tag] = (typ, cnt, val_off, pos)
+        ifd_off = struct.unpack("<I", hdr[4:8])[0]
+        n_entries = struct.unpack("<H", hdr[ifd_off : ifd_off + 2])[0]
+        tags: dict[int, tuple[int, int, int, int]] = {}
+        for i in range(n_entries):
+            pos = ifd_off + 2 + i * 12
+            tag, typ, cnt, val_off = struct.unpack("<HHII", hdr[pos : pos + 12])
+            tags[tag] = (typ, cnt, val_off, pos)
 
-    struct.pack_into("<I", hdr, ifd_off + 2 + n_entries * 12, 0)
+        struct.pack_into("<I", hdr, ifd_off + 2 + n_entries * 12, 0)
 
-    img_w = tags[256][2]
-    img_h = tags[257][2]
-    tile_w = tags[322][2]
-    tile_h = tags[323][2]
-    _, n_tiles, off_pos, _ = tags[324]
-    _, _, cnt_pos, _ = tags[325]
+        img_w = tags[256][2]
+        img_h = tags[257][2]
+        tile_w = tags[322][2]
+        tile_h = tags[323][2]
+        _, n_tiles, off_pos, _ = tags[324]
+        _, _, cnt_pos, _ = tags[325]
 
-    orig_offsets = list(struct.unpack(f"<{n_tiles}I", hdr[off_pos : off_pos + 4 * n_tiles]))
-    orig_counts = list(struct.unpack(f"<{n_tiles}I", hdr[cnt_pos : cnt_pos + 4 * n_tiles]))
+        orig_offsets = list(struct.unpack(f"<{n_tiles}I", hdr[off_pos : off_pos + 4 * n_tiles]))
+        orig_counts = list(struct.unpack(f"<{n_tiles}I", hdr[cnt_pos : cnt_pos + 4 * n_tiles]))
 
-    empty_hdr = bytearray(hdr)
-    struct.pack_into(f"<{n_tiles}I", empty_hdr, off_pos, *([0] * n_tiles))
-    struct.pack_into(f"<{n_tiles}I", empty_hdr, cnt_pos, *([0] * n_tiles))
+        empty_hdr = bytearray(hdr)
+        struct.pack_into(f"<{n_tiles}I", empty_hdr, off_pos, *([0] * n_tiles))
+        struct.pack_into(f"<{n_tiles}I", empty_hdr, cnt_pos, *([0] * n_tiles))
 
-    with MemoryFile(bytes(empty_hdr)) as mem_meta:
-        with mem_meta.open() as ds_meta:
-            t_west = max(west, ds_meta.bounds.left)
-            t_south = max(south, ds_meta.bounds.bottom)
-            t_east = min(east, ds_meta.bounds.right)
-            t_north = min(north, ds_meta.bounds.top)
-            if t_west >= t_east or t_south >= t_north:
-                return None
-            raw_win = window_from_bounds(
-                t_west, t_south, t_east, t_north, transform=ds_meta.transform
+        with MemoryFile(bytes(empty_hdr)) as mem_meta:
+            with mem_meta.open() as ds_meta:
+                t_west = max(west, ds_meta.bounds.left)
+                t_south = max(south, ds_meta.bounds.bottom)
+                t_east = min(east, ds_meta.bounds.right)
+                t_north = min(north, ds_meta.bounds.top)
+                if t_west >= t_east or t_south >= t_north:
+                    return None
+                raw_win = window_from_bounds(
+                    t_west, t_south, t_east, t_north, transform=ds_meta.transform
+                )
+                r0 = max(0, math.floor(raw_win.row_off))
+                r1 = min(img_h, math.ceil(raw_win.row_off + raw_win.height))
+                c0 = max(0, math.floor(raw_win.col_off))
+                c1 = min(img_w, math.ceil(raw_win.col_off + raw_win.width))
+                win = Window(col_off=c0, row_off=r0, width=c1 - c0, height=r1 - r0)
+
+        n_tx = math.ceil(img_w / tile_w)
+        needed_indices: set[int] = set()
+        for ty in range(r0 // tile_h, (r1 - 1) // tile_h + 1):
+            for tx in range(c0 // tile_w, (c1 - 1) // tile_w + 1):
+                needed_indices.add(ty * n_tx + tx)
+
+        new_offsets = [0] * n_tiles
+        new_counts = [0] * n_tiles
+        payload = bytearray()
+        for idx in sorted(needed_indices):
+            t_off = orig_offsets[idx]
+            t_cnt = orig_counts[idx]
+            resp = requests.get(
+                url, headers={"Range": f"bytes={t_off}-{t_off + t_cnt - 1}"}, timeout=20
             )
-            r0 = max(0, math.floor(raw_win.row_off))
-            r1 = min(img_h, math.ceil(raw_win.row_off + raw_win.height))
-            c0 = max(0, math.floor(raw_win.col_off))
-            c1 = min(img_w, math.ceil(raw_win.col_off + raw_win.width))
-            win = Window(col_off=c0, row_off=r0, width=c1 - c0, height=r1 - r0)
+            resp.raise_for_status()
+            chunk = resp.content
+            new_offsets[idx] = len(hdr) + len(payload)
+            new_counts[idx] = len(chunk)
+            payload.extend(chunk)
 
-    n_tx = math.ceil(img_w / tile_w)
-    needed_indices: set[int] = set()
-    for ty in range(r0 // tile_h, (r1 - 1) // tile_h + 1):
-        for tx in range(c0 // tile_w, (c1 - 1) // tile_w + 1):
-            needed_indices.add(ty * n_tx + tx)
+        struct.pack_into(f"<{n_tiles}I", hdr, off_pos, *new_offsets)
+        struct.pack_into(f"<{n_tiles}I", hdr, cnt_pos, *new_counts)
 
-    new_offsets = [0] * n_tiles
-    new_counts = [0] * n_tiles
-    payload = bytearray()
-    for idx in sorted(needed_indices):
-        t_off = orig_offsets[idx]
-        t_cnt = orig_counts[idx]
-        resp = requests.get(
-            url, headers={"Range": f"bytes={t_off}-{t_off + t_cnt - 1}"}, timeout=20
-        )
-        resp.raise_for_status()
-        chunk = resp.content
-        new_offsets[idx] = len(hdr) + len(payload)
-        new_counts[idx] = len(chunk)
-        payload.extend(chunk)
-
-    struct.pack_into(f"<{n_tiles}I", hdr, off_pos, *new_offsets)
-    struct.pack_into(f"<{n_tiles}I", hdr, cnt_pos, *new_counts)
-
-    with MemoryFile(bytes(hdr) + bytes(payload)) as mem:
-        with mem.open() as src:
-            data = src.read(1, window=win).astype(np.float32)
-            win_transform = src.window_transform(win)
-            crs = src.crs
-    return data, win_transform, crs
+        with MemoryFile(bytes(hdr) + bytes(payload)) as mem:
+            with mem.open() as src:
+                data = src.read(1, window=win).astype(np.float32)
+                win_transform = src.window_transform(win)
+                crs = src.crs
+        return data, win_transform, crs
+    except Exception:
+        return _vsicurl_fallback(url, west, south, east, north)
 
 
 def fetch_dem_patch(
@@ -442,7 +473,8 @@ def save_sanity_html(
         subplot_titles=[
             f"{d['site_id']} ({d['dst_crs']})<br>"
             f"slope={d['slope_mean']:.2f}° (p90={d['slope_p90']:.2f}°), "
-            f"rough={d['roughness']:.1f}m, relief={d['relief']:.1f}m"
+            f"rough={d['roughness']:.1f}m, relief={d['relief']:.1f}m, "
+            f"ΔT={d.get('temp_amplitude', float('nan')):.1f}K"
             for d in diagnostics
         ],
     )
@@ -479,7 +511,7 @@ def save_sanity_html(
             col=c,
         )
     fig.update_layout(
-        title_text="Earth Topography — Projected Slope (°), Roughness (m), Relief (m) & 1000 m Radius",
+        title_text="Earth Topography & MODIS LST — Slope (°), Roughness (m), Relief (m), ΔT (K)",
         height=850,
         width=1000,
     )
@@ -492,12 +524,12 @@ def run_task2(
     sites: list[SiteSpec] | None = None,
     out_parquet: Path = Path("data/processed/features_earth.parquet"),
 ) -> pd.DataFrame:
-    """Execute DEM topography extraction: slope_mean, slope_p90, roughness, relief."""
+    """Execute DEM topography + MODIS LST extraction and write contract parquet."""
     target_sites = sites if sites is not None else VERIFIED_EARTH_SITES
     rows: list[dict[str, Any]] = []
     diagnostics: list[dict[str, Any]] = []
 
-    print("=== EARTH DEM TOPOGRAPHY: SLOPE, ROUGHNESS & RELIEF (Copernicus_DEM_GLO-30) ===")
+    print("=== EARTH PIPELINE: COPERNICUS DEM GLO-30 & MODIS MOD11A2.061 ===")
     for s in target_sites:
         sid = s["site_id"]
         lat = s["lat"]
@@ -510,17 +542,19 @@ def run_task2(
         stats = compute_slope_in_radius(
             dem_m, transform, lat, lon, dst_crs=dst_crs, radius_m=radius_m
         )
+        modis_lst = fetch_mod11a2_temp_amplitude(sid, lat, lon)
 
         print(
-            f"[{sid}] src_shape={summary['src_shape']} ({summary['src_crs']}) "
-            f"-> dst_shape={summary['dst_shape']} ({summary['dst_crs']})"
+            f"[{sid}] DEM dst={summary['dst_shape']} ({summary['dst_crs']}) | "
+            f"MODIS native={tuple(modis_lst['native_shape'])} res={tuple(modis_lst['native_res_m'])}m"
         )
         print(
-            f"   n_pixels={stats['n_pixels']} | elev={stats['elev_min_m']:.1f}..{stats['elev_max_m']:.1f} m "
-            f"| slope_mean={stats['slope_mean']:.3f}±{stats['slope_mean_sd']:.3f}° "
-            f"| slope_p90={stats['slope_p90']:.3f}±{stats['slope_p90_sd']:.3f}° "
-            f"| roughness={stats['roughness']:.2f}±{stats['roughness_sd']:.2f} m "
-            f"| relief={stats['relief']:.2f}±{stats['relief_sd']:.2f} m"
+            f"   slope_mean={stats['slope_mean']:.3f}±{stats['slope_mean_sd']:.3f}° | "
+            f"slope_p90={stats['slope_p90']:.3f}±{stats['slope_p90_sd']:.3f}° | "
+            f"roughness={stats['roughness']:.2f}±{stats['roughness_sd']:.2f}m | "
+            f"relief={stats['relief']:.2f}±{stats['relief_sd']:.2f}m | "
+            f"temp_amp={modis_lst['temp_amplitude']:.2f}±{modis_lst['temp_amplitude_sd']:.2f}K "
+            f"(Day={modis_lst['lst_day_mean_k']:.1f}K, Night={modis_lst['lst_night_mean_k']:.1f}K)"
         )
 
         row = make_empty_contract_row(
@@ -538,21 +572,30 @@ def run_task2(
             row[f"{feat}_src"] = COPERNICUS_DEM_SRC
             row[f"{feat}_res_m"] = 30.0
 
+        row["temp_amplitude"] = modis_lst["temp_amplitude"]
+        row["temp_amplitude_sd"] = modis_lst["temp_amplitude_sd"]
+        row["temp_amplitude_src"] = modis_lst["temp_amplitude_src"]
+        row["temp_amplitude_res_m"] = 1000.0
+
         rows.append(row)
         diagnostics.append(
             {
                 "site_id": sid,
                 "dst_crs": dst_crs,
                 "radius_m": radius_m,
+                "temp_amplitude": modis_lst["temp_amplitude"],
                 **stats,
             }
         )
+
+    ok_alb, alb_msg = check_mcd43a3_access()
+    print(f"\n[MCD43A3.061 Albedo Status] available={ok_alb} -> {alb_msg}")
 
     df = build_contract_dataframe(rows)
     out_parquet.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out_parquet, index=False)
     html_path = save_sanity_html(diagnostics)
-    print(f"\nWrote contract parquet: {out_parquet} ({len(df)} rows, {len(df.columns)} cols)")
+    print(f"Wrote contract parquet: {out_parquet} ({len(df)} rows, {len(df.columns)} cols)")
     print(f"Wrote visual sanity map: {html_path}")
     return df
 
