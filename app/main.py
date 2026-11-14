@@ -61,6 +61,13 @@ BREAKDOWN_NOTES = (
     "- **Radiation:** no magnetosphere-free, ozone-free chronic particle flux\n"
     "- **Diurnal cycle:** lunar day ≈ 29.5 Earth days\n"
     "- **Regolith composition:** lunar/Martian mineralogy differs from any Earth rock\n\n"
+    "**Qualitative v1 factors (tracked, NOT in the numeric score — AGENTS.md §2):**\n"
+    "- **Water ice / permanently shadowed regions (PSR):** Earth has no "
+    "permanently shadowed, cryogenically cold terrain\n"
+    "- **Lava tubes / subsurface caves:** presence is site-specific; assessed "
+    "qualitatively from geology maps only\n"
+    "- **Electrostatic dust / wind:** lunar electrostatic dust levitation has "
+    "no Earth counterpart; Earth wind is a different (stronger) process\n\n"
     "Use Earth analogs only for the matched axes; validate the rest in lab/simulation."
 )
 
@@ -96,17 +103,18 @@ def _source_mtime(stem: str) -> float:
 @st.cache_data
 def load_data(
     m_moon: float, m_mars: float, m_earth: float
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, bool]:
-    """Load moon/mars/earth parquets; flag whether any MOCK row is present.
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, bool, bool, bool]:
+    """Load moon/mars/earth parquets + per-body MOCK flags.
 
     File mtimes are part of the cache key, so replacing a parquet in
     data/processed/ (or data/mock/) invalidates the cache automatically.
+    Returns (moon_df, mars_df, earth_df, moon_mock, mars_mock, earth_mock).
     """
     moon_df = _load_body("features_moon")
     mars_df = _load_body("features_mars")
     earth_df = _load_body("features_earth")
-    any_mock = _is_mock(moon_df) or _is_mock(mars_df) or _is_mock(earth_df)
-    return moon_df, mars_df, earth_df, any_mock
+    return (moon_df, mars_df, earth_df,
+            _is_mock(moon_df), _is_mock(mars_df), _is_mock(earth_df))
 
 
 # ── scoring (leader's module, called as-is) ──────────────────────────────────
@@ -173,7 +181,7 @@ def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
 def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     """pydeck scatter map of the top-N scored Earth sites."""
     map_df = result.head(top_n)[
-        ["site_id", "name", "role", "lat", "lon", "score"]
+        ["site_id", "name", "role", "lat", "lon", "score", "lithology_class"]
     ].copy()
 
     def _color(score: float) -> list[int]:
@@ -187,7 +195,8 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     map_df["score_txt"] = (map_df["score"] * 100).round(1).astype(str) + "%"
 
     tooltip = {
-        "html": "<b>{name}</b><br/>Role: {role}<br/>Score: {score_txt}",
+        "html": "<b>{name}</b><br/>Role: {role}<br/>Score: {score_txt}"
+                "<br/>Lithology: {lithology_class}",
         "style": {"background": "#1e1e2e", "color": "white",
                   "font-size": "13px", "padding": "6px"},
     }
@@ -217,19 +226,67 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
 # MAIN UI
 # ═══════════════════════════════════════════════════════════════════════════════
 
-moon_df, mars_df, earth_df, any_mock = load_data(
+moon_df, mars_df, earth_df, moon_mock, mars_mock, earth_mock = load_data(
     _source_mtime("features_moon"),
     _source_mtime("features_mars"),
     _source_mtime("features_earth"),
 )
 
+# ── SIDEBAR ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.header("⚙️ Settings")
+
+    # Mars real data may not exist yet; label it so jury never mixes
+    # a mock Mars preview with real Moon/Earth results (AGENTS.md §2).
+    mars_option = "Mars (v2 Mock Preview)" if mars_mock else "Mars"
+    body_choice = st.radio("Reference body", ["Moon", mars_option], horizontal=True)
+    body = "Moon" if body_choice.startswith("Moon") else "Mars"
+    ref_df = moon_df if body == "Moon" else mars_df
+    body_mock = moon_mock if body == "Moon" else mars_mock
+    if mars_mock:
+        st.caption("ℹ️ Mars features are still MOCK (v2 preview); Moon & Earth "
+                   "switch to real parquets automatically when they land.")
+
+    refs = ref_df[ref_df["role"] == "reference"].reset_index(drop=True)
+
+    ref_name = st.selectbox(f"Reference site ({body})", refs["name"].tolist())
+    ref_row = refs[refs["name"] == ref_name].iloc[0]
+    st.caption(f"`site_id`: {ref_row['site_id']} · lat {ref_row['lat']:.2f}°, "
+               f"lon {ref_row['lon']:.2f}° · lithology: "
+               f"{ref_row.get('lithology_class', '—')}")
+
+    st.divider()
+    mission = st.selectbox(
+        "Mission / use case",
+        list(MISSION_PRESETS.keys()),
+        format_func=lambda k: MISSION_LABELS.get(k, k),
+    )
+
+    st.divider()
+    top_n = st.slider(
+        "Show top N Earth sites", 1, max(2, len(earth_df)), min(6, len(earth_df))
+    )
+    min_score = st.slider(
+        "Portfolio coverage threshold", 0.30, 0.95, 0.70, 0.05,
+        help="A site covers an axis when its score >= this value.",
+    )
+
+# ── MOCK FLAG for the CURRENT view (selected body + Earth, AGENTS.md rule 10) ─
+any_mock = body_mock or earth_mock
+
 # ── MOCK BANNER (AGENTS.md rule 10) ──────────────────────────────────────────
 if any_mock:
+    mock_parts = []
+    if body_mock:
+        mock_parts.append(f"{body} reference features")
+    if earth_mock:
+        mock_parts.append("Earth candidate features")
     st.warning(
-        "🚧 **MOCK DATA — all scores on this page are fully synthetic.**\n\n"
+        f"🚧 **MOCK DATA — {' + '.join(mock_parts)} are synthetic.**\n\n"
         "Computed from `data/mock/` placeholder values, not real instrument data. "
         "For interface testing only; do not present as scientific findings. "
-        "This banner disappears when real parquets land in `data/processed/`.",
+        "Parts switch to real data automatically as parquets land in "
+        "`data/processed/`.",
         icon="🚧",
     )
 
@@ -243,44 +300,13 @@ st.caption(
     "· scores via `scoring.similarity.axis_scores`"
 )
 
-# ── SIDEBAR ──────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("⚙️ Settings")
-
-    body_choice = st.radio("Reference body", ["Moon", "Mars"], horizontal=True)
-    ref_df = moon_df if body_choice == "Moon" else mars_df
-    refs = ref_df[ref_df["role"] == "reference"].reset_index(drop=True)
-
-    ref_name = st.selectbox(
-        f"Reference site ({body_choice})", refs["name"].tolist()
-    )
-    ref_row = refs[refs["name"] == ref_name].iloc[0]
-    st.caption(f"`site_id`: {ref_row['site_id']} · lat {ref_row['lat']:.2f}°, "
-               f"lon {ref_row['lon']:.2f}°")
-
-    st.divider()
-    mission = st.selectbox(
-        "Mission / use case",
-        list(MISSION_PRESETS.keys()),
-        format_func=lambda k: MISSION_LABELS.get(k, k),
-    )
-
-    st.divider()
-    top_n = st.slider(
-        "Show top N Earth sites", 3, len(earth_df), min(6, len(earth_df))
-    )
-    min_score = st.slider(
-        "Portfolio coverage threshold", 0.30, 0.95, 0.70, 0.05,
-        help="A site covers an axis when its score >= this value.",
-    )
-
 # ── COMPUTE SCORES (leader's module) ─────────────────────────────────────────
 result, long_scores = score_earth(ref_row, earth_df, mission)
 top = result.head(top_n)
 axes = list(AXES.keys())  # mobility, thermal, surface
 
 # ── REFERENCE SITE VALUES ────────────────────────────────────────────────────
-st.subheader(f"📍 Reference: {ref_name} ({body_choice})")
+st.subheader(f"📍 Reference: {ref_name} ({body})")
 ref_features = [f for feats in AXES.values() for f in feats]
 ref_tbl = pd.DataFrame({
     "feature": ref_features,
@@ -317,7 +343,8 @@ with tab_radar:
             with col:
                 st.plotly_chart(_radar_chart(row, axes), width="stretch")
                 st.caption(f"Overall: **{row['score']:.2f}** "
-                           f"({row['n_axes_used']} axes used)")
+                           f"({row['n_axes_used']} axes used) · "
+                           f"lithology: {row.get('lithology_class', '—')}")
 
 # ── TAB 3: SCORE TABLE ───────────────────────────────────────────────────────
 with tab_table:
@@ -331,11 +358,14 @@ with tab_table:
             return f"{score:.2f}"
         return f"{score:.2f} [{lo:.2f}–{hi:.2f}]"
 
+    ref_lith = str(ref_row.get("lithology_class", ""))
     rows = []
     for _, r in result.iterrows():
+        lith = str(r.get("lithology_class", "—"))
         rec = {
             "Site": r["name"],
             "Role": r["role"],
+            "Lithology": f"{lith} ✓" if ref_lith and lith == ref_lith else lith,
             "Overall": "—" if np.isnan(r["score"]) else f"{r['score']:.3f}",
         }
         for a in axes:
@@ -346,7 +376,9 @@ with tab_table:
             )
         rows.append(rec)
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-    st.caption("— = axis not scoreable (missing features, e.g. NaN thermal_inertia).")
+    st.caption("— = axis not scoreable (missing features, e.g. NaN thermal_inertia). "
+               "Lithology ✓ = same qualitative class as the reference "
+               "(qualitative column, NOT part of the numeric score).")
 
 # ── TAB 4: VALIDATION (blind recovery of known analogues) ────────────────────
 with tab_validation:
@@ -435,24 +467,41 @@ with tab_portfolio:
 with tab_breakdown:
     st.markdown(BREAKDOWN_NOTES)
     st.divider()
-    if len(top) > 0:
-        best = top.iloc[0]
-        st.markdown(f"### Feature gaps: {best['name']} vs {ref_name} "
-                    "(leader's `axis_gaps`)")
-        gaps = axis_gaps(ref_row, earth_df)
-        gaps = gaps[gaps["site_id"] == best["site_id"]]
-        if gaps.empty:
-            st.info("No comparable features for this site.")
-        else:
-            gaps = gaps.sort_values("z_diff", key=lambda s: s.abs(), ascending=False)
-            show = gaps[["feature", "ref_value", "cand_value", "diff", "z_diff"]]
-            st.dataframe(
-                show.round(3), width="stretch", hide_index=True
-            )
-            st.caption("|z_diff| large → biggest physical mismatch; "
-                       "sort order: largest first.")
+    sel_name = st.selectbox(
+        "Inspect candidate site", result["name"].tolist(), index=0,
+        help="Feature-gap breakdown for any candidate, not only the top one.",
+    )
+    inspected = result[result["name"] == sel_name].iloc[0]
+    cand_row = earth_df[earth_df["site_id"] == inspected["site_id"]].iloc[0]
+
+    st.markdown(f"### Feature gaps: {sel_name} vs {ref_name} "
+                "(leader's `axis_gaps`)")
+    gaps = axis_gaps(ref_row, earth_df)
+    gaps = gaps[gaps["site_id"] == inspected["site_id"]]
+    if gaps.empty:
+        st.info("No comparable features for this site.")
     else:
-        st.info("No scored sites.")
+        gaps = gaps.sort_values("z_diff", key=lambda s: s.abs(), ascending=False)
+        # Source + native-resolution transparency (AGENTS.md §5): the jury
+        # must see that e.g. a ~1 km thermal product cannot resolve a
+        # 500 m site, while the DEM features are 30 m.
+        gaps["ref_src"] = gaps["feature"].map(
+            lambda f: str(ref_row.get(f"{f}_src", "—")))
+        gaps["ref_res_m"] = gaps["feature"].map(
+            lambda f: float(ref_row.get(f"{f}_res_m", np.nan)))
+        gaps["cand_src"] = gaps["feature"].map(
+            lambda f: str(cand_row.get(f"{f}_src", "—")))
+        gaps["cand_res_m"] = gaps["feature"].map(
+            lambda f: float(cand_row.get(f"{f}_res_m", np.nan)))
+        show = gaps[["feature", "ref_value", "cand_value", "diff", "z_diff",
+                     "ref_src", "ref_res_m", "cand_src", "cand_res_m"]]
+        st.dataframe(show.round(3), width="stretch", hide_index=True)
+        st.caption(
+            "|z_diff| large → biggest physical mismatch (sort order: largest "
+            "first). `*_src` = dataset per AGENTS.md §5; `*_res_m` = native "
+            "resolution — a coarse product (e.g. ~1 km MODIS) cannot resolve "
+            "a 500 m site even when the DEM is 30 m."
+        )
 
 # ── FOOTER ───────────────────────────────────────────────────────────────────
 st.divider()
