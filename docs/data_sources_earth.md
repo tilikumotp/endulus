@@ -189,14 +189,47 @@ v2'de lider onayı alındığı takdirde mevcut 5 ana sınıfa ek olarak `andesi
 
 ### 7.1 6 Şüpheli Saha İçin ESA WorldCover (10 m) & Sentinel-2 L2A SCL (20 m) Bulguları (`radius_m = 1000 m`)
 
+> [!WARNING]
+> **Karışık Piksel Uyarısı (5 `MIXED_*` Saha — Sözleşme Şeması Değişmeden):**
+> Aşağıdaki **5 saha** `mixed_pixel_flag = MIXED_*` olarak işaretlenmiştir:
+> `earth_salda_terrace` (`MIXED_CROP+VEG`), `earth_tuz_golu_south` (`MIXED_WATER`), `earth_svalbard_bockfjorden` (`MIXED_WATER+VEG`), `earth_suphan_south_apron` (`MIXED_CROP+VEG`) ve `earth_meteor_crater_arizona` (`MIXED_VEG`).
+> **Bu 5 sahada piksel karışımı yüksektir: `~1 km` `MOD11A2.061` LST (`temp_amplitude`) ve `~500 m` `MCD43A3.061` `albedo` değerleri saf yüzeyi (tek başına çıplak bazalt, evaporit/tuz kabuğu veya krater ejektasını) temsil etmez**; fiyort/göl suyu, nemli tuz tavası, seyrek bozkır veya çevredeki tarım/çöl çalısı örtüsünün alansal ortalamasını yansıtır. Skorlama ve alt-analizde bu sahalar yüksek karışım belirsizliğiyle yorumlanmalıdır (`features_earth.parquet` 36 sütunlu şeması değiştirilmemiştir).
+
 | `site_id` | `mixed_pixel_flag` | Koordinat (`lat, lon`) | WorldCover 10m (v200) Payları | Sentinel-2 L2A `SCL` Bulgusu & Sahne ID |
 |---|---|---|---|---|
 | `earth_salda_terrace` | `MIXED_CROP+VEG` | `37.5150, 29.6350` | Çıplak `%2.0`, Su `%0.1`, Kar `%0.0`, Tarım `%40.2`, Doğal Bitki `%55.9`, Yapı `%1.7` | 2024-08-16 yaz sahnesinde kuru ot/bozkır çoğunlukla çıplak toprak (`SCL=5: %93.1`, `veg_4: %6.9`), ancak `1 km` MODIS penceresi göl kenarı tarım/step karışımı içerir (`T36STG`). |
 | `earth_tuz_golu_south` | `MIXED_WATER` | `38.5500, 33.6200` | Çıplak/Tuz `%73.2`, Su `%26.8`, Kar `%0.0`, Bitki `%0.0` | `26.8%` sığ tuzlu su karışımı mevcut (`WC`). 2024-08-20 S2 `SCL=11 (%17.6)` parlak halit kabuğunu yanlış kar sınıfı olarak etiketlemiştir (`T36SWH`). |
 | `earth_svalbard_bockfjorden` | `MIXED_WATER+VEG` | `79.4280, 13.3850` | Çıplak `%41.1`, Su `%15.5`, Kar `%0.3`, Tundra `%43.1` | Fiyort suyu (`%15.5 WC / %29.8 S2`) ve Arktik tundra (`%43.1 WC / %17.2 S2`) `1 km` termal genlik ve `500 m` albedoyu doğrudan etkiler (`T33XVJ`, 2024-07-18). |
-| `earth_suphan_south_apron` | `MIXED_CROP+VEG` | `38.8650, 42.8300` (yeni; eski `38.9000, 42.8200`) | Yeni: Çıplak `%2.3`, Bitki/Step `%79.3`, Tarım/Nadas `%18.4` (Eski yamaç: `%50.3` çıplak, `%49.6` bitki) | 2024-09-05 yaz sonu S2 sahnesinde kuru bozkır neredeyse tamamen çıplak görünse de (`SCL=5: %99.8`, `veg_4: %0.2`, `T38SLJ`), alt etekte seyrek step/nadas karışımı yüksektir. |
+| `earth_suphan_south_apron` | `MIXED_CROP+VEG` | `38.8650, 42.8300` (yeni; eski `38.9000, 42.8200`) | UTM `1 km`: `Grassland_30 %79.2`, `Cropland_40 %18.4`, `Bare_sparse_60 %2.3`, `Built_up_50 %0.1`, `Tree_cover_10 %0.0` (Eski yamaç: `%50.3` çıplak, `%49.6` bitki) | Mevsimsel kuru step çelişkisi çözüldü (`T38SLJ`): Haziran'da yeşil (`NDVI ort=0.251`, `veg_4=%35.9`), Ağustos (`0.132`) ve Eylül'de (`0.113`, `SCL=5 %99.8`) kuruyarak optik olarak çıplak/anız görünür. |
 | `earth_meteor_crater_arizona` | `MIXED_VEG` | `35.0272, -111.0225` | Çıplak `%57.3`, Seyrek Çöl Çalısı `%41.9`, Yapı `%0.8` | 2024-08-16 S2 optik yansımasında `%99.9` çıplak kayaç/ejekta (`T12SVD`); seyrek çöl çalısı WC tarafından `%41.9` olarak işaretlenmiştir. |
 | `earth_etna_cisternazza` | `PURE_TARGET` (kış mevsimsel kar `%22.0`) | `37.7257, 15.0084` (Aday 1 Cisternazza seçildi; eski `37.7450, 15.0060`) | Çıplak Bazalt/Tefra `%99.4`, Bitki `%0.6`, Su `%0.0`, Kar `%0.0` | `15°E` WorldCover mozaik doğrulaması; yaz `2024-07-15` `kar=%0.0, bitki=%0.0`, ilkbahar `2024-04-13` `kar=%0.3`, kış `2024-02-08` `kar=%22.0` (`T33SVB`). |
+
+> [!NOTE]
+> **Evaporit / Parlak Yüzey Kar Maskesi (`SCL=11` & `NDSI >= 0.40`) Denetim Notu (`earth_tuz_golu_south`, `earth_qaidam_dalangtan`, `earth_salda_terrace`):**
+> - **`earth_tuz_golu_south` (Yanlış Pozitif Var):** Yaz–Eylül döneminde (`2024-08-20` `SCL=11 %17.9`, `2024-09-07` `SCL=11 %20.5`; `S2 NDSI >= 0.40`: `2024-07-21 %14.8`, `2024-08-20 %16.9`, `2024-09-07 %19.9`) işaretlenen pikseller iklimsel/mevsimsel olarak kar olamaz; yüzey muhtemelen ıslak tuz kabuğu / sığ tuzlu su karışımıdır (yer gerçeğiyle **doğrulanmadı**). Bu sahada `S2 SCL/NDSI` kar oranları ([`src/earth/mixed_pixel.py`](../src/earth/mixed_pixel.py) içindeki `%17.6` değeri dâhil) ve `MCD43A4.061` `NDSI < 0.40` kar maskesi (`30/31` piksel / `%96.8` maskelendi, Liang yedeği `0.2492` tek pikselden hesaplandı) **kar göstergesi olarak kullanılmamalıdır**. Kış durumu **doğrulanamadı** (`2024-02-02` S2 sahnesi `r = 1 km` içinde `%100` bulutlu: `SCL 8/9`). `features_earth.parquet` içindeki `albedo = 0.2057` değeri `MCD43A3.061` (`NDSI` maskesiz `Albedo_BSA_shortwave`) kaynaklı olduğu için bundan etkilenmez.
+> - **`earth_qaidam_dalangtan` ve `earth_salda_terrace` (Yanlış Pozitif Yok):** Kontrol edilen `4` `Qaidam` sahnesinde (`2024-01-27`, `2024-05-18`, `2024-07-20`, `2024-08-14`, tamamında `SCL_snow=%0.0` ve `S2 NDSI >= 0.40 %0.0`; `2024-01-27`'de `SCL` bulut `%4.1`) ve `5` `Salda` tarihinde (`2024-02-03`, `2024-05-18`, `2024-07-02`, `2024-08-16`, `2024-09-05`; `r=1 km` ile Şubat/Ağustos `r=2 km` parlak kıyı pikselleri dâhil tümünde `SCL_snow=%0.0`, `SCL_cloud=%0.0`, `S2 NDSI >= 0.40 %0.0`) yanlış kar/bulut pozitifi saptanmamıştır. MODIS `MCD43A4.061` kuru-çalışmasında da her iki sahada `0/100` (`%0.0`) piksel kar olarak maskelenmiştir.
+> - **`earth_salda_terrace` Albedo Ürün Farkı:** `MCD43A4.061` Liang (2001) yedeği (`0.1578 ± 0.0184`) ile parquet'teki `MCD43A3.061` (`0.1269 ± 0.0153`) arasında yaklaşık `%24` fark vardır; bu fark kar maskesinden kaynaklanmaz (`0/100`), ancak **nedeni doğrulanmamıştır** (olası ürün/BRDF dönüşümü ve piksel penceresi farkı varsayımı).
+
+#### 7.1.1 `earth_suphan_south_apron` Mevsimsel NDVI Çözümlemesi ve `~5 km` Çıplak Etek Taraması (Karar: Mevcut Konum Korundu)
+
+`earth_suphan_south_apron` (`38.8650, 42.8300`, `2299 m`) sahasında ESA WorldCover (`%79.2 Grassland_30` + `%18.4 Cropland_40` = `%97.6` otlak/tarım, yalnızca `%2.3 Bare_sparse_60`) ile `2024-09-05` Sentinel-2 `SCL` (`%99.8 bare_5`) arasındaki görünür çelişki, Doğu Anadolu yüksek bozkırının yaz kuraklığı fenolojisinden kaynaklanmaktadır (`UTM 1 km` daire, `n = 31420` S2 pikseli, AoI içi bulut `%0.0`, sahne `T38SLJ`):
+
+| Tarih & Sahne ID | Genel NDVI (`ort / med / p90`) | `NDVI > 0.20` / `> 0.30` | `SCL` `veg_4` / `bare_5` | `WC Grassland_30` (`n=24868`) NDVI ort (`p90`) | `WC Cropland_40` (`n=5778`) NDVI ort (`p90`) | `WC Bare_60` (`n=730`) NDVI ort (`p90`) |
+|---|---|---|---|---|---|---|
+| `2024-06-17` (`S2A_MSIL2A_20240617T075611_R035_T38SLJ_20240617T121029`, bulut `%0.81`) | `0.251 / 0.264 / 0.418` | `%65.5` / `%37.2` | `%35.9` / `%64.1` | `0.282` (`0.431`, `>0.25: %63.8`) | `0.128` (`0.325`, `>0.25: %19.2`) | `0.139` (`0.234`, `>0.25: %7.3`) |
+| `2024-08-06` (`S2A_MSIL2A_20240806T075611_R035_T38SLJ_20240806T122153`, bulut `%2.33`) | `0.132 / 0.132 / 0.177` | `%4.4` / `%0.6` | `%0.5` / `%99.5` | `0.141` | `0.095` | `0.091` |
+| `2024-09-05` (`S2A_MSIL2A_20240905T075611_R035_T38SLJ_20240905T123250`, bulut `%0.20`) | `0.113 / 0.110 / 0.146` | `%1.2` / `%0.3` | `%0.2` / `%99.8` | `0.119` | `0.094` | `0.082` |
+
+- **Sonuç:** İlkbahar/Haziran zirvesinde (`0.282` ort., `%63.8 > 0.25`) aktif yeşil olan yağmura dayalı mera/step ve kuru tarım parselleri Ağustos–Eylül kuraklığında tamamen sararıp kuru anız/toprağa dönüşmekte; Sen2Cor sınıflandırıcısı klorofil eşiğinin (`NDVI ~ 0.20`) altına düşen bu yüzeyi `SCL=5` (`bare_soils`) olarak etiketlemektedir.
+- **`~5 km` İçinde `Bare_sparse_60 > %50` Alternatif Taraması (`step = 350 m`, karar gereği mevcut konum korundu; `cand_1–5` uygulanmadı ve `sites.py` DEĞİŞTİRİLMEDİ):** Mevcut noktanın `<= 5.0 km` çevresinde `17` grid noktası `Bare_sparse_60 > %50` şartını sağlamaktadır, ancak **tamamı kuzeydeki dik üst volkanik koni yamacındadır** (`~3239–3400 m` rakım, eğim `19.6°–21.2°`); `3000 m` altındaki alçak eğimli gerçek lav eteğinde `%50` üzeri çıplak nokta bulunmamıştır.
+
+| Aday | Koordinat (`lat, lon`) | Mevcut / Zirve Uzaklığı | Rakım (`m`) | `Bare_60` / `Grass_30` (WC) | `slope_mean` / `slope_p90` / `relief` | NDVI (`Haz / Ağu / Eyl`) | Değerlendirme |
+|---|---|---|---|---|---|---|---|
+| `cand_1` | `38.9090, 42.8206` | `4.95 km` / `2.05 km` | `3400.3` | `%70.4` / `%29.6` | `20.56°` / `29.25°` / `641.4 m` | `0.032 / 0.096 / 0.087` | En çıplak (`%70.4`), fakat Haziran'da kalıcı/geç kar izi (`SCL bare_5 %82.8`) ve `20.6°` dik koni yamacı. |
+| `cand_2` | `38.9091, 42.8287` | `4.90 km` / `1.94 km` | `3382.2` | `%66.5` / `%33.5` | `20.61°` / `30.09°` / `600.8 m` | `0.053 / 0.089 / 0.082` | Zirveye çok yakın (`1.94 km`) ve dik üst yamaç. |
+| `cand_3` | `38.9057, 42.8126` | `4.76 km` / `2.66 km` | `3298.6` | `%63.4` / `%36.6` | `19.63°` / `28.69°` / `585.5 m` | `0.039 / 0.107 / 0.090` | Batı üst yamaç geçişi; hâlâ `~19.6°` dik eğim. |
+| `cand_4` | `38.9027, 42.8208` | `4.26 km` / `2.72 km` | `3243.2` | `%58.7` / `%41.3` | `19.97°` / `30.89°` / `636.2 m` | `0.062 / 0.110 / 0.094` | `>50%` çıplak sınırının alt kenarına en yakın aday (eteğin üst sınırı). |
+| `cand_5` | `38.9061, 42.8368` | `4.60 km` / `2.40 km` | `3238.9` | `%50.6` / `%49.4` | `21.17°` / `29.29°` / `689.5 m` | `0.072 / 0.102 / 0.088` | Eşik sınırında ve en dik/rölyefli seçenek. |
 
 ### 7.2 Mount Etna (`earth_etna_cisternazza`) Karar Tablosu (Eski vs Aday 1 & Aday 2, `radius_m = 1000 m`)
 
