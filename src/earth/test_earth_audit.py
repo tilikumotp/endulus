@@ -11,7 +11,18 @@ import pandas as pd
 import pytest
 
 from scripts.validate_contract import count_mock, validate
-from src.earth.dem_pipeline import CONTRACT_COLS
+from src.earth.dem_pipeline import (
+    CONTRACT_COLS,
+    COPERNICUS_DEM_SRC,
+    NASADEM_DEM_SRC,
+    get_dem_source,
+)
+from src.earth.mixed_pixel import (
+    MADDE3_AUDITED_RECORDS,
+    build_diagnostic_rows,
+    classify_mixed_pixel,
+)
+from src.earth.modis_pipeline import _make_retrying_session
 from src.earth.sites import VERIFIED_EARTH_SITES
 
 PARQUET_PATH = Path("data/processed/features_earth.parquet")
@@ -248,3 +259,57 @@ def test_cross_table_consistency_with_docs(df_earth: pd.DataFrame) -> None:
         "earth_paricutin_lava_field",
     ):
         assert conflict_sid in md_text
+
+
+def test_dem_fallback_source_and_agri_nasadem(df_earth: pd.DataFrame) -> None:
+    """Verify NASADEM fallback is restricted to missing Copernicus tiles (N39E044 at Agri)."""
+    assert get_dem_source(Path("site_copdem30_wgs84.tif")) == COPERNICUS_DEM_SRC
+    assert get_dem_source(Path("site_nasadem30_wgs84.tif")) == NASADEM_DEM_SRC
+
+    by_id = df_earth.set_index("site_id")
+    assert by_id.loc["earth_agri_dogubayazit_flow", "slope_mean_src"] == NASADEM_DEM_SRC
+    other_mask = df_earth["site_id"] != "earth_agri_dogubayazit_flow"
+    assert (df_earth.loc[other_mask, "slope_mean_src"] == COPERNICUS_DEM_SRC).all()
+
+    for _, row in df_earth.iterrows():
+        expected = row["slope_mean_src"]
+        for feat in ("slope_p90", "roughness", "relief"):
+            assert row[f"{feat}_src"] == expected
+
+
+def test_modis_retrying_session_config() -> None:
+    """Verify MADDE 4 retry/backoff adapter policy for resilient MODIS/Earthdata fetching."""
+    sess = _make_retrying_session()
+    retry = sess.get_adapter("https://").max_retries
+    assert retry.total == 5
+    assert retry.connect == 5
+    assert retry.read == 5
+    assert retry.backoff_factor == pytest.approx(0.8)
+    assert {429, 500, 502, 503, 504}.issubset(set(retry.status_forcelist))
+
+
+def test_mixed_pixel_diagnostic_rules_and_schema(df_earth: pd.DataFrame) -> None:
+    """Verify MADDE 3 mixed-pixel diagnostic rules remain decoupled from the 36-col contract."""
+    assert "mixed_pixel_flag" not in df_earth.columns
+    assert classify_mixed_pixel(0.0, 0.0, 0.0, 1.5) == (False, "PURE_TARGET")
+    assert classify_mixed_pixel(26.8, 0.0, 0.0, 0.0) == (True, "MIXED_WATER")
+    assert classify_mixed_pixel(15.5, 0.3, 0.0, 43.1) == (True, "MIXED_WATER+VEG")
+    assert classify_mixed_pixel(0.1, 0.0, 40.2, 55.9) == (True, "MIXED_CROP+VEG")
+
+    diag_rows = build_diagnostic_rows()
+    diag_ids = {r["site_id"] for r in diag_rows}
+    expected_ids = {
+        "earth_salda_terrace",
+        "earth_tuz_golu_south",
+        "earth_svalbard_bockfjorden",
+        "earth_suphan_south_apron",
+        "earth_meteor_crater_arizona",
+        "earth_etna_cisternazza",
+        "earth_etna_cand1_cisternazza",
+        "earth_etna_cand2_pianolago_w",
+    }
+    assert expected_ids.issubset(diag_ids)
+    assert len(MADDE3_AUDITED_RECORDS) == len(diag_rows)
+    for row in diag_rows:
+        assert row["mixed_pixel_flag"] == row["rule_flag"]
+        assert row["is_mixed"] == row["rule_is_mixed"]
