@@ -31,6 +31,8 @@ from scoring.similarity import (  # noqa: E402
     axis_scores,
     combine_axes,
 )
+from scoring.portfolio import select_portfolio  # noqa: E402
+from scoring.validation import run_blind_validation  # noqa: E402
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -62,6 +64,8 @@ BREAKDOWN_NOTES = (
     "Use Earth analogs only for the matched axes; validate the rest in lab/simulation."
 )
 
+VALIDATION_TOP_K = 5  # analogue counts as recovered when its rank <= k
+
 
 # ── data loading ─────────────────────────────────────────────────────────────
 def _is_mock(df: pd.DataFrame) -> bool:
@@ -81,9 +85,23 @@ def _load_body(stem: str) -> pd.DataFrame:
     st.stop()
 
 
+def _source_mtime(stem: str) -> float:
+    """Mtime of the parquet actually used (processed first, mock fallback)."""
+    proc = PROC_DIR / f"{stem}.parquet"
+    mock = MOCK_DIR / f"{stem}.parquet"
+    path = proc if proc.exists() else mock
+    return path.stat().st_mtime if path.exists() else 0.0
+
+
 @st.cache_data
-def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, bool]:
-    """Load moon/mars/earth parquets; flag whether any MOCK row is present."""
+def load_data(
+    m_moon: float, m_mars: float, m_earth: float
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, bool]:
+    """Load moon/mars/earth parquets; flag whether any MOCK row is present.
+
+    File mtimes are part of the cache key, so replacing a parquet in
+    data/processed/ (or data/mock/) invalidates the cache automatically.
+    """
     moon_df = _load_body("features_moon")
     mars_df = _load_body("features_mars")
     earth_df = _load_body("features_earth")
@@ -94,8 +112,12 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, bool]:
 # ── scoring (leader's module, called as-is) ──────────────────────────────────
 def score_earth(
     ref_row: pd.Series, earth_df: pd.DataFrame, mission: str
-) -> pd.DataFrame:
-    """Run axis_scores + pivot + weighted combine; return one row per site."""
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Run axis_scores + pivot + weighted combine.
+
+    Returns (result, long_scores) — long_scores is the raw axis_scores
+    output needed by the validation and portfolio tabs.
+    """
     long_scores = axis_scores(ref_row, earth_df)
     wide = axis_pivot(long_scores)
     overall = combine_axes(long_scores, MISSION_PRESETS[mission])
@@ -107,7 +129,7 @@ def score_earth(
         .sort_values("score", ascending=False, na_position="last")
         .reset_index(drop=True)
     )
-    return result
+    return result, long_scores
 
 
 # ── charts ───────────────────────────────────────────────────────────────────
@@ -188,14 +210,18 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
         )
     except ImportError:
         st.info("pydeck not installed — falling back to st.map.")
-        st.map(map_df.rename(columns={"name": "name"}), size=200_000)
+        st.map(map_df, size=200_000)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN UI
 # ═══════════════════════════════════════════════════════════════════════════════
 
-moon_df, mars_df, earth_df, any_mock = load_data()
+moon_df, mars_df, earth_df, any_mock = load_data(
+    _source_mtime("features_moon"),
+    _source_mtime("features_mars"),
+    _source_mtime("features_earth"),
+)
 
 # ── MOCK BANNER (AGENTS.md rule 10) ──────────────────────────────────────────
 if any_mock:
@@ -210,10 +236,10 @@ if any_mock:
 # ── TITLE ────────────────────────────────────────────────────────────────────
 st.title("🌕 Moon / Mars ↔ Earth Analog Finder")
 st.caption(
-    "NASA Space Apps 2026 · per-axis Gaussian similarity [0–1], higher = closer "
+    "NASA Space Apps 2026 · per-axis kernel similarity exp(-distance) [0–1], higher = closer "
     "· scores via `scoring.similarity.axis_scores` · **current output: MOCK**"
     if any_mock else
-    "NASA Space Apps 2026 · per-axis Gaussian similarity [0–1], higher = closer "
+    "NASA Space Apps 2026 · per-axis kernel similarity exp(-distance) [0–1], higher = closer "
     "· scores via `scoring.similarity.axis_scores`"
 )
 
@@ -243,9 +269,13 @@ with st.sidebar:
     top_n = st.slider(
         "Show top N Earth sites", 3, len(earth_df), min(6, len(earth_df))
     )
+    min_score = st.slider(
+        "Portfolio coverage threshold", 0.30, 0.95, 0.70, 0.05,
+        help="A site covers an axis when its score >= this value.",
+    )
 
 # ── COMPUTE SCORES (leader's module) ─────────────────────────────────────────
-result = score_earth(ref_row, earth_df, mission)
+result, long_scores = score_earth(ref_row, earth_df, mission)
 top = result.head(top_n)
 axes = list(AXES.keys())  # mobility, thermal, surface
 
@@ -262,8 +292,9 @@ st.dataframe(ref_tbl, width="stretch", hide_index=True)
 st.divider()
 
 # ── TABS ─────────────────────────────────────────────────────────────────────
-tab_map, tab_radar, tab_table, tab_breakdown = st.tabs([
-    "🗺️ Map", "📡 Radar Charts", "📊 Score Table", "⚠️ Analogy Limits"
+tab_map, tab_radar, tab_table, tab_validation, tab_portfolio, tab_breakdown = st.tabs([
+    "🗺️ Map", "📡 Radar Charts", "📊 Score Table",
+    "✅ Validation", "🧭 Portfolio", "⚠️ Analogy Limits",
 ])
 
 # ── TAB 1: MAP ───────────────────────────────────────────────────────────────
@@ -315,7 +346,90 @@ with tab_table:
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     st.caption("— = axis not scoreable (missing features, e.g. NaN thermal_inertia).")
 
-# ── TAB 4: ANALOGY LIMITS ────────────────────────────────────────────────────
+# ── TAB 4: VALIDATION (blind recovery of known analogues) ────────────────────
+with tab_validation:
+    st.markdown(
+        "Blind check (leader's `run_blind_validation`): sites with role "
+        "`validation` — the known analogues — should rank near the top per "
+        f"axis. Recovery = rank ≤ {VALIDATION_TOP_K} of {len(earth_df)} "
+        "scored sites. The scorer itself never sees roles."
+    )
+    val = run_blind_validation(long_scores, earth_df, top_k=VALIDATION_TOP_K)
+    val = val.merge(earth_df[["site_id", "name"]], on="site_id", how="left")
+
+    recovered = int(val["in_top_k"].sum())
+    st.metric("Recovered (site × axis) pairs",
+              f"{recovered} / {len(val)}")
+
+    if any_mock:
+        st.info(
+            "MOCK note: validation-role sites carry random feature draws, so "
+            "recovery here is random too — meaningful only once real parquets "
+            "land in data/processed/."
+        )
+
+    fig = go.Figure()
+    for axis in axes:
+        sub = val[val["axis"] == axis].dropna(subset=["rank"])
+        fig.add_trace(go.Bar(
+            y=sub["name"], x=sub["rank"], orientation="h",
+            name=AXIS_LABELS[axis],
+        ))
+    fig.update_layout(
+        barmode="group",
+        xaxis=dict(autorange="reversed", title="Rank (1 = best)"),
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=320,
+        legend=dict(orientation="h", y=1.12),
+    )
+    st.plotly_chart(fig, width="stretch")
+
+    st.dataframe(
+        val[["name", "axis", "rank", "n_sites", "in_top_k"]]
+        .rename(columns={"in_top_k": f"in_top_{VALIDATION_TOP_K}"})
+        .sort_values(["name", "axis"]),
+        width="stretch", hide_index=True,
+    )
+
+# ── TAB 5: PORTFOLIO (smallest set covering the most axes) ───────────────────
+with tab_portfolio:
+    st.markdown(
+        "Greedy set cover (leader's `select_portfolio`): the smallest set of "
+        f"Earth sites covering every axis with score ≥ **{min_score:.2f}**. "
+        "Axes no site covers must be validated in lab/simulation instead."
+    )
+    selected_ids, uncovered = select_portfolio(long_scores, min_score, axes=axes)
+    if not selected_ids:
+        st.info(f"No Earth site reaches {min_score:.2f} on any axis — lower "
+                "the threshold in the sidebar.")
+    else:
+        rows = []
+        for sid in selected_ids:
+            grp = long_scores[
+                (long_scores["site_id"] == sid) & long_scores["score"].notna()
+            ]
+            covered = [AXIS_LABELS[a] for a, s in zip(grp["axis"], grp["score"])
+                       if s >= min_score]
+            name = earth_df.loc[earth_df["site_id"] == sid, "name"].iloc[0]
+            rows.append({
+                "Pick": len(rows) + 1,
+                "Site": name,
+                "Covers (score ≥ threshold)": ", ".join(covered),
+            })
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+
+        st.markdown(
+            "**Uncovered axes:** "
+            + (", ".join(AXIS_LABELS[a] for a in uncovered)
+               if uncovered else "none — all axes covered ✅")
+        )
+        if any_mock:
+            st.info(
+                "MOCK note: with synthetic scores this portfolio is an "
+                "interface demo only, not a site recommendation."
+            )
+
+# ── TAB 6: ANALOGY LIMITS ────────────────────────────────────────────────────
 with tab_breakdown:
     st.markdown(BREAKDOWN_NOTES)
     st.divider()
