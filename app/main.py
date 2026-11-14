@@ -40,8 +40,30 @@ LOGGER = logging.getLogger(__name__)
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Moon/Mars <-> Earth Analog Finder",
-    page_icon="🌕",
     layout="wide",
+)
+
+st.markdown(
+    """
+    <style>
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding-top: 1.75rem;
+        padding-bottom: 2rem;
+    }
+    h1 {
+        font-size: 2rem;
+        font-weight: 500;
+        line-height: 1.15;
+    }
+    h2, h3 {
+        font-weight: 500;
+    }
+    [data-testid="stTabs"] button p {
+        font-size: 0.875rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 # ── constants ────────────────────────────────────────────────────────────────
@@ -63,7 +85,7 @@ MISSION_LABELS = {
 }
 
 BREAKDOWN_NOTES = (
-    "⚠️ **Where the analogy breaks down** — no Earth site can reproduce:\n"
+    "**Where the analogy breaks down** — no Earth site can reproduce:\n"
     "- **Gravity:** Moon ~1/6 g, Mars ~3/8 g (regolith mechanics, dust settling)\n"
     "- **Vacuum / thin atmosphere:** no Earth surface has <= 1 Pa pressure\n"
     "- **Radiation:** no magnetosphere-free, ozone-free chronic particle flux\n"
@@ -147,25 +169,39 @@ def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(
         r=_closed(vals), theta=labels_c, fill="toself",
-        fillcolor="rgba(99,110,250,0.35)",
-        line=dict(color="rgb(99,110,250)", width=2),
+        fillcolor="rgba(138,90,24,0.12)",
+        line=dict(color="#8A5A18", width=2),
         name=row["name"],
         hovertemplate="%{theta}: %{r:.2f}<extra></extra>",
     ))
     fig.add_trace(go.Scatterpolar(
-        r=_closed(hi), theta=labels_c, line=dict(color="green", width=1, dash="dash"),
+        r=_closed(hi), theta=labels_c,
+        line=dict(color="#8A847A", width=1, dash="dash"),
         name="CI high", hoverinfo="skip",
     ))
     fig.add_trace(go.Scatterpolar(
-        r=_closed(lo), theta=labels_c, line=dict(color="red", width=1, dash="dot"),
+        r=_closed(lo), theta=labels_c,
+        line=dict(color="#8A847A", width=1, dash="dot"),
         name="CI low", hoverinfo="skip",
     ))
     fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1],
+                gridcolor="rgba(55,48,38,0.14)",
+                color="#6E685D",
+                tickfont=dict(size=10),
+            ),
+            angularaxis=dict(gridcolor="rgba(55,48,38,0.14)"),
+        ),
         showlegend=False,
-        margin=dict(l=20, r=20, t=40, b=20),
-        title=dict(text=str(row["name"]), font=dict(size=13)),
+        margin=dict(l=32, r=32, t=40, b=24),
+        title=dict(text=str(row["name"]), font=dict(size=13, color="#2C2923")),
         height=320,
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#2C2923"),
     )
     return fig
 
@@ -173,8 +209,8 @@ def _radar_chart(row: pd.Series, axes: list[str]) -> go.Figure:
 def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     """pydeck scatter map of the top-N scored Earth sites.
 
-    Known validation analogues are drawn as fixed blue circles; candidates
-    are coloured green→red by score, so the two roles are never confused.
+    Known validation analogues are outlined in blue; candidate size and
+    colour encode the mission-weighted score.
     """
     map_df = result.head(top_n)[
         ["site_id", "name", "role", "lat", "lon", "score", "lithology_class"]
@@ -194,7 +230,7 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     tooltip = {
         "html": "<b>{name}</b><br/>Role: {role}<br/>Score: {score_txt}"
                 "<br/>Lithology: {lithology_class}",
-        "style": {"background": "#1e1e2e", "color": "white",
+        "style": {"background": "#2C2923", "color": "white",
                   "font-size": "13px", "padding": "6px"},
     }
     try:
@@ -214,6 +250,8 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
                 stroked=True,
                 get_line_color=[230, 230, 230],
                 line_width_min_pixels=1,
+                radius_min_pixels=6,
+                radius_max_pixels=18,
                 pickable=True,
                 auto_highlight=True,
             ))
@@ -224,6 +262,8 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
                 get_position="[lon, lat]",
                 get_fill_color="color",
                 get_radius="radius",
+                radius_min_pixels=6,
+                radius_max_pixels=18,
                 pickable=True,
                 auto_highlight=True,
             ))
@@ -231,8 +271,10 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
             pdk.Deck(layers=layers, initial_view_state=view, tooltip=tooltip),
             width="stretch",
         )
-        st.caption("🔵 Blue ring = known validation analogues (Etna, Atacama, "
-                   "Haughton…) · green→red = candidates, colour = score.")
+        st.caption(
+            "Blue outline = known validation analogue. Candidate marker size "
+            "and colour encode the mission-weighted score (0–1)."
+        )
     except ImportError:
         st.info("pydeck not installed — falling back to st.map.")
         st.map(map_df, size=200_000)
@@ -275,30 +317,28 @@ moon_df, earth_df = load_data(
 
 # ── SIDEBAR ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.header("⚙️ Settings")
+    st.header("Settings")
 
     body = "Moon"
-    st.radio("Reference body", ["Moon"], horizontal=True)
+    st.caption("Reference body · Moon")
     ref_df = moon_df
 
     refs = ref_df[ref_df["role"] == "reference"].reset_index(drop=True)
 
-    ref_name = st.selectbox(f"Reference site ({body})", refs["name"].tolist())
+    ref_name = st.selectbox("Reference site", refs["name"].tolist())
     ref_row = refs[refs["name"] == ref_name].iloc[0]
     st.caption(f"`site_id`: {ref_row['site_id']} · lat {ref_row['lat']:.2f}°, "
                f"lon {ref_row['lon']:.2f}° · lithology: "
                f"{ref_row.get('lithology_class', '—')}")
 
-    st.divider()
     mission = st.selectbox(
         "Mission / use case",
         list(MISSION_PRESETS.keys()),
         format_func=lambda k: MISSION_LABELS.get(k, k),
     )
 
-    st.divider()
     top_n = st.slider(
-        "Show top N Earth sites", 1, max(2, len(earth_df)), min(6, len(earth_df))
+        "Top Earth sites shown", 1, max(2, len(earth_df)), min(6, len(earth_df))
     )
     min_score = st.slider(
         "Portfolio coverage threshold", 0.30, 0.95, 0.70, 0.05,
@@ -306,10 +346,10 @@ with st.sidebar:
     )
 
 # ── TITLE ────────────────────────────────────────────────────────────────────
-st.title("🌕 Moon / Mars ↔ Earth Analog Finder")
+st.title("Moon / Mars ↔ Earth Analog Finder")
 st.caption(
-    "NASA Space Apps 2026 · per-axis kernel similarity exp(-distance) [0–1], higher = closer "
-    "· scores via `scoring.similarity.axis_scores`"
+    "Compare mobility, thermal and surface conditions across Earth sites, "
+    "with uncertainty shown for each axis."
 )
 
 # ── COMPUTE SCORES (leader's module) ─────────────────────────────────────────
@@ -318,7 +358,6 @@ top = result.head(top_n)
 axes = list(AXES.keys())  # mobility, thermal, surface
 
 # ── REFERENCE SITE VALUES ────────────────────────────────────────────────────
-st.subheader(f"📍 Reference: {ref_name} ({body})")
 ref_features = [f for feats in AXES.values() for f in feats]
 ref_tbl = pd.DataFrame({
     "feature": ref_features,
@@ -328,27 +367,32 @@ ref_tbl = pd.DataFrame({
     "res_m": [ref_row.get(f"{f}_res_m", np.nan) for f in ref_features],
     "source": [str(ref_row.get(f"{f}_src", "—")) for f in ref_features],
 })
-st.dataframe(ref_tbl, width="stretch", hide_index=True)
-st.caption("`temp_amplitude` = diurnal-cycle surface temperature range (`docs/data_notes.md`).")
-
-st.divider()
+with st.expander(f"Reference measurements · {ref_name}", expanded=False):
+    st.dataframe(ref_tbl, width="stretch", hide_index=True)
+    st.caption(
+        "`temp_amplitude` is the diurnal-cycle surface temperature range. "
+        "Feature sources and native resolutions are shown above."
+    )
 
 # ── TABS ─────────────────────────────────────────────────────────────────────
 tab_map, tab_radar, tab_table, tab_validation, tab_portfolio, tab_breakdown = st.tabs([
-    "🗺️ Map", "📡 Radar Charts", "📊 Score Table",
-    "✅ Validation", "🧭 Portfolio", "⚠️ Analogy Limits",
+    "Map", "Radar", "Scores", "Validation", "Portfolio", "Analogy limits",
 ])
 
 # ── TAB 1: MAP ───────────────────────────────────────────────────────────────
 with tab_map:
-    st.markdown(f"**Top {top_n} Earth analogs for {ref_name}** — circle size "
-                f"& colour = mission-weighted overall score")
+    st.markdown(
+        f"**Top {top_n} Earth sites for {ref_name}** · "
+        "Marker size and colour encode the mission-weighted score."
+    )
     _map_chart(result, top_n)
 
 # ── TAB 2: RADAR CHARTS ──────────────────────────────────────────────────────
 with tab_radar:
-    st.markdown("Per-axis score [0–1] (solid) with 95% CI high (green dashed) "
-                "and CI low (red dotted). Outer ring = perfect match.")
+    st.markdown(
+        "Per-axis scores (0–1). Lines show the 5th–95th Monte Carlo "
+        "percentiles, expanded to include the point estimate."
+    )
     per_row = 3
     for i in range(0, len(top), per_row):
         chunk = top.iloc[i:i + per_row]
@@ -362,8 +406,11 @@ with tab_radar:
 
 # ── TAB 3: SCORE TABLE ───────────────────────────────────────────────────────
 with tab_table:
-    st.markdown("Mission-weighted overall score + per-axis scores with "
-                "[ci_low – ci_high] for every Earth site.")
+    st.markdown(
+        "Mission-weighted overall score and per-axis scores. Brackets show "
+        "the 5th–95th Monte Carlo percentiles, expanded to include the point "
+        "estimate, for each axis."
+    )
     role_filter = st.multiselect(
         "Filter by role", ["validation", "candidate"],
         default=["validation", "candidate"],
@@ -386,7 +433,10 @@ with tab_table:
         rec = {
             "Site": r["name"],
             "Role": r["role"],
-            "Lithology": f"{lith} ✓" if ref_lith and lith == ref_lith else lith,
+            "Lithology": (
+                f"{lith} (matches reference)"
+                if ref_lith and lith == ref_lith else lith
+            ),
             "Overall": "—" if np.isnan(r["score"]) else f"{r['score']:.3f}",
         }
         for a in axes:
@@ -397,9 +447,10 @@ with tab_table:
             )
         rows.append(rec)
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-    st.caption("— = axis not scoreable (missing features, e.g. NaN thermal_inertia). "
-               "Lithology ✓ = same qualitative class as the reference "
-               "(qualitative column, NOT part of the numeric score).")
+    st.caption(
+        "— = axis not scoreable because required features are missing. "
+        "Lithology is qualitative and is not included in the numeric score."
+    )
 
 # ── TAB 4: VALIDATION (blind recovery of known analogues) ────────────────────
 with tab_validation:
@@ -424,11 +475,22 @@ with tab_validation:
             name=AXIS_LABELS[axis],
         ))
     fig.update_layout(
+        template="plotly_white",
         barmode="group",
-        xaxis=dict(autorange="reversed", title="Rank (1 = best)"),
+        xaxis=dict(
+            autorange="reversed",
+            title="Rank (1 = best)",
+            gridcolor="rgba(55,48,38,0.14)",
+            zeroline=False,
+        ),
+        yaxis=dict(gridcolor="rgba(55,48,38,0.10)"),
         margin=dict(l=10, r=10, t=10, b=10),
         height=320,
         legend=dict(orientation="h", y=1.12),
+        colorway=["#8A5A18", "#66838A", "#7B8088"],
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#2C2923"),
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -471,7 +533,7 @@ with tab_portfolio:
         st.markdown(
             "**Uncovered axes:** "
             + (", ".join(AXIS_LABELS[a] for a in uncovered)
-               if uncovered else "none — all axes covered ✅")
+               if uncovered else "none — all axes covered")
         )
 
 # ── TAB 6: ANALOGY LIMITS ────────────────────────────────────────────────────
@@ -513,7 +575,7 @@ with tab_breakdown:
         moon_bbox = (f"{x_m - pad_m:.1f},{y_m - pad_m:.1f},"
                      f"{x_m + pad_m:.1f},{y_m + pad_m:.1f}")
 
-    st.markdown(f"### 🛰️ Visual & Topographic Context: {ref_name} vs {sel_name}")
+    st.markdown(f"### Visual and topographic context · {ref_name} vs {sel_name}")
     c_moon_wac, c_moon_lola, c_earth_opt = st.columns(3)
 
     with c_moon_wac:
@@ -610,7 +672,7 @@ with tab_breakdown:
             "Coastlines_15m"
         )
         st.markdown(
-            f"🔗 [Open region in NASA EOSDIS Worldview]({wv_url}) · "
+            f"[Open region in NASA EOSDIS Worldview]({wv_url}) · "
             f"[Google Maps Satellite](https://www.google.com/maps/@"
             f"{lat_c:.5f},{lon_c:.5f},14z/data=!3m1!1e3)"
         )
@@ -619,7 +681,7 @@ with tab_breakdown:
     ci_lines = [
         f"**{AXIS_LABELS[a]}:** "
         f"{float(inspected.get(f'score_{a}', np.nan)):.2f} "
-        f"(95% CI: [{float(inspected.get(f'ci_low_{a}', np.nan)):.2f}, "
+        f"(Monte Carlo range: [{float(inspected.get(f'ci_low_{a}', np.nan)):.2f}, "
         f"{float(inspected.get(f'ci_high_{a}', np.nan)):.2f}])"
         for a in AXIS_LABELS
     ]
