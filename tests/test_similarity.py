@@ -23,10 +23,17 @@ def _load() -> tuple[pd.DataFrame, pd.DataFrame]:
 def test_scores_and_monte_carlo_quantiles_are_valid() -> None:
     moon, earth = _load()
     scores = axis_scores(moon.iloc[0], earth)
-    assert scores["score"].between(0.0, 1.0).all()
-    assert scores["q05"].notna().all()
-    assert (scores["q05"] <= scores["q95"]).all()
-    assert (scores["n_features_used"] > 0).all()
+    active = scores[scores["axis"] != "thermal"]
+    assert active["score"].between(0.0, 1.0).all()
+    assert active["q05"].notna().all()
+    assert (active["q05"] <= active["q95"]).all()
+    assert (active["n_features_used"] > 0).all()
+
+    # Leader Decision #30: Moon thermal features are NaN in v1 -> suspended axis.
+    thermal = scores[scores["axis"] == "thermal"]
+    assert (thermal["n_features_used"] == 0).all()
+    assert thermal["score"].isna().all()
+    assert thermal["q05"].isna().all() and thermal["q95"].isna().all()
 
 
 def test_same_seed_gives_identical_results() -> None:
@@ -82,8 +89,16 @@ def test_nan_feature_is_skipped_and_reported() -> None:
     moon, earth = _load()
     scores = axis_scores(moon.iloc[0], earth)
     thermal = scores[scores["axis"] == "thermal"]
+    assert (thermal["n_features_used"] == 0).all()
+
+    # When only thermal_inertia is NaN on a finite-temp reference, thermal uses 1 feature.
+    ref_with_temp = moon.iloc[0].copy()
+    ref_with_temp["temp_amplitude"] = 120.0
+    ref_with_temp["temp_amplitude_sd"] = 3.0
+    scores_temp = axis_scores(ref_with_temp, earth)
+    thermal_temp = scores_temp[scores_temp["axis"] == "thermal"]
     nan_ti = earth[earth["thermal_inertia"].isna()]["site_id"]
-    used = thermal[thermal["site_id"].isin(nan_ti)]["n_features_used"]
+    used = thermal_temp[thermal_temp["site_id"].isin(nan_ti)]["n_features_used"]
     assert (used == 1).all()  # temp_amplitude only when thermal_inertia is NaN
 
 

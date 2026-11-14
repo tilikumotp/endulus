@@ -11,7 +11,7 @@ buraya lider onayı olmadan girmez.
 | Eğim hesabı (Earth & Moon) | Earth: yerel metrik CRS (UTM zon; lat>=84 → EPSG:3413, lat<=-80 → EPSG:3031), 30 m native grid (`Copernicus_DEM_GLO30_v2023_1`). Moon: Güney Kutbu Polar Stereografik CRS (`R=1737.4 km`, metre), 5 m native grid (`LRO_LOLA_PGDA_<Site>_5mpp_v2021`). Her ikisinde `np.gradient` → `atan`. Derece tabanlı eğim yasak. **Ölçek sınırı:** Her iki gök cisminde aynı `r = 1000 m` penceresi kullanılsa da `5 m` (Ay) ve `30 m` (Dünya) doğal grid aralığı `slope_mean`, `slope_p90` ve `roughness` değerlerini çözünürlüğe duyarlı kılar; sayısal karşılaştırma yaklaşım/vekil niteliktedir. | Aktif (ölçek farkı belgeli) |
 | slope_mean/p90 belirsizliği | Earth: radius içi piksellerin 200 çekiliş uzamsal bootstrap std'si (`1-sigma`). Moon: PGDA ortak-kayıtlı `slperr` (RMS eğim hatası) + 200 çekiliş uzamsal bootstrap birleşimi (`hypot`). | Aktif (p2 & p3 tamamlandı) |
 | roughness & relief belirsizliği (`sigma_z_rel`) | Radius içi elevasyona planar fit (`lstsq`) uygulanıp artıkların std'si (`ddof=1`). Earth `roughness_sd` / `relief_sd` için kullanılan `sigma_z_rel = 1.0 m` değeri doğrudan saha içi yersel ölçüm değil, **Airbus/ESA Copernicus DEM Product Handbook (2022, GEO.2018-1988-2, §4.2)** belgesindeki `< 2.0 m` bağıl düşey doğruluk (`LE90` → `1σ ≈ 1.0 m`) ürün spesifikasyonu varsayımıdır. Moon için LOLA 5 m/px bağıl düşey hassasiyeti `sigma_z_rel = 0.50 m` (*Barker et al., 2021*) kullanılmıştır. | Aktif |
-| temp_amplitude (Earth & Moon) | Earth: 2024 tam yıl gündüz–gece LST farklarının yıllık ortalaması (`MOD11A2.061_annual_mean`, `DN × 0.02 K`, `1000 m` nominal / `926.6 m` Sinusoidal piksel, `2024-01-01/2024-12-31`, `max_composites=24`; `temp_amplitude_sd` 3×3 piksel + granül birleşik std). Moon (`İNCELENİYOR — LİDER KARARI BEKLİYOR`): mevcut `features_moon.parquet`, LRO Diviner yaz yarım-yılı ürününden (`LRO-L-DLRE-5-PCP-V1.0` / PDS3 etiketinde `DATA_SET_ID = LRO-L-DLRE-5-GCP-V1.0`, `240 m`) alınmış; ancak resmi `.lbl` etiketlerine göre `ltim01` `LRO:DLRE_CLOCTIME = 0.00–0.25 saat` (gece yarısı dilimi), `ltim49` `12.00–12.25 saat` (öğle) ve `ltim73` `18.00–18.25 saat` (akşamüstü) olup mevcut kod ilk 4 Ay sahasında yalnızca `ltim01` içinde `r = 1000 m` uzamsal `max − min` (`113.80–131.93 K`), `moon_faustini_rim` (`+90°E`) içinse `ltim01` (`63.79 K`) ve `ltim73` (`214.99 K`) birleşimi (`151.21 K`) üretmiştir. **Bilimsel engel:** Tek bir `ltim` dilimindeki uzamsal fark bir günlük zaman döngüsü genliği değildir (`AGENTS.md` §5 tanımıyla uyuşmaz) ve Dünya'nın yıllık ortalama gündüz–gece farkıyla aynı fiziksel tanımlı değildir. P2 tam `ltim` doğrulamasını tamamlayıp yeniden hesaplama veya `NaN` yapma kararı verilene kadar mevcut `thermal` ve genel skorlar kesin/doğrulanmış karşılaştırma sayılamaz. | Geçici engel (P2 doğrulama & lider kararı bekleniyor) |
+| temp_amplitude (Earth & Moon) | Earth: 2024 tam yıl gündüz–gece LST farklarının yıllık ortalaması (`MOD11A2.061_annual_mean`, `DN × 0.02 K`, `1000 m` nominal / `926.6 m` Sinusoidal piksel, `2024-01-01/2024-12-31`, `max_composites=24`; `temp_amplitude_sd` 3×3 piksel + granül birleşik std). Moon (**LİDER KARARI `#30` — Seçenek (b): `NaN` + Termal Eksen Askıda**): resmi `.lbl` etiketlerinde `ltim01` gece yarısı (`0.00–0.25 h`), `ltim49` öğle (`12.00–12.25 h`) ve `ltim73` akşamüstü (`18.00–18.25 h`) olup mevcut Ay verisi Dünya MODIS yıllık ortalamasıyla aynı fiziksel günlük-döngü tanımına getirilemediğinden `features_moon.parquet` içinde `temp_amplitude = NaN`, `temp_amplitude_sd = NaN`, `temp_amplitude_src = ""` (`temp_amplitude_res_m = 240.0` sözleşme gereği pozitif korunur) yapılmıştır; v1'de sayısal skorlama iki aktif eksen (**mobilite** + **yüzey**) üzerinden yürür (`Seçenek (a)` tam diurnal eşleme v2 işidir). | Aktif (`Moon = NaN`, v1 termal askıda) |
 | albedo (Broadband uyumu) | Earth: `MCD43A3.061` shortwave (`Albedo_BSA_shortwave`, DN × 0.001, 500 m Sinusoidal grid). Moon: `LRO-L-LOLA-4-GDR-V1.0:LDAM_50S_1000M_V1.0` 1064 nm sıfır-faz (`α=0°`) normal albedosu, standart Ay faz integrali / opposition surge katsayısı **`× 0.38`** (*Vasavada et al., 2012, JGR; Hayne et al., 2017, JGR*) ile çarpılarak Dünya ile aynı fiziksel tanıma (**broadband solar hemispherical albedo**, `_src = ..._broadband_eq`, 1000 m) dönüştürüldü. | Aktif (p2 & p3 tamamlandı) |
 | Benzerlik mesafesi | Her özellikte aday–referans farkı, Earth aday havuzu + referansın nüfus standart sapmasına bölünür. Eksen uzaklığı `D = sqrt(mean(z_diff²))`, benzerlik indeksi `exp(-D)`; bileşen z değerleri kırpılmaz. `axis_gaps.z_diff` ile skor aynı farkı kullanır. | Aktif |
 | Skor yorumlama | İndeks `[0, 1]` aralığındadır; olasılık ya da kalibre edilmiş yüzde değildir. Standartlaştırma havuzu ve `exp(-D)` dönüşümü yöntem varsayımlarıdır. Aday havuzunun bileşimi değişirse ölçek ve sıralama da değişebilir. | Arayüz ve raporda açıklanır |
@@ -26,7 +26,8 @@ buraya lider onayı olmadan girmez.
 
 ## 2. NaN gerekçeleri ve Tamamlanan Özellikler (hiçbir 0 yer tutucu kullanılmıyor)
 
-- **Tamamlanan Gerçek Özellikler (`0 NaN`):** Hem `data/processed/features_moon.parquet` (Ay Güney Kutbu referans sahaları) hem `data/processed/features_earth.parquet` içinde `slope_mean`, `slope_p90`, `roughness`, `relief`, `temp_amplitude` ve `albedo` sütunları (`_sd`, `_src`, `_res_m` dahil) eksiksiz olarak gerçek yörünge verilerinden doldurulmuştur.
+- **Tamamlanan Gerçek Özellikler:** Hem `data/processed/features_moon.parquet` (Ay Güney Kutbu referans sahaları) hem `data/processed/features_earth.parquet` içinde `slope_mean`, `slope_p90`, `roughness`, `relief` ve `albedo` sütunları (`_sd`, `_src`, `_res_m` dahil) — ayrıca Dünya tarafında `temp_amplitude` — eksiksiz olarak gerçek yörünge verilerinden doldurulmuştur.
+- **Moon `temp_amplitude` (`NaN`, `Karar #30` Seçenek b):** Diviner `ltim` yerel saat dilimi farkı nedeniyle Dünya MODIS yıllık gündüz–gece ortalamasıyla aynı günlük döngü tanımına getirilemediğinden `temp_amplitude = NaN`, `temp_amplitude_sd = NaN`, `temp_amplitude_src = ""` ve sözleşme gereği `temp_amplitude_res_m = 240.0` bırakılmıştır.
 - **Moon & Earth `thermal_inertia` (`NaN`):** Doğrudan kalibre edilmiş ortak ölçekli küresel ürün bulunmadığı için `thermal_inertia` ve `thermal_inertia_sd` bilinçli olarak `NaN`, `thermal_inertia_src = ""` bırakılmıştır (`thermal_inertia_res_m` Moon için `240.0 m`, Earth için `1000.0 m`).
 
 ## 2b. Skor ve doğrulama sınırları
@@ -35,10 +36,11 @@ buraya lider onayı olmadan girmez.
   tanımlı bir benzerlik sıralamasıdır; skorlar olasılık veya fiziksel
   eşdeğerlik iddiası değildir. Mission preset ağırlıkları da ölçülmüş
   ekipman toleransları değil, açıkça belirtilmiş kullanım varsayımlarıdır.
-- Mevcut veri setinde `thermal_inertia` tüm Moon ve Earth satırlarında
-  eksiktir. Thermal ekseni bu nedenle yalnızca `temp_amplitude` özelliğiyle
-  skorlanır; eşleştirilmiş inertia ürünü gelmeden tam termal analoji iddiası
-  yapılamaz.
+- Mevcut v1 veri setinde (`Karar #30`) her iki gök cisminde `thermal_inertia`
+  ve Ay tarafında `temp_amplitude` eksik (`NaN`) bırakılmıştır; bu nedenle
+  **termal ekseni v1'de askıdadır** ve sayısal skorlama iki aktif eksenle
+  (**mobilite** + **yüzey**) yürür. Eşleştirilmiş günlük termal ürün gelmeden
+  tam termal analoji iddiası yapılamaz.
 - Blind ranking ekranı **bağımsız holdout doğrulaması değildir**; rol
   etiketlerinden habersiz bir **betimsel tanılamadır**. Skorlayıcı `role`
   sütununu görmese de 40 Earth satırının (10 doğrulama + 30 aday) tamamı
@@ -47,15 +49,16 @@ buraya lider onayı olmadan girmez.
   iddiası için sonuçlar görülmeden önce kaynaklandırılmış beklenen saha–eksen
   çiftleri ve gerekçeleri tanımlanmalıdır; validation sıralamasına bakarak
   formül ayarlanmaz.
-- **Ay `temp_amplitude` tanım engeli (açık engel):** Mevcut
-  `features_moon.parquet` içindeki `temp_amplitude` değerleri ilk 4 sahada
+- **Ay `temp_amplitude` kararı (`Karar #30` — Seçenek (b): `NaN` + Termal Eksen Askıda):**
+  Önceki `features_moon.parquet` sürümündeki `temp_amplitude` değerleri ilk 4 sahada
   yalnızca `ltim01` içindeki `r = 1000 m` uzamsal `max − min` farkını,
-  Faustini'de ise iki dilim (`ltim01` + `ltim73`) farkını yansıtmaktadır; bu,
+  Faustini'de ise iki dilim (`ltim01` + `ltim73`) farkını yansıtıyordu; bu,
   `AGENTS.md` §5'teki günlük zaman döngüsü genliği (`diurnal cycle`) tanımıyla
-  ve Dünya `MOD11A2.061` yıllık ortalama gün–gece ΔT tanımıyla uyuşmamaktadır.
-  P2 tam `ltim` doğrulaması yapılıp lider tarafından yeniden hesaplama veya
-  `NaN` kararı verilene kadar `thermal` ve ağırlıklı genel skorlar bilimsel
-  olarak "Ay'a en yakın saha" şeklinde yorumlanmamalıdır.
+  ve Dünya `MOD11A2.061` yıllık ortalama gün–gece ΔT tanımıyla uyuşmadığından
+  Lider kararıyla (`b321ff5`) Ay `temp_amplitude` (`_sd = NaN`, `_src = ""`,
+  `_res_m = 240.0`) ve her iki tarafta `thermal_inertia` `NaN` bırakılarak
+  termal eksen askıya alınmıştır. Diurnal eşleme ve küresel ön tarama v2
+  kapsamına bırakılmıştır.
 - **Çözünürlük ve ölçek sınırı:** Topoğrafya ekseninde Ay DEM'i (`5 m/px`, LOLA
   PGDA) ile Dünya DEM'i (`30 m/px`, Copernicus GLO-30) aynı `r = 1000 m`
   yarıçapı içinde izlense de farklı doğal piksel boyutları taşır; `MODIS`
