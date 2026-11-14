@@ -48,7 +48,7 @@ THEMIS / TES thermal-albedo products into `data/processed/features_mars.parquet`
   in the app's Limits of the Analogy tab.
 
 ## 3. Descriptive Rank Diagnostic (§8.4)
-The Rank Diagnostic tab (`🧭 Sıra Tanısı (Doğrulama)`) is a **descriptive
+The Rank Diagnostic tab (`Sıra Tanısı (Doğrulama)`) is a **descriptive
 diagnostic**, not an independent holdout validation (`bağımsız holdout
 doğrulaması değildir`), because all 40 Earth sites contribute to the pooled
 standard deviation scaling. It pairs the 10 blind-scored `validation` sites
@@ -57,24 +57,26 @@ reproduced in `app/expectations.py`): 8 sites expected on `mobility`,
 McMurdo Dry Valleys expected on `thermal_only` (suspended in v1) while
 nonetheless aligning on bright snow-covered `surface` (`#2 / 40`), and
 Svalbard Bockfjorden expected `none` on active v1 numeric axes (relevant
-qualitatively via E8 permafrost). Under `moon_shackleton_rim` (`Balanced`),
-Mount Etna ranks **#3 / 40** on `mobility` (`#1` among validation sites) and
-only `2/20` active site×axis pairs fall inside the overall top 5 (`etna` on
-mobility, `mcmurdo` on surface) — confirming why per-site expected-axis
-criteria matter far more than an all-site/all-axis top-k count.
+qualitatively via E8 permafrost). The diagnostic table sorts numerically via
+integer column headers (default ordered by Mobility rank). Under
+`moon_shackleton_rim` (`Balanced`), Mount Etna ranks **#3 / 40** on `mobility`
+(`#1` among validation sites) and only `2/20` active site×axis pairs fall
+inside the overall top 5 (`etna` on mobility, `mcmurdo` on surface) —
+confirming why per-site expected-axis criteria matter far more than an
+all-site/all-axis top-k count.
 
-## 4. Compact Portfolio Card (§8.5)
-Compact multi-site test portfolio via greedy set-cover heuristic
-(`src/scoring/portfolio.py::select_portfolio`) integrated directly under the
-Score Table (`📊 Skor & Portföy`) at a configurable similarity threshold
-(default `0.70`): a small set of Earth sites covering the active axes, plus
-explicit uncovered axes routed to simulator/lab testing. This `0.70` value
-is an interface heuristic, not a calibrated physical sufficiency limit. For
-example, under `moon_shackleton_rim` at `0.70`, no single Earth site clears
-both active axes (`mobility` remains uncovered alongside suspended `thermal`),
-whereas for `moon_connecting_ridge` a 2-site portfolio (`earth_karapinar_meke` +
-`earth_puna_campo_piedra_pomez`) covers both active axes (`mobility` and
-`surface`), leaving only suspended `thermal` uncovered.
+## 4. Multi-Site Portfolio Analysis (Scoring Engine & Technical Report)
+Multi-site greedy set-cover selection (`src/scoring/portfolio.py::select_portfolio`)
+remains part of the core scoring module and is reported across all 5 lunar
+references in `report/final_report_tr.md`: at threshold `0.70` (a heuristic
+index setting, not a calibrated physical sufficiency limit), no single Earth
+site clears both active axes on `moon_shackleton_rim` (`mobility` stays below
+`0.70`), whereas for `moon_connecting_ridge` a 2-site portfolio
+(`earth_karapinar_meke` + `earth_puna_campo_piedra_pomez`) covers both active
+axes (`mobility` and `surface`), and `moon_shackleton_peak` / `moon_faustini_rim`
+clear `0.70` with 1 site (`mcmurdo` and `salda_terrace`, respectively). To keep
+the Streamlit interface minimal and clutter-free, portfolio optimization is
+documented in the technical report rather than shown as a separate UI widget.
 
 ## 5. Data sources (verified orbital products in `*_src`)
 | Body | Feature(s) | Dataset (`*_src`) | Native res (`*_res_m`) |
@@ -89,18 +91,20 @@ whereas for `moon_connecting_ridge` a 2-site portfolio (`earth_karapinar_meke` +
 | **Moon & Earth (visual + 3D)** | `moon_3d/` (`5 m`), `earth_3d_grids.npz` (`30 m`), `moon_atlas/` (`5 m` LOLA hillshade/hazard), `earth_atlas/` (`10 m` Sentinel-2 L2A WebP) | Visual & 3D inspection only — never scored numerically | `5–30 m` |
 
 ## 6. App deliverable
-`app/main.py` (Streamlit + pydeck + plotly, TR default / EN toggle, pure-black
-`#000000` canvas with user-selectable **Moon black–grey** and **Earth blue**
-themes): reference-site selector, mission re-weighting (with explicit
-`isru_ice` `(no ice data in v1)` note), **2D physical feature-space scatter**
-(`slope_mean` vs `albedo` across all 40 sites + Moon star) paired with active
-axis uncertainty charts (`expanded_interval`, `📡 Eksen Grafikleri`), real 3D
-Moon/Earth DEM terrain (`⛰️ 3D Arazi`), unified Score Table + **Compact
-Portfolio Card** (`📊 Skor & Portföy`), pre-registered 10-row numeric
-**Rank Diagnostic** (`🧭 Sıra Tanısı` with `val_sort_by`), and **Limits of the
-Analogy** (`⚠️ Analojinin Sınırları` with the **8-Dimension Challenge Scorecard**).
+`app/main.py` (Streamlit + pydeck + plotly, TR default / EN toggle, single
+high-contrast pure-black `#000000` canvas, zero emojis, localized Moon crater
+names without raw `ROI` codes): reference-site selector, mission re-weighting
+(with explicit `isru_ice` `(no ice data in v1)` note), active axis
+uncertainty bars (`expanded_interval`, `Eksen Grafikleri`), real 3D Moon/Earth
+DEM terrain (`3D Arazi`), role-filterable `Skor Tablosu`, numeric-sorted
+10-row `Sıra Tanısı (Doğrulama)`, and `Analojinin Sınırları` featuring the
+**8-Dimension Challenge Scorecard**, offline 3-panel Visual Context Inspector,
+standardized `axis_gaps`, and a collapsible **Veri Kaynakları ve Akademik
+Kaynakça (Ay & Dünya)** section drawing directly on Emirhan's Moon citations
+(`docs/data_sources_moon.md`) and Eray's 40 Earth site citations
+(`src/earth/sites.py`, `docs/data_sources_earth.md`).
 
-**Visual Context Inspector** (`⚠️ Analojinin Sınırları` tab): an offline-first
+**Visual Context Inspector** (`Analojinin Sınırları` tab): an offline-first
 three-panel evidence tool rendered from committed assets — local `5 m/px`
 LRO LOLA hillshade and slope-hazard maps (`data/processed/moon_atlas/`, plus
 optional full-context expander) beside local `10 m/px` Sentinel-2 L2A WebP
@@ -160,8 +164,8 @@ mechanics or geology — and always requires field and literature verification.
 | *"Remember Earth's limitations"* | Dedicated `Limits of the Analogy` tab + **8-Dimension Challenge Scorecard** separating field-testable axes (`Mobility`, `Surface`) from `1/6 g`, vacuum, radiation, `29.5`-day cycles, and suspended `Thermal` |
 | *"Look beyond well-known analogs / surprise us"* | `30` curated candidate sites evaluated alongside `10` classic validation analogues (`40` Earth sites total) without feeding role labels into scoring |
 | *"Use multiple datasets & consider scale"* | Multi-sensor orbital fusion (`5 m` LOLA DEM, `1000 m` LOLA albedo, `30 m` Copernicus GLO-30 / NASADEM, `500 m` MCD43A3, `10 m` Sentinel-2 L2A) on `r = 1000 m` metric windows with explicit `5 m` vs `30 m` scale disclosures |
-| *"Connect the analogy to exploration"* | Mission selector (`Balanced`, `Rover mobility test`, `ISRU / ice prospect (no ice data in v1)`, `Subsurface radar calibration`) + **Compact Portfolio Card** (`select_portfolio`) |
-| *"Go beyond visual similarity"* | Offline `moon_atlas/`, `earth_atlas/`, 2D scatter, and 3D DEMs serve strictly as evidence/context and never enter the numeric score |
+| *"Connect the analogy to exploration"* | Mission selector (`Balanced`, `Rover mobility test`, `ISRU / ice prospect (no ice data in v1)`, `Subsurface radar calibration`) + core portfolio synthesis (`select_portfolio`, `report/final_report_tr.md`) |
+| *"Go beyond visual similarity"* | Offline `moon_atlas/`, `earth_atlas/`, and 3D DEMs serve strictly as visual/topographic context and never enter the numeric score |
 
 ## 11. Future Work (v2 Extensions)
 - **Subsurface lava tubes:** compare CSA RADARSAT-1 open SAR archive
@@ -176,4 +180,12 @@ mechanics or geology — and always requires field and literature verification.
 - Longer term: per-use-case uncertainty weighting (replace flat
   mission presets with measured instrument tolerances), and
   time-of-day/dust-stack modelling for the thermal axis.
+
+## 12. Consolidated Bibliography & Turkish Final Report
+- Consolidated Moon (`docs/data_sources_moon.md`) and Earth
+  (`docs/data_sources_earth.md`, `docs/validation_expectations.md`,
+  `src/earth/sites.py`) citations are indexed in `docs/data_sources.md` and
+  exposed inside the collapsible bibliography panel of `Analojinin Sınırları`.
+- The full Turkish final technical report with 5-region comparisons and all
+  14 Turkish candidate assessments is published in `report/final_report_tr.md`.
 

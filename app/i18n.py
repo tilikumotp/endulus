@@ -421,6 +421,68 @@ TEXTS: dict[str, dict[str, str]] = {
         "tr": "### 8 Boyutlu Kapsam ve Sınır Tablosu",
         "en": "### 8-Dimension Scope and Limits Scorecard",
     },
+    # ── bibliography / sources expander ──────────────────────────────────────
+    "bib_expander": {
+        "tr": "Veri Kaynakları ve Akademik Kaynakça (Ay & Dünya)",
+        "en": "Data Sources and Academic Bibliography (Moon & Earth)",
+    },
+    "bib_selected_heading": {
+        "tr": "Seçili Dünya Sahası Kaynağı",
+        "en": "Selected Earth Site Citation",
+    },
+    "bib_moon_heading": {
+        "tr": "Ay Güney Kutbu Veri ve Literatür Kaynakları",
+        "en": "Lunar South Pole Data and Literature Sources",
+    },
+    "bib_earth_datasets_heading": {
+        "tr": "Dünya Uydu Veri Ürünleri (40 Saha)",
+        "en": "Earth Orbital Data Products (40 Sites)",
+    },
+    "bib_all_sites_heading": {
+        "tr": "Tüm 40 Dünya Sahasının Literatür ve Koordinat Kaynakçası",
+        "en": "Full Literature and Coordinate Citations for All 40 Earth Sites",
+    },
+    "bib_col_site": {"tr": "Saha", "en": "Site"},
+    "bib_col_role": {"tr": "Rol", "en": "Role"},
+    "bib_col_citation": {"tr": "Kaynak / Literatür", "en": "Source / Citation"},
+}
+
+# Verified Moon orbital datasets & peer-reviewed citations (docs/data_sources_moon.md).
+MOON_BIBLIOGRAPHY: dict[str, list[str]] = {
+    "tr": [
+        "DEM & Hata Haritaları (5 m/px): NASA GSFC PGDA Product 78 (Site04, Site01, Site11, Site07, LM7) — Barker et al. (2021), Planetary and Space Science 203:105119, DOI 10.1016/j.pss.2020.105119",
+        "ROI Koordinatları & Kutup Aydınlanması: Mazarico et al. (2011), Icarus 211(2):1066–1081",
+        "Shackleton Krateri LOLA Topografya & 1064 nm Albedo: Zuber et al. (2012), Nature 486:378–381, DOI 10.1038/nature11216",
+        "Güney Kutbu Jeolojisi (Nitel Litoloji): Spudis et al. (2008), Geophysical Research Letters 35:L14201, DOI 10.1029/2008GL034468",
+        "Geniş Bant Albedo Kaynağı (LDAM_50S_1000M_V1.0, 1000 m, x0.38 ölçekleme): Lucey et al. (2014), JGR Planets 119(7):1665–1679, DOI 10.1002/2013JE004592 ; Lemelin et al. (2016), Icarus 273:315–328, DOI 10.1016/j.icarus.2016.02.006 ; Vasavada et al. (2012), JGR 117:E00H18, DOI 10.1029/2011JE003987",
+        "Termal Bağlam (v1 Sayısal Skorda Askıda — Nitel Sınır): LRO Diviner LRO-L-DLRE-5-PCP-V1.0 (240 m) — Paige et al. (2010), Science 330:479–482 ; Williams et al. (2019), JGR Planets 124(10):2505–2521, DOI 10.1029/2019JE006028 ; Hayne et al. (2017), JGR Planets 122(12):2371–2400, DOI 10.1002/2017JE005387",
+    ],
+    "en": [
+        "DEM & Error Maps (5 m/px): NASA GSFC PGDA Product 78 (Site04, Site01, Site11, Site07, LM7) — Barker et al. (2021), Planetary and Space Science 203:105119, DOI 10.1016/j.pss.2020.105119",
+        "ROI Coordinates & Polar Illumination: Mazarico et al. (2011), Icarus 211(2):1066–1081",
+        "Shackleton Crater LOLA Topography & 1064 nm Albedo: Zuber et al. (2012), Nature 486:378–381, DOI 10.1038/nature11216",
+        "South Pole Geology (Qualitative Lithology): Spudis et al. (2008), Geophysical Research Letters 35:L14201, DOI 10.1029/2008GL034468",
+        "Broadband Albedo (LDAM_50S_1000M_V1.0, 1000 m, x0.38 solar scaling): Lucey et al. (2014), JGR Planets 119(7):1665–1679, DOI 10.1002/2013JE004592 ; Lemelin et al. (2016), Icarus 273:315–328, DOI 10.1016/j.icarus.2016.02.006 ; Vasavada et al. (2012), JGR 117:E00H18, DOI 10.1029/2011JE003987",
+        "Thermal Context (Suspended from Numeric Scoring — Qualitative Limit): LRO Diviner LRO-L-DLRE-5-PCP-V1.0 (240 m) — Paige et al. (2010), Science 330:479–482 ; Williams et al. (2019), JGR Planets 124(10):2505–2521, DOI 10.1029/2019JE006028 ; Hayne et al. (2017), JGR Planets 122(12):2371–2400, DOI 10.1002/2017JE005387",
+    ],
+}
+
+# Verified Earth orbital products (docs/data_sources_earth.md).
+EARTH_DATASET_REFS: dict[str, list[str]] = {
+    "tr": [
+        "Birincil DEM (39/40 saha, 30 m, EGM2008): Copernicus DEM GLO-30 DGED (AWS S3 / Planetary Computer cop-dem-glo-30; Airbus/ESA Product Handbook GEO.2018-1988-2)",
+        "Yedek DEM (1/40 saha — Ağrı N39 E044, 30 m, EGM96): NASADEM_HGT_v001 (NASA LP DAAC, DOI 10.5067/MEaSUREs/NASADEM/NASADEM_HGT.001)",
+        "Yüzey Albedosu (40/40 saha, 500 m): MODIS MCD43A3.061 Albedo_BSA_shortwave; MCD43A4.061 + Liang (2001, Remote Sens. Environ. 76:213–238) + NDSI < 0.40 çapraz doğrulama",
+        "Yüzey Sıcaklık Farkı (yalnızca Earth tablosunda kayıtlı, 1000 m): MODIS MOD11A2.061 2024 yıllık 24-kompozit gündüz-gece ortalaması (Ay verisi askıda olduğu için skora katılmaz)",
+        "Karışık Piksel & Görsel Bağlam Denetimi: ESA WorldCover v200 (10 m) & Copernicus Sentinel-2 L2A (20 m) — ayrıntılar docs/data_sources_earth.md §7",
+    ],
+    "en": [
+        "Primary DEM (39/40 sites, 30 m, EGM2008): Copernicus DEM GLO-30 DGED (AWS S3 / Planetary Computer cop-dem-glo-30; Airbus/ESA Product Handbook GEO.2018-1988-2)",
+        "Fallback DEM (1/40 site — Ararat N39 E044, 30 m, EGM96): NASADEM_HGT_v001 (NASA LP DAAC, DOI 10.5067/MEaSUREs/NASADEM/NASADEM_HGT.001)",
+        "Surface Albedo (40/40 sites, 500 m): MODIS MCD43A3.061 Albedo_BSA_shortwave; cross-checked with MCD43A4.061 + Liang (2001, Remote Sens. Environ. 76:213–238) + NDSI < 0.40",
+        "Land Surface Temp Swing (recorded in Earth table only, 1000 m): MODIS MOD11A2.061 2024 annual 24-composite day-night mean (excluded from scoring while Moon thermal is suspended)",
+        "Mixed-Pixel & Visual Context Audit: ESA WorldCover v200 (10 m) & Copernicus Sentinel-2 L2A (20 m) — see docs/data_sources_earth.md §7",
+    ],
 }
 
 # 8-Dimension Challenge Scorecard (Analogy Limits tab).

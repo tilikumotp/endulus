@@ -108,8 +108,11 @@ def test_streamlit_app_smoke_tr_and_en() -> None:
     at.checkbox(key="map_show_all_val").set_value(False).run()
     assert not at.exception
 
-    # Verify 8-dimension challenge scorecard & plotly figures (bars + 2x 3D DEM) render
+    # Verify 8-dimension challenge scorecard, 40-site bibliography & plotly figures render
     assert any(len(el.value) == 8 for el in at.dataframe)
+    assert any(len(el.value) == 40 for el in at.dataframe)
+    md_text = " ".join(m.value for m in at.markdown)
+    assert "Barker et al. (2021)" in md_text
     assert len(at.get("plotly_chart")) >= 3
 
 

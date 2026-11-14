@@ -37,10 +37,15 @@ from scoring.similarity import (  # noqa: E402
     combine_axes_with_uncertainty,
 )
 from scoring.validation import run_blind_validation  # noqa: E402
+from earth.sites import VERIFIED_EARTH_SITES  # noqa: E402
 
 from expectations import VALIDATION_EXPECTATIONS  # noqa: E402
 import i18n  # noqa: E402
 import terrain  # noqa: E402
+
+SITE_CITATIONS: dict[str, str] = {
+    s["site_id"]: s["citation"] for s in VERIFIED_EARTH_SITES
+}
 
 LOGGER = logging.getLogger(__name__)
 
@@ -1122,3 +1127,23 @@ with tab_breakdown:
         show.columns = i18n.GAP_COLUMNS[LANG]
         st.dataframe(show.round(3), width="stretch", hide_index=True)
         st.caption(T("gaps_caption"))
+
+    with st.expander(T("bib_expander"), expanded=False):
+        st.markdown(f"**{T('bib_selected_heading')} ({sel_name})**")
+        st.write(SITE_CITATIONS.get(str(inspected["site_id"]), "—"))
+        st.markdown(f"**{T('bib_moon_heading')}**")
+        for line in i18n.MOON_BIBLIOGRAPHY[LANG]:
+            st.markdown(f"- {line}")
+        st.markdown(f"**{T('bib_earth_datasets_heading')}**")
+        for line in i18n.EARTH_DATASET_REFS[LANG]:
+            st.markdown(f"- {line}")
+        st.markdown(f"**{T('bib_all_sites_heading')}**")
+        bib_df = pd.DataFrame([
+            {
+                T("bib_col_site"): s["name"],
+                T("bib_col_role"): _role_text(s["role"]),
+                T("bib_col_citation"): s["citation"],
+            }
+            for s in VERIFIED_EARTH_SITES
+        ])
+        st.dataframe(bib_df, width="stretch", hide_index=True)
