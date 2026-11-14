@@ -10,12 +10,14 @@ is shown whenever any *_src column equals "MOCK", AGENTS.md rule 10).
 
 from __future__ import annotations
 
+import logging
 import pathlib
 import sys
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 
 # ── make src/scoring importable (scoring.config is imported inside) ──────────
@@ -33,6 +35,8 @@ from scoring.similarity import (  # noqa: E402
 )
 from scoring.portfolio import select_portfolio  # noqa: E402
 from scoring.validation import run_blind_validation  # noqa: E402
+
+LOGGER = logging.getLogger(__name__)
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -250,6 +254,32 @@ def _map_chart(result: pd.DataFrame, top_n: int) -> None:
     except ImportError:
         st.info("pydeck not installed — falling back to st.map.")
         st.map(map_df, size=200_000)
+
+
+# ── Remote imagery helpers (visual evidence panel) ──────────────────────────
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _fetch_preview_png(url: str) -> bytes:
+    """Fetch remote satellite/WMS preview PNG; raises on error so failures are not cached."""
+    resp = requests.get(
+        url,
+        timeout=8,
+        headers={"User-Agent": "SpaceApps2026-Endulus-AnalogFinder/1.0"},
+    )
+    resp.raise_for_status()
+    ctype = resp.headers.get("Content-Type", "").lower()
+    if not ctype.startswith("image/"):
+        raise ValueError(f"Unexpected content type ({ctype or 'unknown'})")
+    return resp.content
+
+
+def _safe_fetch_preview_png(url: str) -> tuple[bytes | None, str]:
+    """Non-cached wrapper around _fetch_preview_png so transient errors can retry immediately."""
+    try:
+        return _fetch_preview_png(url), ""
+    except (requests.RequestException, ValueError) as exc:
+        LOGGER.warning("Preview fetch failed for %s: %s", url, exc)
+        return None, str(exc)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -475,12 +505,14 @@ with tab_validation:
         width="stretch", hide_index=True,
     )
 
-# ── TAB 5: PORTFOLIO (smallest set covering the most axes) ───────────────────
+# ── TAB 5: PORTFOLIO (greedy set-cover heuristic) ────────────────────────────
 with tab_portfolio:
     st.markdown(
-        "Greedy set cover (leader's `select_portfolio`): the smallest set of "
-        f"Earth sites covering every axis with score ≥ **{min_score:.2f}**. "
-        "Axes no site covers must be validated in lab/simulation instead."
+        "Greedy set-cover heuristic (leader's `select_portfolio`): selects a "
+        f"compact portfolio of Earth sites covering the maximum number of axes "
+        f"with score ≥ **{min_score:.2f}**. "
+        "Greedy is fast and transparent but does not guarantee the global "
+        "minimum set; axes no site covers must be validated in lab/simulation."
     )
     selected_ids, uncovered = select_portfolio(long_scores, min_score, axes=axes)
     if not selected_ids:
@@ -523,6 +555,159 @@ with tab_breakdown:
     )
     inspected = result[result["name"] == sel_name].iloc[0]
     cand_row = earth_df[earth_df["site_id"] == inspected["site_id"]].iloc[0]
+
+    # ── Visual & topographic context inspector (evidence panel) ─────────────
+    # Purpose: evidence & exploration only. Imagery never creates or changes
+    # a score — the quantitative per-axis scores + CIs below are the basis of
+    # every claim (AGENTS.md rule 3: every number carries its *_src).
+    if body_mock:
+        st.warning(
+            "Reference site coordinates/features are currently loaded from "
+            "MOCK data; visual alignment requires verified "
+            "data/processed/features_moon.parquet."
+        )
+
+    is_moon_ref = (str(ref_row.get("body", body)).strip().lower() == "moon")
+
+    # Earth candidate: geodesic bbox for a ~2x-radius view window (WGS84).
+    lat_c = float(cand_row["lat"])
+    lon_c = float(cand_row["lon"])
+    rad_c_m = float(cand_row.get("radius_m", 1000.0))
+    half_box_m = max(rad_c_m * 1.5, 1500.0)
+
+    # Moon reference: south-pole stereographic metric coords (EPSG:32761,
+    # R = 1,737,400 m, lat_0 = -90°, lon_0 = 0°), centred on the selected
+    # ref site — never pinned to (0, 0).
+    moon_bbox = None
+    lat_r = lon_r = rad_r_m = np.nan
+    if is_moon_ref:
+        lat_r = float(ref_row["lat"])
+        lon_r = float(ref_row["lon"])
+        rad_r_m = float(ref_row.get("radius_m", 1000.0))
+        r_m = 2.0 * 1_737_400.0 * np.tan(np.radians(90.0 + lat_r) / 2.0)
+        x_m = r_m * np.sin(np.radians(lon_r))
+        y_m = r_m * np.cos(np.radians(lon_r))
+        pad_m = 15_000.0  # 30x30 km regional context window around the ref site
+        moon_bbox = (f"{x_m - pad_m:.1f},{y_m - pad_m:.1f},"
+                     f"{x_m + pad_m:.1f},{y_m + pad_m:.1f}")
+
+    st.markdown(f"### 🛰️ Visual & Topographic Context: {ref_name} vs {sel_name}")
+    c_moon_wac, c_moon_lola, c_earth_opt = st.columns(3)
+
+    with c_moon_wac:
+        st.markdown("**Moon Optical Context**")
+        if is_moon_ref and moon_bbox:
+            wac_url = (
+                "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
+                "?map=/maps/earth/moon_spole.map&SERVICE=WMS&VERSION=1.1.1"
+                "&REQUEST=GetMap&LAYERS=LRO_WAC_south&STYLES=&SRS=EPSG:32761"
+                f"&BBOX={moon_bbox}&WIDTH=420&HEIGHT=420&FORMAT=image/png"
+            )
+            img, err = _safe_fetch_preview_png(wac_url)
+            if img is not None:
+                st.image(
+                    img,
+                    caption=f"{ref_name} — LRO WAC Orthomosaic (~30×30 km "
+                            f"window, display ~71 m/px; centered on "
+                            f"{lat_r:.2f}°, {lon_r:.2f}°)",
+                )
+            else:
+                st.info(f"Lunar WAC preview unavailable ({err}).")
+        else:
+            st.info("Live lunar South Pole WMS applies to Moon reference "
+                    "sites only.")
+        st.caption("Imagery source: NASA LRO Wide Angle Camera (WAC) via "
+                   "USGS Astrogeology WMS.")
+
+    with c_moon_lola:
+        st.markdown("**Moon Topographic / Relief Context**")
+        if is_moon_ref and moon_bbox:
+            lola_url = (
+                "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
+                "?map=/maps/earth/moon_spole.map&SERVICE=WMS&VERSION=1.1.1"
+                "&REQUEST=GetMap&LAYERS=LOLA_south&STYLES=&SRS=EPSG:32761"
+                f"&BBOX={moon_bbox}&WIDTH=420&HEIGHT=420&FORMAT=image/png"
+            )
+            img, err = _safe_fetch_preview_png(lola_url)
+            if img is not None:
+                st.image(
+                    img,
+                    caption=f"{ref_name} — LOLA Shaded Relief (~30×30 km "
+                            f"window; DEM feature extraction radius = "
+                            f"{rad_r_m:.0f} m)",
+                )
+            else:
+                st.info(f"Lunar LOLA preview unavailable ({err}).")
+        else:
+            st.info("Live lunar South Pole WMS applies to Moon reference "
+                    "sites only.")
+        st.caption("Relief preview: NASA LRO LOLA via USGS Astrogeology WMS. "
+                   "Numeric features comes from row `*_src`.")
+
+    with c_earth_opt:
+        st.markdown("**Earth Candidate Optical Context**")
+        img = used_km = None
+        err = ""
+        # First try the ~2x-radius window; if the export service has no
+        # imagery at that pixel resolution (e.g. open ocean), retry once
+        # with a 3x-wider regional window before surfacing the error.
+        for hb_m in (half_box_m, half_box_m * 3.0):
+            dlat_h = hb_m / 111_320.0
+            dlon_h = hb_m / (111_320.0 * max(np.cos(np.radians(lat_c)), 0.1))
+            esri_url = (
+                "https://server.arcgisonline.com/ArcGIS/rest/services/"
+                "World_Imagery/MapServer/export"
+                f"?bbox={lon_c - dlon_h:.6f},{lat_c - dlat_h:.6f},"
+                f"{lon_c + dlon_h:.6f},{lat_c + dlat_h:.6f}"
+                "&bboxSR=4326&imageSR=4326&size=420,420&format=png&f=image"
+            )
+            img, err = _safe_fetch_preview_png(esri_url)
+            if img is not None:
+                used_km = 2 * hb_m / 1000
+                break
+        if img is not None:
+            st.image(
+                img,
+                caption=f"{sel_name} ({lat_c:.4f}°, {lon_c:.4f}°) — "
+                        f"~{used_km:.1f}×{used_km:.1f} km window "
+                        f"(analysis radius = {rad_c_m:.0f} m)",
+            )
+        else:
+            st.info(f"Esri imagery preview unavailable ({err}).")
+        st.caption(
+            "**Optical preview source:** Esri World Imagery (Esri, Maxar, "
+            "Earthstar Geographics). Note: Numeric scores use the satellite "
+            "datasets listed in the table below (`*_src`), not this optical "
+            "preview."
+        )
+        wv_url = (
+            f"https://worldview.earthdata.nasa.gov/"
+            f"?v={lon_c - 0.15:.4f},{lat_c - 0.15:.4f},"
+            f"{lon_c + 0.15:.4f},{lat_c + 0.15:.4f}"
+            "&l=Reference_Labels_15m,MODIS_Terra_Land_Surface_Temp_Day,"
+            "Coastlines_15m"
+        )
+        st.markdown(
+            f"🔗 [Open region in NASA EOSDIS Worldview]({wv_url}) · "
+            f"[Google Maps Satellite](https://www.google.com/maps/@"
+            f"{lat_c:.5f},{lon_c:.5f},14z/data=!3m1!1e3)"
+        )
+
+    # Scientific context: imagery must be judged against the numbers.
+    ci_lines = [
+        f"**{AXIS_LABELS[a]}:** "
+        f"{float(inspected.get(f'score_{a}', np.nan)):.2f} "
+        f"(95% CI: [{float(inspected.get(f'ci_low_{a}', np.nan)):.2f}, "
+        f"{float(inspected.get(f'ci_high_{a}', np.nan)):.2f}])"
+        for a in AXIS_LABELS
+    ]
+    st.info(
+        "Quantitative context for the imagery above — "
+        + " · ".join(ci_lines)
+        + "\n\nVisual similarity alone is not enough: compare the orbital "
+        "imagery above against the quantitative per-axis scores, uncertainty "
+        "intervals, and instrument resolutions below."
+    )
 
     st.markdown(f"### Feature gaps: {sel_name} vs {ref_name} "
                 "(leader's `axis_gaps`)")

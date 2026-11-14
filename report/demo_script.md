@@ -45,12 +45,13 @@
   analogues (Etna, Atacama, Haughton) must rank in the top-5 per axis.
   This is the self-check that keeps us honest." *(If still mock: say so
   explicitly, per the banner.)*
-- **Portfolio tab:** "Greedy set cover at the 0.70 threshold gives the
-  *smallest* set of Earth sites covering every axis — plus the axes no
+- **Portfolio tab:** "Greedy set-cover heuristic at the 0.70 threshold
+  gives a compact portfolio of Earth sites covering the most axes —
+  plus the axes no
   Earth site can cover: those go to lab/simulation."
 - Close: "Per-axis scores, honest uncertainty, blind validation, a
-  minimal test-site portfolio — and an explicit list of what Earth
-  can't teach. That's the product."
+  compact multi-site test portfolio — and an explicit list of what
+  Earth can't teach. That's the product."
 
 ---
 

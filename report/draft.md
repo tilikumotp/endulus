@@ -14,10 +14,12 @@ similarity `exp(-distance)` [0–1] with bootstrap 5–95% CIs attached to
 every score (leader's `src/scoring/similarity.py`; the app writes no
 scoring math of its own). Scores are combined with mission-weighted
 presets, known analogues are recovered blind (role labels never enter
-the scorer), and a greedy set cover recommends the minimal portfolio
-of Earth test sites. Qualitative factors (lithology class, ice/PSR,
-lava tubes, electrostatic dust) are displayed but never enter the
-numeric score (AGENTS.md §2, §5).
+the scorer), and a greedy set-cover heuristic recommends a compact
+multi-site test portfolio of Earth sites. Within-axis z-score
+differences are capped at ±3σ (`Z_CAP = 3.0`, outlier clipping) so a
+single anomalous feature cannot dominate a comparison. Qualitative
+factors (lithology class, ice/PSR, lava tubes, electrostatic dust) are
+displayed but never enter the numeric score (AGENTS.md §2, §5).
 
 ## 2. Where the analogy breaks down
 - Gravity: Moon ~1/6 g, Mars ~3/8 g — regolith mechanics, dust settling.
@@ -37,9 +39,12 @@ recovery is random; real `features_earth.parquet` (pending, PR #2)
 makes this meaningful.
 
 ## 4. Portfolio (§8.5)
-Greedy set cover over per-axis scores at a coverage threshold (default
-0.70): smallest set of Earth sites covering the most axes; axes no
-site covers are listed as "validate in lab/simulation".
+Compact multi-site test portfolio via greedy set-cover heuristic
+(leader's `select_portfolio`) over per-axis scores at a coverage
+threshold (default 0.70): a small set of Earth sites covering the most
+axes. Greedy is a fast, transparent heuristic — it does not guarantee
+the mathematically minimal set in every case; axes no site covers are
+listed as "validate in lab/simulation".
 
 ## 5. Data sources (filled from `*_src` when real data lands)
 | Feature | Dataset (planned/actual) | Native res |
@@ -55,6 +60,16 @@ per-axis scores with CI, mission presets, blind validation tab,
 portfolio tab, analogy-limits card with inspect-site picker, and an
 AGENTS.md rule-10 MOCK banner that names exactly which parts of the
 current view are synthetic.
+
+**Visual Context Inspector** (Analogy Limits tab): a three-panel
+evidence-and-exploration tool — LRO WAC optical + LOLA shaded-relief
+previews of the Moon reference (NASA LRO via USGS Astrogeology WMS,
+south-pole stereographic EPSG:32761) beside an Esri World Imagery
+optical preview (Esri, Maxar, Earthstar Geographics) of the Earth
+candidate. It is **context, not a scoring channel**: imagery never
+creates or changes a score, and every panel links back to the
+quantitative per-axis scores, CIs, `*_src` and `*_res_m` columns
+displayed below it.
 
 ## 7. Disclaimer (must remain in the final deck/report until 100% real)
 Results shown with the MOCK banner are development data

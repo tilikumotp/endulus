@@ -22,7 +22,7 @@ relevant, its native resolution. MOCK-banner screenshots stay labelled
 - Physics Earth can't reproduce: 1/6 g, vacuum, radiation, 29.5-day day.
 - Qualitative-only factors: ice/PSR, lava tubes, electrostatic dust.
 - Resolution honesty: ~1 km thermal vs 30 m DEM — shown per feature.
-🖼 *Screenshot: Analogy Limits tab, Karacadağ selected, src/res columns visible.*
+🖼 *Screenshot: Analogy Limits tab — Visual Context Inspector (LRO WAC/LOLA + Esri imagery) with Karacadağ selected, src/res columns visible.*
 
 ## Slide 4 — Validated, not assumed (blind check)
 - Scorer runs blind; known analogues (Etna, Atacama, Haughton) must
@@ -31,10 +31,11 @@ relevant, its native resolution. MOCK-banner screenshots stay labelled
 - Karacadağ case study: strong mobility/surface *test candidate* — scoped claim.
 🖼 *Screenshot: Validation tab (ranks + "Recovered X/Y").*
 
-## Slide 5 — The minimal portfolio
-- Greedy set cover: fewest sites covering every axis at the 0.70 threshold.
+## Slide 5 — The compact portfolio
+- Greedy set-cover heuristic: a compact portfolio covering the most
+  axes at the 0.70 threshold (heuristic, not a guaranteed minimum).
+- Within-axis z-diffs clipped at ±3σ (`Z_CAP = 3.0`) before ranking.
 - Output = shopping list + uncovered-axes list (→ lab/simulation).
-- Saves field-campaign budget without pretending one site does it all.
 🖼 *Screenshot: Portfolio tab (pick order, covered axes, uncovered list).*
 
 ## Slide 6 — What the jury can click today
