@@ -1,37 +1,109 @@
-# Ay Güney Kutbu (Shackleton Çevresi) Veri Kaynakları (`docs/data_sources_moon.md`)
+# Ay Güney Kutbu (Shackleton Çevresi) Veri Kaynakları
 
-Bu belge, `AGENTS.md` §5 veri sözleşmesi kapsamında Ay Güney Kutbu referans sahaları (öncelikle Shackleton krateri kenarı / rim bölgesi) için incelenen **Yükseklik/DEM (LRO LOLA)**, **Yüzey Sıcaklığı (LRO Diviner)** ve **Albedo** veri ürünlerini listeler.
-
-> **Doğrulama Yöntemi:** Tablodaki PDS3/PDS4 etiketleri (`.LBL`, `.XML`) ve HTTP başlıkları (`200 OK`, `Content-Length`, `Accept-Ranges`) NASA PDS Geosciences Node (`pds-geosciences.wustl.edu`), MIT LOLA PDS Data Node (`imbrium.mit.edu`), NASA GSFC PGDA (`pgda.gsfc.nasa.gov`) ve USGS Astrogeology (`planetarymaps.usgs.gov`) sunucularından doğrudan sorgulanarak teyit edilmiştir. İnsan onayı veya ek doğrulama gerektiren noktalar `TODO(verify)` ile işaretlenmiştir.
+Bu belge, projemizdeki **Ay Güney Kutbu (Shackleton Krateri Kenarı)** referans sahası için kullanacağımız 3 temel veri grubunu (**1. Yükseklik/Eğim**, **2. Yüzey Sıcaklığı**, **3. Albedo**) sade ve doğrulanabilir şekilde özetler.
 
 ---
 
-## 1. Özet Karşılaştırma Tablosu
+## Hızlı Özet Tablosu (Önerilen Birincil Ürünler)
 
-| Özellik (`AGENTS.md` §5) | Tam Ürün Adı (Veri Seti ID / Ürün ID) | Versiyon | Yerel Çözünürlük (`X_res_m`) & Projeksiyon | Dosya Formatı | Doğrudan İndirme Yolu (URL) | Durum & `TODO(verify)` Notları |
-|---|---|---|---|---|---|---|
-| **Yükseklik / DEM** (`slope_mean`, `slope_p90`, `roughness`, `relief`) | **NASA GSFC PGDA Ürün #78:** High-Resolution LOLA Topography for Lunar South Pole Sites — `Site04_final_adj_5mpp_surf.tif` (Shackleton Rim) + `_toterr.tif` + `_slperr.tif` | `final_adj_5mpp` (Barker et al., 2021; `doi:10.1016/j.pss.2020.105119`) | **5 m/piksel** (`X_res_m = 5.0`), Güney Kutbu Stereografik (`MOON_ME` DE421, metre) | GeoTIFF (`.tif`, ~39 MB; doğrudan Shackleton çevresi ~20×20 km kutu) | Katalog: https://pgda.gsfc.nasa.gov/products/78 <br>DEM: https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site04/Site04_final_adj_5mpp_surf.tif <br>Z Hatası: https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site04/Site04_final_adj_5mpp_toterr.tif <br>Eğim Hatası: https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site04/Site04_final_adj_5mpp_slperr.tif | **Teyit edildi (HTTP 200).** Yörünge hataları düzeltilmiş (co-adjusted) 5 m DEM ve hazır belirsizlik (`_sd`) katmanları içerir. `TODO(verify)`: `_src` etiketi olarak `LRO_LOLA_PGDA_Site04_5mpp_v2021` kullanımı onaylanmalı. |
-| **Yükseklik / DEM** (Alternatif Kutup Mozaiği — PDS3) | **MIT / PDS LOLA GDR:** `LRO-L-LOLA-4-GDR-V1.0` — `LDEM_875S_5M`, `LDEM_875S_10M`, `LDEM_875S_20M` (87.5°S–90°S) veya `LDEM_85S_20M` (85°S–90°S) | `V2.0` (`PRODUCT_VERSION_ID = "V2.0"`, 2017-06-15) | **5 m, 10 m veya 20 m/piksel** (`X_res_m = 5.0 / 10.0 / 20.0`), Güney Kutbu Stereografik (`R = 1737.4 km`, DE421) | PDS3 ikili raster `.IMG` (`LSB_INTEGER` 16-bit, `SCALING_FACTOR = 0.5 m`) + ayrık `.LBL` (ayrıca `/FLOAT_IMG/` ve `/JP2/` mevcut) | Dizin: https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/ <br>20m DEM (110 MB): https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/LDEM_875S_20M.IMG <br>20m Etiket: https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/LDEM_875S_20M.LBL <br>5m DEM: https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/LDEM_875S_5M.IMG | **Teyit edildi (`.LBL` okundu, HTTP 200).** Resmi PDS3 arşiv ürünüdür; `rasterio` `.LBL` üzerinden doğrudan okuyabilir. |
-| **Yükseklik / DEM** (Alternatif Geniş Kutup COG — PGDA Ürün #90) | **NASA GSFC PGDA Ürün #90:** A New View of the Lunar South Pole from LOLA — `LDEM_80S_20MPP_ADJ.TIF` (80°S–90°S) ve `LDEM_83S_10MPP_ADJ.TIF` (83°S–90°S) | `ADJ` v2023 (Barker et al., 2023; `doi:10.60903/gsfcpgda-lola-spole`) | **20 m/piksel** (`80S_20MPP`) veya **10 m/piksel** (`83S_10MPP`), Güney Kutbu Stereografik (`MOON_ME` DE421) | Cloud-Optimized GeoTIFF (`.TIF` / COG; HTTP Range ile 20×20 km pencere indirilebilir) | Katalog: https://pgda.gsfc.nasa.gov/products/90 <br>20m COG: https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_20MPP_ADJ.TIF <br>20m Hata COG: https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_20MPP_ADJ_ERR.TIF | **Teyit edildi (HTTP 200).** Tüm dosyayı (2.6 GB) indirmeden `rasterio` pencere okuma (windowed read) ile 20×20 km kesit alınabilir. |
-| **Yüzey Sıcaklığı** (`temp_amplitude`) | **PDS4 LRO Diviner Polar Cumulative Product (PCP):** `urn:nasa:pds:lro_diviner_derived1:data_derived_pcp` — `pcp_avg_tbol_pols_sum_ltim01_240` .. `ltim48_240` (diurnal) ve `pcp_avg_tbol_pols_ls030_slon01_240` .. `slon96_240` (seasonal) | `1.0` (`2022-08-10`, Williams et al., 2022; 2009–2019 birikimli veri) | **240 m/bin** (`X_res_m = 240.0`), 80°S–90°S Güney Kutbu Stereografik ızgara | Sabit genişlikli ASCII tablo (`.tab`, kolonlar: `x, y, clon, clat, tbol` [K]) + PDS4 `.xml` etiket | Günlük (Diurnal): https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/diurnal/ltim/pols/ <br>Mevsimsel: https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/seasonal/slon/pols/ | **Teyit edildi (`.xml` okundu, HTTP 200).** Bir günlük çevrimdeki (`ltim01`..`ltim48` veya `slon`) `max(tbol) - min(tbol)` ile `temp_amplitude` doğrudan hesaplanabilir. `TODO(verify)`: Yaz (`sum`) mı yoksa yıllık tüm mevsimlerin zarfı mı kullanılacağı netleştirilmeli. |
-| **Yüzey Sıcaklığı** (Alternatif Seviye 3 Raster — GDR L3) | **PDS LRO Diviner Level 3 GDR:** `LRO-L-DLRE-5-GDR-V1.0` — `DGDR_TBOL_AVG_POLS_<YYYYMMDD><D\|N>_240_IMG` (gündüz `d` ve gece `n` haritaları) | `V5.0` (`DATA_SET_ID = "LRO-L-DLRE-5-GDR-V1.0"`, kalibrasyon v4.1) | **240 m/piksel** (`X_res_m = 240.0`, `3812 × 3812` piksel), 75°S–90°S Güney Kutbu Stereografik | PDS3 ikili raster `.img` (16-bit int, `SCALING_FACTOR = 0.02`, birim: `K`) + `.lbl` + PDS4 `.xml` (ayrıca `.jp2` mevcut) | Dizin: https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_gdr_l3/2015/polar/img/ <br>Örnek Gündüz: https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_gdr_l3/2015/polar/img/dgdr_tbol_avg_pols_20150122d_240_img.img | **Teyit edildi (`.lbl` okundu, HTTP 200).** Doğrudan kutupsal stereografik rasterdır (`rasterio` ile okunur). `TODO(verify)`: Hangi tarih/çevrim çiftinin seçileceği teyit edilmeli. |
-| **Yüzey Sıcaklığı** (Alternatif Özet Tablo — PRP) | **PDS LRO Diviner Polar Resource Product (PRP):** `LRO-L-DLRE-5-PRP-V2.0` — `DLRE_PRP_SOUTH.TAB` | `2` (`PRODUCT_VERSION_ID = "2"`, 2018-02-21, Paige et al.) | **~500 m** üçgen ağ (`X_res_m = 500.0` `TODO(verify)`), 80°S–90°S | Sabit genişlikli ASCII tablo (`.tab`, kolonlar: `tri_clon, tri_clat, tri_calt, temp_avg, temp_max, ice_depth`) + `.lbl` + `.xml` | Tablo: https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/dlre_prp_south.tab <br>Etiket: https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/dlre_prp_south.xml | **Teyit edildi (`.lbl`/`.xml` okundu).** **Uyarı:** Yalnızca yıllık `temp_avg` ve `temp_max` içerir (`temp_min` yoktur); `temp_amplitude` için PCP veya GDR L3 tercih edilmelidir. |
-| **Albedo** (`albedo`) | **MIT / PDS LOLA Normal Albedo Kutup Haritası:** `LRO-L-LOLA-4-GDR-V1.0` — `LDAM_50S_1000M_FLOAT` (Lemelin et al., 2016) | `V1.0` (`PRODUCT_VERSION_ID = "V1.0"`, 2015-12-15) | **1000 m/piksel** (`X_res_m = 1000.0`, `2532 × 2532` piksel), 50°S–90°S Güney Kutbu Stereografik | PDS3 32-bit float ikili raster `.IMG` (`PC_REAL`, aralık `0.156..0.577`, ~25.6 MB) + `.LBL` | Veri: https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/FLOAT_IMG/LDAM_50S_1000M_FLOAT.IMG <br>Etiket: https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/FLOAT_IMG/LDAM_50S_1000M_FLOAT.LBL | **Teyit edildi (`.LBL` okundu, HTTP 200).** Aktif lazer (1064 nm) kullandığı için Shackleton PSR ve sırtlarında gölge boşluğu olmadan tam kapsama sağlar. `TODO(verify)`: 1064 nm normal albedonun sözleşmedeki `albedo` kolonu için kullanımı `docs/data_notes.md`'de belirtilerek liderle teyit edilmeli. |
-| **Albedo** (Alternatif Genişbant Solar — Diviner GDR L2) | **PDS LRO Diviner Level 2 GDR (Channel 1 Visual Brightness):** `LRO-L-DLRE-5-GDR-V1.0` — `DGDR_VB1_AVG_POLS_<YYYYMMDD>D_240_IMG` + `_ERR_` | `V5.0` (`DATA_SET_ID = "LRO-L-DLRE-5-GDR-V1.0"`, kalibrasyon v4.1) | **240 m/piksel** (`X_res_m = 240.0`, `3812 × 3812` piksel), 75°S–90°S Güney Kutbu Stereografik | PDS3 ikili raster `.img` (16-bit int, `SCALING_FACTOR = 0.0001`, 0.35–2.80 µm `NORMALIZED_RADIANCE`) + `.lbl` | Dizin: https://pds-geosciences.wustl.edu/lro/lro-l-dlre-4-rdr-v1/lrodlr_1001/data/gdr_l2/2015/polar/img/ <br>Örnek Dosya: https://pds-geosciences.wustl.edu/lro/lro-l-dlre-4-rdr-v1/lrodlr_1001/data/gdr_l2/2015/polar/img/dgdr_vb1_avg_pols_20150122d_240_img.img | **Teyit edildi (`.lbl` okundu, HTTP 200).** Genişbant solar (0.35–2.8 µm) ölçümdür ve hazır belirsizlik (`dgdr_vb1_err_pols_*`) dosyası vardır. `TODO(verify)`: Normalize radyansın Lambert albedoya dönüşümü (güneş geliş açısı `cos i` düzeltmesi) doğrulanmalı. |
-| **Albedo** (Alternatif Pasif Optik — Clementine UVVIS) | **USGS Astrogeology Clementine UVVIS 750 nm Global Mosaic:** `Lunar_Clementine_UVVIS_750nm_Global_Mosaic_118m_v2.1` | `v2.1` (USGS Astrogeology, 2022-11-08; Eliason et al., 1999) | **118 m/piksel** (`X_res_m = 118.0`, `256 pix/deg`), Simple Cylindrical (`EPSG:4326` benzeri küresel) | GeoTIFF (`.tif`, ~4.25 GB, HTTP Range destekli) | https://planetarymaps.usgs.gov/mosaic/Lunar_Clementine_UVVIS_750nm_Global_Mosaic_118m_v2.1.tif | **Teyit edildi (HTTP 200).** **Kısıt (`TODO(verify)`):** 89.9°S (Shackleton) bölgesinde düşük güneş açısı kaynaklı gölge boşlukları (NoData) bulunur; kutup noktası için `LDAM_50S_1000M_FLOAT` daha güvenilirdir. |
-| **Albedo** (Alternatif Pasif Optik — LROC WAC) | **USGS / ASU LROC WAC Global Mosaic:** `Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` (veya ASU `LRO-L-LROC-5-RDR-V1.0` `WAC_HAPKE_*` / `WAC_EMP_*`) | `June2013` / `V1.0` (`TODO(verify)` kutup özel RDR sürümü) | **100 m/piksel** (`X_res_m = 100.0`, `303.23 pix/deg`) | GeoTIFF (`.tif`, ~5.96 GB, HTTP Range destekli) | USGS: https://planetarymaps.usgs.gov/mosaic/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif <br>ASU PDS (`TODO(verify)` alt dizin): https://pds.lroc.asu.edu/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/ | **Kısmen teyit edildi.** **Uyarı:** ASU `WAC_HAPKE` 7-bant fotometrik albedo ürünü yalnızca **70°N–70°S** arasını kapsar (89.9°S'yi kapsamaz). USGS 100 m küresel mozaik ise gölge içerir (`TODO(verify)`). |
+| # | Ne Ölçüyor? | Sözleşmedeki Kolonlar | Önerilen NASA Ürünü | Versiyon | Çözünürlük (`X_res_m`) | Dosya Formatı & Boyutu | Durum |
+|---|---|---|---|---|---|---|---|
+| **1** | **Yükseklik ve Eğim (DEM)** | `slope_mean`, `slope_p90`, `roughness`, `relief` | **LRO LOLA — Shackleton Rim Özel Haritası** (`Site04_final_adj_5mpp_surf.tif`) | `v2021` (Barker vd., 2021) | **5 metre** (`5.0 m`) | GeoTIFF (`.tif`), **39 MB** | **Doğrulandı** (Sunucuda aktif) |
+| **2** | **Yüzey Sıcaklığı** | `temp_amplitude` | **LRO Diviner — Güney Kutbu Saatlik/Mevsimlik Sıcaklık** (`pcp_avg_tbol_pols_*_240`) | `v1.0` (Williams vd., 2022) | **240 metre** (`240.0 m`) | ASCII Tablo (`.tab` + `.xml`) | **Doğrulandı** (Sunucuda aktif) |
+| **3** | **Yüzey Parlaklığı (Albedo)** | `albedo` | **LRO LOLA — Güney Kutbu Lazer Albedo Haritası** (`LDAM_50S_1000M_FLOAT`) | `V1.0` (Lemelin vd., 2016) | **1000 metre** (`1000.0 m`) | İkili Raster (`.IMG` + `.LBL`), **25.6 MB** | **Doğrulandı** (Sunucuda aktif) |
 
 ---
 
-## 2. Görev 2 İçin Önerilen Birincil Ürün Seçimi ve Referans Koordinat (`TODO(verify)`)
+## 1. YÜKSEKLİK VE EĞİM VERİSİ (LRO LOLA — DEM)
 
-1. **Eğim (`slope_mean`, `slope_p90`), Pürüzlülük (`roughness`) ve Rölyef (`relief`) İçin Öneri:**
-   - **Birincil Aday:** `Site04_final_adj_5mpp_surf.tif` + `Site04_final_adj_5mpp_toterr.tif` + `Site04_final_adj_5mpp_slperr.tif` (**NASA GSFC PGDA Ürün #78**, `X_res_m = 5.0`, `X_src = "LRO_LOLA_PGDA_Site04_5mpp_v2021"`).
-     - *Neden:* Doğrudan Shackleton Rim çevresini kapsayan ~20×20 km'lik hazır kutupsal stereografik GeoTIFF'tir (~39 MB), yörünge izi hataları (cross-track artifacts) giderilmiştir ve `slope_mean_sd` / `slope_p90_sd` için resmi hata haritası (`_slperr.tif`) içerir.
-   - **Alternatif Aday:** `LDEM_875S_20M.IMG` + `.LBL` (**MIT/PDS3 `LRO-L-LOLA-4-GDR-V1.0` V2.0**, `X_res_m = 20.0`, `X_src = "LRO-L-LOLA-4-GDR-V1.0:LDEM_875S_20M_V2.0"`).
+Ay yüzeyinin yüksekliğini metre cinsinden veren haritadır. Buradan **ortalama eğim (`slope_mean`)**, **%90 eğim (`slope_p90`)**, **yüzey pürüzlülüğü (`roughness`)** ve **yükseklik farkı (`relief`)** hesaplanır.
 
-2. **Shackleton Rim Referans Noktası Koordinatı (`TODO(verify)` — İnsan Onayı Bekleniyor):**
-   - `site_id`: `moon_shackleton_rim`
-   - `name`: `Shackleton Crater Rim (Connecting Ridge)`
-   - **Aday Koordinat (`TODO(verify)`):** `lat = -89.54`, `lon = -137.0` (Shackleton–de Gerlache Connecting Ridge / Artemis aday bölgesi, Mazarico et al. 2011 `Site01`/`Site04` geçişi) **veya** doğrudan Shackleton krateri aydınlık sırtı (`lat = -89.78`, `lon = 123.0` / `Site04` merkezi `TODO(verify)`).
-   - `radius_m`: `1000.0`
+### Seçenek 1A (ÖNERİLEN): NASA GSFC PGDA — Shackleton Rim 5 Metre Haritası
+* **Neden bunu seçmeliyiz?**
+  1. Doğrudan **Shackleton Krateri kenarı (`Site04`)** için hazırlanmış **~20×20 km'lik** hazır bir kutudur.
+  2. Standart `.IMG` dosyalarının aksine doğrudan **GeoTIFF (`.tif`)** formatındadır; Python (`rasterio`) ile tek satırda hatasız açılır.
+  3. Yanında NASA'nın kendi hesapladığı **eğim belirsizliği (`_slperr.tif`)** ve **yükseklik belirsizliği (`_toterr.tif`)** dosyaları vardır. Böylece sözleşmedeki `slope_mean_sd` (belirsizlik) kolonuna uydurma değil, gerçek NASA hata değerini yazabiliriz.
+* **Tam Ürün Adı:** `PGDA High-Resolution LOLA Topography for Lunar South Pole Sites — Site04_final_adj_5mpp_surf.tif`
+* **Versiyon:** `final_adj_5mpp` (Barker et al., 2021, *Planetary and Space Science*, 203, 105119)
+* **Çözünürlük (`X_res_m`):** `5.0` metre/piksel (Güney Kutbu Stereografik Projeksiyon, metre birimli)
+* **Dosya Formatı:** GeoTIFF (`.tif`, 39 MB)
+* **Doğrudan İndirme Linkleri:**
+  * Tanıtım Sayfası: https://pgda.gsfc.nasa.gov/products/78
+  * Yükseklik Haritası (DEM): https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site04/Site04_final_adj_5mpp_surf.tif
+  * Eğim Hata Haritası (`_sd` için): https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site04/Site04_final_adj_5mpp_slperr.tif
+  * Yükseklik Hata Haritası: https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site04/Site04_final_adj_5mpp_toterr.tif
+* **Doğrulama Notu:** `TODO(verify)` — `_src` kolonuna `LRO_LOLA_PGDA_Site04_5mpp_v2021` yazılması ekipçe onaylanmalı.
+
+### Seçenek 1B (ALTERNATİF): MIT / PDS Standart LOLA Kutup Mozaiği (`LDEM_875S_20M`)
+* **Nedir?** 87.5° Güney enleminden kutup noktasına (90°S) kadar tüm bölgeyi kapsayan standart PDS arşiv dosyasıdır.
+* **Tam Ürün Adı:** `LRO-L-LOLA-4-GDR-V1.0` — `LDEM_875S_20M` (veya 5 metrelik `LDEM_875S_5M`)
+* **Versiyon:** `V2.0` (`PRODUCT_VERSION_ID = "V2.0"`, 2017-06-15)
+* **Çözünürlük (`X_res_m`):** `20.0` metre/piksel (Güney Kutbu Stereografik Projeksiyon)
+* **Dosya Formatı:** PDS3 İkili Dosya (`.IMG`, 110 MB) + Metin Etiketi (`.LBL`)
+* **Doğrudan İndirme Linkleri:**
+  * Veri (`.IMG`): https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/LDEM_875S_20M.IMG
+  * Etiket (`.LBL`): https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/IMG/LDEM_875S_20M.LBL
+
+---
+
+## 2. YÜZEY SICAKLIĞI VERİSİ (LRO Diviner)
+
+Ay yüzeyinin gece ve gündüz arasındaki sıcaklık farkını (**`temp_amplitude` = Maksimum Sıcaklık − Minimum Sıcaklık**, Kelvin cinsinden) hesaplamak için kullanılır.
+
+### Seçenek 2A (ÖNERİLEN): LRO Diviner — Güney Kutbu Günlük/Mevsimlik Sıcaklık Haritaları (PCP)
+* **Nedir?** LRO Diviner termal kamerasının 10 yıllık (2009–2019) ölçümlerini birleştirerek Güney Kutbu'nu **240 metrelik** kutucuklara bölen ve bir Ay günü boyunca sıcaklığın nasıl değiştiğini Kelvin (K) cinsinden veren resmi NASA veri setidir.
+* **Tam Ürün Adı:** `urn:nasa:pds:lro_diviner_derived1:data_derived_pcp` — `pcp_avg_tbol_pols_sum_ltim01_240` .. `ltim48_240`
+* **Versiyon:** `1.0` (Williams et al., 2022; PDS4 Arşivi)
+* **Çözünürlük (`X_res_m`):** `240.0` metre (80°S–90°S Güney Kutbu Stereografik ızgara)
+* **Dosya Formatı:** ASCII Metin Tablosu (`.tab`) + PDS4 Etiketi (`.xml`)
+* **Doğrudan İndirme Linkleri:**
+  * Günlük (Saatlik Dilimler): https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/diurnal/ltim/pols/
+  * Mevsimlik Dilimler: https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/seasonal/slon/pols/
+* **Doğrulama Notu:** `TODO(verify)` — `temp_amplitude` hesabı için yaz (`sum`) günlük çevrimindeki `max - min` değerinin mi yoksa yıllık farkın mı kullanılacağı liderle netleştirilmeli.
+
+### Seçenek 2B (ALTERNATİF RASTER): LRO Diviner Seviye 3 Gündüz/Gece Haritaları (`DGDR_TBOL_AVG_POLS`)
+* **Tam Ürün Adı:** `LRO-L-DLRE-5-GDR-V1.0` — `DGDR_TBOL_AVG_POLS_<TARİH><D|N>_240_IMG` (`D`: Gündüz, `N`: Gece)
+* **Versiyon:** `V5.0` (Kalibrasyon v4.1)
+* **Çözünürlük (`X_res_m`):** `240.0` metre/piksel (75°S–90°S Güney Kutbu Stereografik)
+* **Dosya Formatı:** PDS3 `.img` + `.lbl` (Örn. ~29 MB)
+* **Doğrudan İndirme Linki:** https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_gdr_l3/2015/polar/img/
+
+---
+
+## 3. YÜZEY PARLAKLIĞI / ALBEDO VERİSİ (`albedo`: 0 ile 1 arası)
+
+Yüzeyin ışığı ne kadar yansıttığını (`0`: tam karanlık, `1`: tam yansıtıcı) gösterir. **Güney Kutbu'ndaki en kritik sorun güneş ışığının yatay gelmesi ve krater içlerinin sürekli karanlık (gölgede) olmasıdır.**
+
+### Seçenek 3A (ÖNERİLEN): LRO LOLA — Aktif Lazer Normal Albedo Haritası (`LDAM_50S_1000M_FLOAT`)
+* **Neden bunu seçmeliyiz?**
+  * Güneş ışığına ihtiyaç duymaz! Uydu kendi lazerini (1064 nm) yüzeye gönderip yansımasını ölçtüğü için **Shackleton'ın karanlık bölgelerinde bile %100 dolu ve gölgesiz albedo verisi (`0.156` – `0.577` arası)** verir.
+* **Tam Ürün Adı:** `LRO-L-LOLA-4-GDR-V1.0` — `LDAM_50S_1000M_FLOAT`
+* **Versiyon:** `V1.0` (Lemelin et al., 2016; `2015-12-15`)
+* **Çözünürlük (`X_res_m`):** `1000.0` metre/piksel (50°S–90°S Güney Kutbu Stereografik Projeksiyon)
+* **Dosya Formatı:** 32-bit Float `.IMG` (25.6 MB) + `.LBL`
+* **Doğrudan İndirme Linkleri:**
+  * Veri (`.IMG`): https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/FLOAT_IMG/LDAM_50S_1000M_FLOAT.IMG
+  * Etiket (`.LBL`): https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/FLOAT_IMG/LDAM_50S_1000M_FLOAT.LBL
+* **Doğrulama Notu:** `TODO(verify)` — 1064 nm lazer albedosunun sözleşmedeki `albedo` kolonu için kullanılacağı `docs/data_notes.md` içine not düşülmeli.
+
+### Seçenek 3B (ALTERNATİF): LRO Diviner Görünür/Solar Kanal (`DGDR_VB1_AVG_POLS`)
+* **Tam Ürün Adı:** `LRO-L-DLRE-5-GDR-V1.0` — `DGDR_VB1_AVG_POLS_20150122D_240_IMG` (0.35–2.80 µm genişbant güneş yansıması)
+* **Versiyon:** `V5.0`
+* **Çözünürlük (`X_res_m`):** `240.0` metre/piksel
+* **Dosya Formatı:** PDS3 `.img` + `.lbl`
+* **Doğrudan İndirme Linki:** https://pds-geosciences.wustl.edu/lro/lro-l-dlre-4-rdr-v1/lrodlr_1001/data/gdr_l2/2015/polar/img/dgdr_vb1_avg_pols_20150122d_240_img.img
+* **Kısıt (`TODO(verify)`):** Güneş görmeyen krater içlerinde değer ölçemez ve güneş geliş açısı düzeltmesi gerektirir.
+
+### Neden Clementine UV/VIS veya LROC WAC Kutup İçin Uygun Değil? (Kontrol Edildi)
+1. **Clementine UVVIS 750 nm (`Lunar_Clementine_UVVIS_750nm_Global_Mosaic_118m_v2.1.tif`, 118 m):** Sunucuda doğrulandı (https://planetarymaps.usgs.gov/mosaic/Lunar_Clementine_UVVIS_750nm_Global_Mosaic_118m_v2.1.tif), ancak 89.9° Güney kutbunda derin gölgeler nedeniyle Shackleton çevresinde boşluklar (NoData) içerir (`TODO(verify)`).
+2. **LROC WAC Hapke Albedo (`WAC_HAPKE_*`):** Yalnızca **70° Kuzey ile 70° Güney** enlemleri arasını kapsar; 89.9° Güney'deki Shackleton kraterini **hiç kapsamaz**.
+
+---
+
+## 4. Görev 2 İçin Onay Listesi (Sizin Kararınız Bekleniyor)
+
+Görev 2'de **Shackleton çevresi ~20×20 km eğim (`slope_mean`, `slope_p90`) hesabını** başlatmam için şu 2 maddeyi onaylamanız yeterli:
+
+- [ ] **1. DEM Seçimi:** **Seçenek 1A** (`Site04_final_adj_5mpp_surf.tif` — 5 metre çözünürlüklü, 39 MB hazır Shackleton GeoTIFF + gerçek hata haritası) kullanılsın mı?
+- [ ] **2. Shackleton Rim Merkez Koordinatı (`moon_shackleton_rim`, yarıçap `radius_m = 1000` m):**
+  - **Öneri (`Site04` Shackleton Aydınlık Kenar Sırtı):** Enlem `lat = -89.78`, Boylam `lon = 123.0` *(TODO(verify): İندirilen DEM üzerinde en aydınlık/düz sırt noktası harita üstünde de gösterilecek).*
