@@ -148,8 +148,8 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
         "radius_m": 1000.0,
         "lithology_class": "basalt",
         "citation": (
-            "Greeley et al. (1972, NASA SP-315) & Valentine et al. (2017, Geosphere 13:391-438), "
-            "Lunar Crater Volcanic Field Apollo & rover test site, Nevada (38°23'02\"N, 116°04'05\"W)."
+            "Scott & Trask (1971, USGS Prof. Paper 599-I) & Valentine et al. (2017, Geosphere 13:391-438), "
+            "Lunar Crater Volcanic Field maar and basaltic cone complex, Nevada (38°23'02\"N, 116°04'05\"W)."
         ),
     },
     # =========================================================================
@@ -413,7 +413,8 @@ VERIFIED_EARTH_SITES: list[SiteSpec] = [
         "radius_m": 1000.0,
         "lithology_class": "basalt",
         "citation": (
-            "Özdemir et al. (2011, Lithos 127:68-85) & Yılmaz et al. (1998, JVGR 85:173-210), "
+            "Özdemir, Blundy & Güleç (2011, Contrib. Mineral. Petrol. 162:573-597), "
+            "Özdemir & Güleç (2014, J. Petrol. 55:37-62) & Yılmaz et al. (1998, JVGR 85:173-210), "
             "Mount Süphan southern basaltic-trachyandesitic lower apron ~6.9 km S of summit (~2233 m, 38°51'54\"N, 42°49'48\"E)."
         ),
     },
