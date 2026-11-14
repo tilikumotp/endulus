@@ -113,3 +113,40 @@ def combine_axes(
                 "n_axes_used": int(valid.sum()),
             })
     return pd.DataFrame(rows)[["site_id", "score", "n_axes_used"]]
+
+
+def axis_gaps(reference_row: pd.Series, candidates_df: pd.DataFrame) -> pd.DataFrame:
+    """Per-feature reference-vs-candidate comparison for the 'breakdown' card.
+
+    One row per (site, feature) where both values are finite; diff is in the
+    feature's native unit, z_diff is diff normalized by the candidate sd.
+    """
+    axis_of = {f: a for a, feats in AXES.items() for f in feats}
+    feats = list(axis_of)
+    cvals = candidates_df[feats].apply(pd.to_numeric, errors="coerce")
+    rvals = pd.to_numeric(reference_row.reindex(feats), errors="coerce")
+    stats: dict[str, tuple[float, float]] = {}
+    for f in feats:
+        vals = cvals[f].to_numpy(dtype=float)
+        vals = vals[np.isfinite(vals)]
+        stats[f] = (float(np.mean(vals)) if vals.size else float("nan"),
+                    float(np.std(vals)) if vals.size else float("nan"))
+    rows = []
+    for i in range(len(candidates_df)):
+        for f in feats:
+            cv = float(cvals[f].iat[i]) if pd.notna(cvals[f].iat[i]) else float("nan")
+            rv = float(rvals[f]) if pd.notna(rvals[f]) else float("nan")
+            if not (np.isfinite(rv) and np.isfinite(cv)):
+                continue
+            mu, sigma = stats[f]
+            rows.append({
+                "site_id": candidates_df["site_id"].iat[i],
+                "axis": axis_of[f],
+                "feature": f,
+                "ref_value": rv,
+                "cand_value": cv,
+                "diff": cv - rv,
+                "z_diff": (cv - rv) / sigma if sigma > 0.0 else np.nan,
+            })
+    return pd.DataFrame(rows)[["site_id", "axis", "feature", "ref_value",
+                               "cand_value", "diff", "z_diff"]]
