@@ -1,40 +1,38 @@
 # App notes (Person 4, branch p4-app)
 
-Status: v2 — runs end-to-end on MOCK data (`streamlit run app/main.py`,
+Status: v3 — runs end-to-end on MOCK data (`streamlit run app/main.py`,
 Python 3.11 venv). Verified with browser screenshots on 2026-11-14.
 PR: tilikumotp/endulus#3 (draft).
 
-## What v1 does
-- Sidebar: Moon/Mars reference body, reference site selectbox (role =
-  `reference`), mission selector (leader's `MISSION_PRESETS`), top-N slider.
-- Scores: computed exclusively by `src/scoring/similarity.py`
-  (`axis_scores` -> `axis_pivot` -> `combine_axes`). App writes no scoring
-  math of its own.
-- Tabs: pydeck map (size/colour = mission-weighted score), plotly radar
-  charts with 95% CI high/low lines, score table with `[ci_low-ci_high]`
-  per axis, analogy-limits card using leader's `axis_gaps` (sorted by
-  |z_diff|).
-- MOCK banner (top warning + title tag + footer error) whenever any
-  `*_src == "MOCK"` row is displayed (AGENTS.md rule 10).
+## Version history
+- **v1:** ref-site selector, pydeck map, radar + CI, score table, MOCK
+  banner; scores 100% from leader's `src/scoring/` (axis_scores →
+  axis_pivot → combine_axes; axis_gaps for the breakdown card).
+- **v2:** Validation tab (`run_blind_validation`: rank table + grouped
+  bars + "Recovered X/Y"), Portfolio tab (`select_portfolio`: pick
+  order, covered axes, uncovered axes, threshold slider); review fixes:
+  file-mtime cache key, "kernel similarity exp(-distance)" wording,
+  no-op rename removed.
+- **v3:** lithology shown everywhere (score-table column with ✓ when it
+  matches the reference class, radar captions, map tooltip; qualitative
+  only, never in the numeric score — AGENTS.md §2); Analogy Limits tab
+  gained an "Inspect candidate site" selector (any site, e.g.
+  Karacadağ) plus per-feature `_src` and `_res_m` transparency for both
+  reference and candidate (a ~1 km MODIS product cannot resolve a
+  500 m site even when the DEM is 30 m); qualitative v1 factors
+  (water ice/PSR, lava tubes/subsurface caves, electrostatic dust)
+  listed under "not in numeric score"; per-body MOCK flag — the banner
+  now names exactly which parts are synthetic, so real Moon+Earth data
+  is never masked by a mock Mars parquet; Mars radio labelled
+  "Mars (v2 Mock Preview)" while its parquet is mock; top-N slider
+  guard for tiny Earth tables (min_value=1).
 
-## What v2 adds on top of v1
-- Validation tab: leader's `run_blind_validation` — rank table + grouped
-  bar chart per axis, "Recovered X/Y" metric, explicit MOCK note (random
-  draws → recovery is random until real data lands).
-- Portfolio tab: leader's `select_portfolio` (greedy set cover) — pick
-  order, covered axes per site, uncovered-axes list; threshold slider in
-  sidebar.
-- Review fixes: file-mtime cache key (auto-refresh when processed
-  parquets land), "kernel similarity exp(-distance)" wording everywhere
-  (leader's score is exp(-d), not Gaussian exp(-d^2)), no-op rename
-  removed.
-
-## Known v1 limitations (by design, feature freeze 2026-11-15 14:00)
-- All numbers are MOCK until real parquets land in `data/processed/`.
+## Known limitations (by design, feature freeze 2026-11-15 14:00)
+- All numbers are MOCK until real parquets land in `data/processed/`;
+  p3's real Earth parquet is pending merge (PR #2), Moon/Mars from p2.
 - Radar is a 3-point triangle (mobility/thermal/surface axes).
-- Validation-tab blind-run check and portfolio view are leader-side;
-  app shows their inputs but not their outputs yet.
-- `use_container_width` replaced by `width="stretch"` (streamlit 1.67).
+- Validation and Portfolio read leader's modules; their narrative
+  interpretation lives in the written report, not the app.
 
 ## Env quirks
 - Machine had only Python 3.14; installed 3.11.9 via `py install 3.11`
