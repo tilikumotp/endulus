@@ -37,6 +37,7 @@ from scoring.similarity import (  # noqa: E402
 from scoring.validation import run_blind_validation  # noqa: E402
 
 import i18n  # noqa: E402
+import terrain  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
 
@@ -169,6 +170,62 @@ def _region_of(lat: float, lon: float) -> str:
 def _role_text(role: str) -> str:
     """Readable role name for the active language."""
     return T("role_validation" if role == "validation" else "role_candidate")
+
+
+def _terrain_figure(row: pd.Series, exag: int, orbit: float) -> go.Figure:
+    """Plotly 3D surface with hillshade colouring for one site."""
+    z, _ = terrain.get_tile(row)
+    radius = float(row.get("radius_m", 1000.0) or 1000.0)
+    shade = terrain.hillshade(z, radius)
+    z_disp = z * exag
+    xs = np.linspace(-1.0, 1.0, z.shape[1])  # km across the 2r window
+    ys = np.linspace(-1.0, 1.0, z.shape[0])
+
+    fig = go.Figure()
+    fig.add_trace(go.Surface(
+        x=xs, y=ys, z=z_disp, surfacecolor=shade,
+        colorscale="gray", showscale=False,
+        hovertemplate=T("terrain_hover"),
+    ))
+    # r = 1 km measurement-ring outline, drawn above the surface so the
+    # measured area stays visible at every camera angle (2D-card parity).
+    t = np.linspace(0.0, 2.0 * np.pi, 121)
+    ring_z = float(np.nanmax(z_disp)) * 1.04
+    fig.add_trace(go.Scatter3d(
+        x=np.cos(t), y=np.sin(t), z=[ring_z] * len(t),
+        mode="lines", line=dict(color="#2C2923", width=3),
+        hoverinfo="skip",
+    ))
+
+    z_span = float(np.nanmax(z_disp) - np.nanmin(z_disp))
+    aspect_z = float(np.clip((z_span / 1000.0) / 2.0, 0.05, 1.2))
+    ang = np.radians(orbit)
+    fig.update_layout(
+        scene=dict(
+            xaxis_visible=False, yaxis_visible=False, zaxis_visible=False,
+            aspectmode="manual",
+            aspectratio=dict(x=1, y=1, z=aspect_z),
+            camera=dict(eye=dict(
+                x=float(np.cos(ang) * 1.7),
+                y=float(np.sin(ang) * 1.7),
+                z=1.0,
+            )),
+        ),
+        margin=dict(l=0, r=0, t=10, b=0),
+        height=380,
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#2C2923"),
+    )
+    return fig
+
+
+def _terrain_caption(row: pd.Series, is_stub: bool) -> str:
+    """One-line source + resolution + window label under a 3D card."""
+    src = str(row.get("relief_src", "—")).replace("_", " ")
+    res = f"{float(row.get('relief_res_m', np.nan)):g}"
+    km = f"{2.0 * float(row.get('radius_m', 1000.0) or 1000.0) / 1000.0:g}"
+    key = "terrain_card_stub" if is_stub else "terrain_card_source"
+    return T(key, src=src, res=res, km=km)
 
 
 # ── charts ───────────────────────────────────────────────────────────────────
@@ -413,8 +470,8 @@ with st.expander(f"{T('ref_expander')} · {ref_name.split('(')[0].strip()}"):
     st.caption(T("temp_note"))
 
 # ── TABS ─────────────────────────────────────────────────────────────────────
-tab_map, tab_radar, tab_table, tab_validation, tab_breakdown = st.tabs([
-    T("tab_map"), T("tab_radar"), T("tab_table"),
+tab_map, tab_radar, tab_terrain, tab_table, tab_validation, tab_breakdown = st.tabs([
+    T("tab_map"), T("tab_radar"), T("tab_terrain"), T("tab_table"),
     T("tab_validation"), T("tab_breakdown"),
 ])
 
@@ -448,7 +505,36 @@ with tab_radar:
                     lith=i18n.lith_label(str(row.get("lithology_class", "")), LANG),
                 ))
 
-# ── TAB 3: SCORE TABLE ───────────────────────────────────────────────────────
+# ── TAB 3: 3D TERRAIN (stub until M6/E7 DEM tiles land) ──────────────────────
+with tab_terrain:
+    st.markdown(T("terrain_intro"))
+    terrain_sel_name = st.selectbox(
+        T("terrain_pick"), result["name"].tolist(), index=0
+    )
+    terrain_row = result[result["name"] == terrain_sel_name].iloc[0]
+    terrain_cand = earth_df[earth_df["site_id"] == terrain_row["site_id"]].iloc[0]
+
+    exag = st.slider(T("terrain_exag_label"), 1, 4, 2)
+    st.caption(T("terrain_exag_note"))
+    orbit = st.slider(T("terrain_orbit_label"), 0, 360, 0, 5)
+
+    col_moon, col_earth = st.columns(2)
+    _, moon_stub = terrain.get_tile(ref_row)
+    _, earth_stub = terrain.get_tile(terrain_cand)
+    any_stub = moon_stub or earth_stub
+    with col_moon:
+        st.markdown(f"**{ref_name} ({T('body_moon')})**")
+        st.plotly_chart(_terrain_figure(ref_row, exag, orbit), width="stretch")
+        st.caption(_terrain_caption(ref_row, moon_stub))
+    with col_earth:
+        st.markdown(f"**{terrain_sel_name} ({T('body_earth')})**")
+        st.plotly_chart(_terrain_figure(terrain_cand, exag, orbit), width="stretch")
+        st.caption(_terrain_caption(terrain_cand, earth_stub))
+
+    if any_stub:
+        st.info(T("terrain_stub_note"))
+
+# ── TAB 4: SCORE TABLE ───────────────────────────────────────────────────────
 with tab_table:
     st.markdown(T("table_caption"))
     lith_opts = sorted(set(result["lithology_class"].dropna().astype(str)))
@@ -499,7 +585,7 @@ with tab_table:
     st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     st.caption(T("table_footer_caption"))
 
-# ── TAB 4: VALIDATION (blind ranking diagnostic) ────────────────────────────
+# ── TAB 5: VALIDATION (blind ranking diagnostic) ────────────────────────────
 with tab_validation:
     st.markdown(T("val_intro"))
     val = run_blind_validation(long_scores, earth_df, top_k=VALIDATION_TOP_K)
@@ -554,7 +640,7 @@ with tab_validation:
     st.dataframe(val_tbl.sort_values(
         [T("val_col_axis"), T("val_col_rank")]), width="stretch", hide_index=True)
 
-# ── TAB 5: ANALOGY LIMITS ────────────────────────────────────────────────────
+# ── TAB 6: ANALOGY LIMITS ────────────────────────────────────────────────────
 with tab_breakdown:
     st.markdown(T("breakdown_notes"))
     st.divider()
