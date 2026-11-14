@@ -17,6 +17,10 @@ buraya lider onayı olmadan girmez.
 | albedo | MCD43A3.061 shortwave (BSA/WSA seçimi için not: BSA, sabit güneş açısı analoguna daha yakın — lider kararı TODO(verify)). | TODO(verify) |
 | thermal_inertia (Earth) | Doğrudan küresel ürün yok; ATI (apparent thermal inertia) türetmesi kalibrasyon gerektiriyor. | Onaysız sayı yasak → NaN |
 
+## 1b. Site koordinat görsel teyidi (AGENTS.md §5 kural 2)
+
+- **2026-11-14:** 4 Earth sahasının (Etna Cisternazza, Atacama Yungay, Haughton Crater, Karacadağ zirve) koordinatları lider tarafından uydu/harita görüntüsünde görsel olarak teyit edildi ve onaylandı (kaynak incelemesi: NASA Worldview/harita görüntüleri). Moon/Mars referans koordinatları p2 çıktısıyla geldiğinde aynı rutine tabi tutulacaktır.
+
 ## 2. NaN gerekçeleri (hiçbir 0 yer tutucu kullanılmıyor)
 
 - **Earth `thermal_inertia`**: NaN + boş `_src` (bkz. tablo satırı). Kalibre edilmeden doldurulmaz.
