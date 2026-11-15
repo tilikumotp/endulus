@@ -59,10 +59,11 @@ Matematiksel çekirdek [`src/scoring/similarity.py`](../src/scoring/similarity.p
    Burada $S_a$ olasılık veya kalibre edilmiş fiziksel yeterlilik ölçütü değildir; Z-ölçekli havuza bağımlı sıralama indeksidir.
 3. **Monte Carlo Belirsizlik Propagasyonu:** Hem adayın hem referansın ilgili özelliklerde geçerli `_sd` değeri varsa, `seed=0` ve `blake2b(axis, site_id)` tabanlı sıradan bağımsız deterministik üreteçlerle `n_boot = 200` adet bağımsız Gauss gürültü çekilişi ($\mathcal{N}(0, \sigma_{c,f}^2)$ ve $\mathcal{N}(0, \sigma_{r,f}^2)$) yapılır; sabit $(\mu_f, \sigma_f)$ ölçeklemesi altında `q05` (%5) ve `q95` (%95) yüzdelikleri raporlanır. Bilinmeyen belirsizlik asla `0` varsayılmaz; bir özellikte `_sd = NaN` ise nokta skoru korunur fakat aralık `NaN` bırakılır. Görüntüleme katmanında `expanded_interval` (`src/scoring/display.py`), nadiren nokta tahmininin `[q05, q95]` dışında kalması durumlarında kullanıcı yanlış yorumunu önlemek için yalnızca gösterilen aralığı nokta skora kadar genişletir ve `*` ile işaretler (örn. `earth_mcmurdo_wright_valley`, çünkü `albedo_sd = 0.0961` nedeniyle gürültü çekilişleri nokta değerinin iki yanına asimetrik dağılır).
 4. **Görev Profili Ağırlıkları (`src/scoring/config.py`):** Aktif eksenler `combine_axes_with_uncertainty` ile ağırlıklı ortalama üzerinden birleştirilir (`thermal` ekseni Ay'da `NaN` olduğu için ağırlık toplamı yalnızca aktif `mobility` + `surface` üzerinden normalize edilir):
-   - `default` (*Dengeli*): `mobility=1.0, surface=1.0`
-   - `rover_mobility` (*Rover Hareket Testi*): `mobility=2.0, surface=1.0`
-   - `isru_ice` (*Kaynak / Buz Araştırması (v1'de buz verisi içermez)*): `mobility=0.5, surface=1.0` *(fiilî ağırlık `thermal` askıda olduğundan Yüzey `2:1` baskın)*
-   - `radar_calibration` (*Yeraltı Radar Kalibrasyonu*): `mobility=1.0, surface=2.0`
+   - `default` (*Dengeli rover testi, 50/50*): `mobility=1.0, surface=1.0`
+   - `rover_mobility` (*Tırmanma ve tekerlek testi, 67/33*): `mobility=2.0, surface=1.0`
+   - `optical_survey` (*Optik kamera ve güneş paneli testi, 33/67*): `mobility=1.0, surface=2.0`
+
+   > Eski `isru_ice` preset'i v1'de kaldırıldı: `thermal` askıda (`NaN`) olduğu için aktif ağırlıkları `mobility=0.5, surface=1.0` üzerine normalize oluyor ve `optical_survey` ile aynı 33/67 oranını veriyordu — tekrar eden bir seçenek oluşturuyordu. Buz/ISRU hikâyesi 8 boyutlu karnede nitel (skorsuz) olarak yaşmaya devam ediyor.
 
 ---
 

@@ -8,11 +8,13 @@ AXES: dict[str, list[str]] = {
     "surface": ["albedo"],
 }
 
-# v0 mission presets for the app's mission selector (relative axis weights;
+# v1 mission presets for the app's mission selector (relative axis weights;
 # normalization happens in combine_axes). Leader tunes after real-data trials.
+# Three real rover hardware tests; ice/ISRU scenario was dropped because with
+# thermal suspended (Karar #30, NaN) its active weights (mob 0.5 / surf 1)
+# normalize to the same 33/67 ratio as optical_survey — a duplicate option.
 MISSION_PRESETS: dict[str, dict[str, float]] = {
     "default": {"mobility": 1.0, "thermal": 1.0, "surface": 1.0},
     "rover_mobility": {"mobility": 2.0, "thermal": 0.5, "surface": 1.0},
-    "isru_ice": {"mobility": 0.5, "thermal": 2.0, "surface": 1.0},
-    "radar_calibration": {"mobility": 1.0, "thermal": 1.0, "surface": 2.0},
+    "optical_survey": {"mobility": 1.0, "thermal": 1.0, "surface": 2.0},
 }

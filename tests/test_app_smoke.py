@@ -86,7 +86,7 @@ def test_streamlit_app_smoke_tr_and_en() -> None:
     assert not at.exception
     assert len(at.tabs) == 6
 
-    for mission in ("rover_mobility", "isru_ice", "radar_calibration"):
+    for mission in ("rover_mobility", "optical_survey"):
         at.sidebar.selectbox[1].set_value(mission).run()
         assert not at.exception
 

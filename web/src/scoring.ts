@@ -5,7 +5,7 @@ export type AxisName = "mobility" | "surface";
 export const PRESET_WEIGHTS: Record<MissionKey, { wMob: number; wSurf: number }> = {
   default: { wMob: 1.0, wSurf: 1.0 },
   rover_mobility: { wMob: 2.0, wSurf: 1.0 },
-  radar_calibration: { wMob: 1.0, wSurf: 2.0 },
+  optical_survey: { wMob: 1.0, wSurf: 2.0 },
 };
 
 /**

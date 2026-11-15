@@ -130,20 +130,16 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "Mission / use case",
     },
     "mission_default": {
-        "tr": "Dengeli (aktif eksenler eşit ağırlıkta)",
-        "en": "Balanced (active criteria equal)",
+        "tr": "Dengeli rover testi (50/50)",
+        "en": "Balanced rover test (50/50)",
     },
     "mission_rover_mobility": {
-        "tr": "Gezgin araç arazi testi (Mobilite ağırlıklı)",
-        "en": "Rover mobility test (Mobility-weighted)",
+        "tr": "Tırmanma ve tekerlek testi (67/33)",
+        "en": "Climb & wheel test (67/33)",
     },
-    "mission_isru_ice": {
-        "tr": "Termal ağırlıklı senaryo (buz verisi içermez)",
-        "en": "Thermal-weighted scenario (no ice data)",
-    },
-    "mission_radar_calibration": {
-        "tr": "Yer altı radar kalibrasyonu (Mobilite + Yüzey ağırlıklı)",
-        "en": "Subsurface radar calibration (Mobility + Surface weighted)",
+    "mission_optical_survey": {
+        "tr": "Optik kamera ve güneş paneli testi (33/67)",
+        "en": "Optical camera & solar panel test (33/67)",
     },
     "top_n_label": {
         "tr": "Gösterilecek Dünya sahası sayısı",

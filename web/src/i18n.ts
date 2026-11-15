@@ -5,31 +5,31 @@ export const MISSIONS: Record<
   { tr: string; en: string; ratio: string; note_tr: string; note_en: string }
 > = {
   default: {
-    tr: "Dengeli",
-    en: "Balanced",
+    tr: "Dengeli rover testi",
+    en: "Balanced rover test",
     ratio: "50/50",
     note_tr:
-      "Arazi sürüşü ve yüzey parlaklığı eşit (%50 / %50) değerlendirilir; genel keşif için başlangıç noktasıdır.",
+      "Sürüş yeteneği ve yüzey parlaklığı eşit (%50 / %50) değerlendirilir; genel rover uyumu için başlangıç noktasıdır.",
     note_en:
-      "Terrain driveability and surface brightness carry equal weight (50% / 50%) for general scouting.",
+      "Terrain driveability and surface brightness carry equal weight (50% / 50%) for general rover fit.",
   },
   rover_mobility: {
-    tr: "Gezgin araç testi",
-    en: "Rover mobility test",
+    tr: "Tırmanma ve tekerlek testi",
+    en: "Climb & wheel test",
     ratio: "67/33",
     note_tr:
-      "Tekerlek ve tırmanma testleri için eğim, engebe ve yükselti (%67) yüzey renginin iki katı öne çıkar.",
+      "Tekerlek tutuşu ve tırmanma testleri için eğim, pürüzlülük ve rölyef (%67) yüzey parlaklığının iki katı öne çıkar.",
     note_en:
-      "Slope, roughness and elevation relief carry 2x weight (67%) for rover mobility and wheel trials.",
+      "Slope, roughness and elevation relief carry 2x weight (67%) for wheel traction and climb trials.",
   },
-  radar_calibration: {
-    tr: "Yeraltı radar kalibrasyonu",
-    en: "Subsurface radar calibration",
+  optical_survey: {
+    tr: "Optik kamera ve güneş paneli testi",
+    en: "Optical camera & solar panel test",
     ratio: "33/67",
     note_tr:
-      "Sinyal yansıtıcılığı ve yüzey dokusu için geniş bant parlaklık/albedo (%67) eğime göre iki kat öne çıkar.",
+      "Navigasyon kamerasının kontrast/pozlama dengesi ve güneş panellerine düşen yansıyan ışık için yüzey parlaklığı albedo (%67) eğime göre iki kat öne çıkar.",
     note_en:
-      "Surface brightness/albedo carries 2x weight (67%) over slope to prioritize ground reflectance.",
+      "Surface brightness (albedo, 67%) carries 2x weight over slope: it drives nav-camera contrast/exposure and light reflected onto solar panels.",
   },
 };
 
@@ -289,7 +289,7 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     guideTitle: "Bu sayfa 3 adımda okunur",
     guideStep1: "Bir Ay hedef bölgesi seçin (sol menü) — Artemis III aday bölgelerinden biri skorumuzun referansı olur.",
     guideStep2: "Dünya sahaları benzerlik indeksiyle sıralanır: 1'e yakın = Ay bölgesine daha çok benziyor. Köşeli parantezdeki aralık ölçüm hatasından gelen belirsizliktir.",
-    guideStep3: "Görev profili değiştirerek (gezgin testi, radar kalibrasyonu) aynı verinin farklı ağırlıkla nasıl yeniden sıralandığını görün — puanlar 0–1 indekstir, olasılık değildir.",
+    guideStep3: "Görev profili değiştirerek (tırmanma testi, optik kamera testi) aynı verinin farklı ağırlıkla nasıl yeniden sıralandığını görün — puanlar 0–1 indekstir, olasılık değildir.",
     demTitleMoon: "Ay 3B arazi (5 m/px LRO LOLA)",
     demTitleEarth: "Dünya 3B arazi (30 m/px uydu DEM)",
     exaggeration: "Dikey abartı",
@@ -337,7 +337,7 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     guideTitle: "How to read this page in 3 steps",
     guideStep1: "Pick a Moon target region (left panel) — one of the Artemis III candidate regions becomes the reference of the ranking.",
     guideStep2: "Earth sites are ranked by a similarity index: closer to 1 = more Moon-like. The bracketed range is the uncertainty from measurement error.",
-    guideStep3: "Switch the mission profile (rover test, radar calibration) to see the same data re-ranked with different weights — scores are a 0–1 index, not a probability.",
+    guideStep3: "Switch the mission profile (climb & wheel test, optical camera test) to see the same data re-ranked with different weights — scores are a 0–1 index, not a probability.",
     demTitleMoon: "Lunar 3D terrain (5 m/px LRO LOLA)",
     demTitleEarth: "Earth 3D terrain (30 m/px satellite DEM)",
     exaggeration: "Vertical exaggeration",

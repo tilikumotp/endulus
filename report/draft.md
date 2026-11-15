@@ -72,7 +72,7 @@ Lesser-studied sites are presented strictly as **candidates**, never as confirme
 | *"Remember Earth's limitations"* | Dedicated `Limits of the Analogy` tab + 8-Dimension Scorecard separating field-testable axes from `1/6 g`, vacuum, radiation, and `29.5`-day synodic cycles |
 | *"Look beyond well-known analogs / surprise us"* | 30 curated candidate sites (including 10 Anatolian volcanic/evaporite sites: Meke Maar, Hasan Dağı, Karacadağ, Kula, Tendürek, Erciyes, Süphan, Ağrı, Nemrut, Tuz Gölü) evaluated alongside 10 classic validation analogues |
 | *"Use multiple datasets & consider scale"* | Multi-sensor orbital fusion (`5 m` LRO LOLA DEM, `1000 m` LOLA albedo, `30 m` Copernicus GLO-30 / NASADEM, `500 m` MODIS MCD43A3, `1000 m` MOD11A2, `10 m` Sentinel-2 L2A) on uniform `r = 1000 m` metric windows with explicit `5 m vs 30 m` scale notes |
-| *"Connect the analogy to exploration"* | Mission selector (`Balanced`, `Rover mobility test`, `Thermal-weighted scenario`, `Subsurface radar calibration`) + Compact Multi-Site Test Portfolio Card (`select_portfolio`) |
+| *"Connect the analogy to exploration"* | Mission selector (`Balanced rover test`, `Climb & wheel test`, `Optical camera & solar panel test`) + Compact Multi-Site Test Portfolio Card (`select_portfolio`) |
 | *"Go beyond visual similarity"* | Visuals (`moon_atlas/`, `earth_atlas/`, 3D DEM surfaces) are strictly evidence/context cards and never enter the numeric score |
 
 ## 9. Future Work (v2 Extensions)

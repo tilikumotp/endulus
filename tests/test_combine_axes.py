@@ -46,15 +46,15 @@ def test_mission_presets_change_ranking() -> None:
     from scoring.config import MISSION_PRESETS
 
     scores = pd.DataFrame({
-        "site_id": ["flat"] * 3 + ["cold"] * 3,
+        "site_id": ["flat"] * 3 + ["bright"] * 3,
         "axis": ["mobility", "thermal", "surface"] * 2,
-        "score": [0.9, 0.3, 0.5, 0.1, 0.9, 0.5],
+        "score": [0.9, 0.3, 0.5, 0.1, 0.5, 0.9],
     })
     rover = combine_axes(scores, MISSION_PRESETS["rover_mobility"])
-    isru = combine_axes(scores, MISSION_PRESETS["isru_ice"])
+    optical = combine_axes(scores, MISSION_PRESETS["optical_survey"])
     assert rover.iloc[0]["site_id"] == "flat"
     assert rover.sort_values("score", ascending=False).iloc[0]["site_id"] == "flat"
-    assert isru.sort_values("score", ascending=False).iloc[0]["site_id"] == "cold"
+    assert optical.sort_values("score", ascending=False).iloc[0]["site_id"] == "bright"
 
 
 def test_combined_interval_uses_weighted_aligned_draws() -> None:
