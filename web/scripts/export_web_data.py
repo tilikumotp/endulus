@@ -22,7 +22,7 @@ from app.i18n import (  # noqa: E402
     DIMENSION_SCORECARD,
     EARTH_DATASET_REFS,
     MOON_BIBLIOGRAPHY,
-    MOON_REF_NAMES,
+    MOON_SITE_LABELS,
 )
 from earth.mixed_pixel import build_diagnostic_rows  # noqa: E402
 from earth.sites import VERIFIED_EARTH_SITES  # noqa: E402
@@ -223,7 +223,7 @@ def main() -> None:
     for _, mrow in moon_df.iterrows():
         mid = str(mrow["site_id"])
         ma = moon_atlas_meta.get(mid, {})
-        names = MOON_REF_NAMES.get(mid, {})
+        names = MOON_SITE_LABELS.get(mid, {})
 
         axis_tbl, draws = axis_scores_with_draws(mrow, earth_df)
         mob_df = axis_tbl[axis_tbl["axis"] == "mobility"].set_index("site_id")
