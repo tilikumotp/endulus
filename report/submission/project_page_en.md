@@ -19,9 +19,9 @@ No single place on Earth matches a Moon base site in every respect, so ranking E
 
 ## Link to Project Demo
 
-https://github.com/tilikumotp/endulus/blob/main/report/nasa_submission_7slides.pptx
+https://github.com/tilikumotp/endulus/blob/main/report/endulus_moon_analogue_scorer.pdf
 
-(7-slide English deck; opens anonymously, verified without login.)
+(7-slide English deck as PDF; opens anonymously, verified without login.)
 
 ## Link to Final Project
 

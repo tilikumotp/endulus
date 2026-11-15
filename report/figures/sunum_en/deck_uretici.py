@@ -185,7 +185,7 @@ members = [
     ("Serdar Otlutepe", "Lead / Approver - methodology, scoring, integration"),
     ("Berathan Menek", "Web design and testing - interactive map app"),
     ("Eray Seylan", "Earth satellite data - GLO-30, MODIS, Sentinel-2"),
-    ("Emirjan Aksoy", "Moon data - LOLA DEM, reflectivity, Diviner"),
+    ("Emirhan Aksoy", "Moon data - LOLA DEM, reflectivity, Diviner"),
 ]
 y = 2.08
 for name, role in members:

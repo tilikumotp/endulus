@@ -27,7 +27,7 @@ MONO = {"family": "Consolas", "size": 8.0, "color": INK3}
 
 
 def strip_tr(name: str) -> str:
-    return name.replace(" (TR)", "")
+    return name.replace(" (TR)", "").replace("Haughton Krateri", "Haughton Crater")
 
 
 def short_of(site_id: str) -> str:
@@ -168,7 +168,7 @@ ax.set_xlim(31, 0)
 ax.set_xticks([1, 5, 10, 15, 20, 25, 30])
 ax.grid(axis="x", zorder=0)
 ax.grid(axis="y", visible=False)
-ax.set_xlabel("Mobility rank (#1 best, leftward)", fontsize=10.5)
+ax.set_xlabel("Mobility rank (#1 best, rightward)", fontsize=10.5)
 header(fig, "Reference-geometry sensitivity",
        "With the flat reference (Faustini) instead of the steep crater rim (Shackleton), known analogues rise in mobility.")
 src(fig, "Source: comparisons[moon_shackleton_rim | moon_faustini_rim][default] · mob_rank")
