@@ -1,4 +1,4 @@
-import type { EarthSite, MissionKey, MoonRef, SiteScoreRow } from "./types";
+import type { AxisDraws, EarthSite, MissionKey, MoonRef, SiteScoreRow } from "./types";
 
 export type AxisName = "mobility" | "surface";
 
@@ -9,13 +9,33 @@ export const PRESET_WEIGHTS: Record<MissionKey, { wMob: number; wSurf: number }>
 };
 
 /**
+ * Quantile with linear interpolation, matching numpy's default percentile
+ * method (linear between order statistics on the sorted array).
+ */
+function quantileLinear(values: number[], p: number): number {
+  const a = [...values].sort((x, y) => x - y);
+  const idx = (a.length - 1) * p;
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if (lo === hi) return a[lo];
+  return a[lo] * (1 - (idx - lo)) + a[hi] * (idx - lo);
+}
+
+/**
  * Compute live custom-weighted composite scores from base axis scores and intervals.
  * Mirrors `src/scoring/similarity.py::combine_axes` normalized weighted mean.
+ *
+ * When per-axis Monte Carlo draws are supplied (exported by
+ * `web/scripts/export_web_data.py`), the total-score interval is computed from
+ * the same 200 aligned draws the Python engine uses
+ * (`combine_axes_with_uncertainty`), so custom-weight intervals match the
+ * engine bit-for-bit rather than using a quadrature approximation.
  */
 export function computeWeightedScores(
   baseRows: SiteScoreRow[],
   wMob: number,
-  wSurf: number
+  wSurf: number,
+  axisDraws?: Record<string, AxisDraws>
 ): SiteScoreRow[] {
   const safeMob = Math.max(0, wMob);
   const safeSurf = Math.max(0, wSurf);
@@ -30,7 +50,23 @@ export function computeWeightedScores(
     let ci_hi: number | null = null;
     let widened = false;
 
-    if (ws === 0 && r.mob_lo !== null && r.mob_hi !== null) {
+    const d = axisDraws?.[r.site_id];
+    if (wm > 0 && ws > 0 && d && d.mob.length === 200 && d.surf.length === 200) {
+      // Exact engine Monte Carlo: weighted average of aligned per-axis draws.
+      const total = d.mob.map((m, i) => wm * m + ws * d.surf[i]);
+      let lo = quantileLinear(total, 0.05);
+      let hi = quantileLinear(total, 0.95);
+      // expanded_interval: keep the point estimate inside the shown bounds.
+      if (score < lo) {
+        lo = score;
+        widened = true;
+      } else if (score > hi) {
+        hi = score;
+        widened = true;
+      }
+      ci_lo = lo;
+      ci_hi = hi;
+    } else if (ws === 0 && r.mob_lo !== null && r.mob_hi !== null) {
       ci_lo = r.mob_lo;
       ci_hi = r.mob_hi;
       widened = r.mob_widened;

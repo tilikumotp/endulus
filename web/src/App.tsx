@@ -185,7 +185,8 @@ export default function App() {
     const basePreset = data.comparisons[moonId]?.[mission] ?? [];
     if (!isCustomWeights) return basePreset;
     const baseDefault = data.comparisons[moonId]?.default ?? basePreset;
-    return computeWeightedScores(baseDefault, wMob, wSurf);
+    const axisDraws = data.comparisons[moonId]?.axis_draws;
+    return computeWeightedScores(baseDefault, wMob, wSurf, axisDraws);
   }, [data, moonId, mission, isCustomWeights, wMob, wSurf]);
 
   const scoresById = useMemo(() => {

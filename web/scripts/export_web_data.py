@@ -301,7 +301,24 @@ def main() -> None:
                     "surf_rank": int(surf_rank_map[sid]),
                 })
             mission_scores[mkey] = rows_out
-        comparisons[mid] = mission_scores
+
+        # Per-axis Monte Carlo draws (aligned by draw index) so the React
+        # custom-weight composite reproduces the engine's exact MC interval
+        # instead of a quadrature approximation.
+        axis_draws: dict[str, dict[str, list[float]]] = {}
+        finite = draws[draws["axis"].isin(("mobility", "surface"))]
+        for sid, grp in finite.groupby("site_id"):
+            entry: dict[str, list[float]] = {}
+            for ax, key in (("mobility", "mob"), ("surface", "surf")):
+                vals = grp[grp["axis"] == ax].sort_values("draw")["score"].to_numpy(
+                    dtype=float
+                )
+                vals = vals[np.isfinite(vals)]
+                if vals.size == 200:
+                    entry[key] = [round(float(v), 5) for v in vals]
+            if len(entry) == 2:
+                axis_draws[str(sid)] = entry
+        comparisons[mid] = {**mission_scores, "axis_draws": axis_draws}
 
         g_df = axis_gaps(mrow, earth_df)
         g_map: dict[str, list[dict]] = {}

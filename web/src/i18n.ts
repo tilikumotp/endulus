@@ -158,7 +158,7 @@ export const SOLUTION_EXAMPLES: Record<
       tag: "Çözüm 02 · Krater Seçimi",
       title: "Atacama ve Haughton neden krater değiştirince yükselir?",
       example:
-        "Shackleton krateri çok diktir (18.5°), bu yüzden düz çöl/buz sahaları alt sırada kalır. Daha yatık Faustini Kenarı (5.2°) seçildiğinde Haughton (#6) ve Atacama (#8) üst sıralara tırmanır.",
+        "Shackleton krateri çok diktir (18.5°), bu yüzden düz çöl/buz sahaları alt sırada kalır. Daha yatık Faustini Kenarı (5.2°) seçildiğinde ikisi de gezgin aracı mobilitesi sıralamasında ilk 10'a döner: Haughton #6, Atacama #8.",
       linkLabel: "bkz. Faustini & Haughton uyumuna git",
     },
     {

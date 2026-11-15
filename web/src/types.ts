@@ -142,6 +142,15 @@ export interface MixedPixelAuditRow {
   note: string;
 }
 
+export interface AxisDraws {
+  mob: number[];
+  surf: number[];
+}
+
+export type ComparisonBundle = Record<MissionKey, SiteScoreRow[]> & {
+  axis_draws?: Record<string, AxisDraws>;
+};
+
 export interface AppDataPayload {
   meta: {
     moon_count: number;
@@ -157,7 +166,7 @@ export interface AppDataPayload {
   };
   moon_refs: MoonRef[];
   earth_sites: EarthSite[];
-  comparisons: Record<string, Record<MissionKey, SiteScoreRow[]>>;
+  comparisons: Record<string, ComparisonBundle>;
   gaps: Record<string, Record<string, FeatureGap[]>>;
   albedo_sensitivity: AlbedoSensitivityRow[];
   mixed_pixel_audit: MixedPixelAuditRow[];
