@@ -223,6 +223,7 @@ export function RealMapLeaflet({
       return rb - ra;
     });
 
+    const dots: Record<string, L.CircleMarker> = {};
     for (const s of ordered) {
       const row = scoresById[s.site_id];
       const { val, rank } = metricValue(row, metricMode);
@@ -267,7 +268,18 @@ export function RealMapLeaflet({
       });
 
       const popupEl = document.createElement("div");
-      popupEl.className = "min-w-[210px]";
+      popupEl.className = "w-[272px]";
+
+      // Real Sentinel-2 L2A thumbnail of the site — the product's own imagery
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "rounded-lg overflow-hidden border border-white/10 mb-2";
+      const img = document.createElement("img");
+      img.src = s.atlas_img;
+      img.alt = `${s.short} — Sentinel-2`;
+      img.loading = "lazy";
+      img.className = "w-full h-28 object-cover block";
+      imgWrap.appendChild(img);
+      popupEl.appendChild(imgWrap);
 
       const badge = document.createElement("div");
       badge.className = "text-[10.5px] font-mono mb-1";
@@ -286,7 +298,7 @@ export function RealMapLeaflet({
       heading.textContent = s.short;
 
       const stats = document.createElement("div");
-      stats.className = "text-[11.5px] font-mono text-[#a3a9b8] space-y-0.5 mb-2.5";
+      stats.className = "text-[11.5px] font-mono text-[#a3a9b8] space-y-0.5 mb-1.5";
 
       const line1 = document.createElement("div");
       line1.textContent = `${lang === "tr" ? "Genel" : "Overall"} ${(row?.score ?? 0).toFixed(3)} · ${
@@ -294,10 +306,15 @@ export function RealMapLeaflet({
       } ${(row?.mob ?? 0).toFixed(3)} · ${lang === "tr" ? "Yüzey" : "Surf"} ${(row?.surf ?? 0).toFixed(3)}`;
 
       const line2 = document.createElement("div");
-      line2.textContent = `${lang === "tr" ? "Eğim" : "Slope"} ${s.slope_mean.toFixed(1)}° · Albedo ${s.albedo.toFixed(3)}`;
+      line2.textContent = `${lang === "tr" ? "Eğim" : "Slope"} ${s.slope_mean.toFixed(1)}° · ${lang === "tr" ? "Pürüzlülük" : "Rough"} ${s.roughness.toFixed(1)} m · ${lang === "tr" ? "Rölyef" : "Relief"} ${s.relief.toFixed(0)} m`;
+
+      const line3 = document.createElement("div");
+      const cloud = s.s2_cloud_pct !== null ? ` · ${lang === "tr" ? "bulut" : "cloud"} %${s.s2_cloud_pct}` : "";
+      line3.textContent = `Albedo ${s.albedo.toFixed(3)} · Sentinel-2 ${(s.s2_date || "—").split("T")[0]}${cloud}`;
 
       stats.appendChild(line1);
       stats.appendChild(line2);
+      stats.appendChild(line3);
 
       const btnRow = document.createElement("div");
       btnRow.className = "flex items-center gap-1.5";
@@ -330,12 +347,17 @@ export function RealMapLeaflet({
       popupEl.appendChild(stats);
       popupEl.appendChild(btnRow);
 
-      dot.bindPopup(popupEl, { maxWidth: 260 });
+      dot.bindPopup(popupEl, { maxWidth: 288 });
       dot.on("click", () => {
         onSelectRef.current(s.site_id);
       });
       dot.addTo(group);
+      dots[s.site_id] = dot;
     }
+
+    // Reopening after a selection-driven rebuild keeps the site card visible:
+    // selecting a marker rebuilds markers, which would otherwise destroy the popup.
+    dots[selectedId]?.openPopup();
   }, [sites, scoresById, selectedId, metricMode, lang, viewMode]);
 
   const handleGlobal = () => {
