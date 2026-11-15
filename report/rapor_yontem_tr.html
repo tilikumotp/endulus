@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ay ↔ Dünya Benzerlik Yöntemi — Yöntem Raporu</title>
+<style>
+  :root {
+    --paper: #faf9f6;
+    --surface: #f1efea;
+    --ink: #22252a;
+    --ink-2: #565b64;
+    --ink-3: #8a8f98;
+    --hairline: rgba(34, 37, 42, 0.10);
+    --accent: #2b5aa6;
+    --accent-ink: #1e4787;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: "Segoe UI", system-ui, sans-serif;
+    --mono: Consolas, "Cascadia Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  .page { max-width: 960px; margin: 0 auto; padding: 48px 32px 64px; }
+
+  header.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 24px; margin-bottom: 32px; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 400;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .standfirst { font-size: 17px; color: var(--ink-2); margin: 12px 0 0; max-width: 680px; }
+  .meta-line {
+    display: flex; flex-wrap: wrap; gap: 8px 24px;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+    margin-top: 20px;
+  }
+
+  section { margin: 48px 0 0; }
+  header.masthead + section > h2 { border-top: none; padding-top: 0; }
+  section > h2 {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 400;
+    margin: 0 0 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ink);
+  }
+  section > .lede { color: var(--ink-2); margin: 0 0 20px; max-width: 720px; }
+
+  h3 { font-size: 16px; font-weight: 600; margin: 28px 0 8px; }
+
+  p { margin: 0 0 14px; }
+
+  /* Provenance strip: the signature. Every number carries a source tag. */
+  .prov {
+    display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
+    margin: -6px 0 18px; padding: 8px 12px;
+    background: var(--surface);
+    border-radius: 8px;
+  }
+  .prov, .prov * { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  .prov .tag::before { content: "src·"; color: var(--ink-3); }
+  .prov .tag { white-space: nowrap; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 8px; font-size: 13.5px; }
+  th {
+    text-align: left; font-weight: 600; font-size: 12px; color: var(--ink-2);
+    border-bottom: 1px solid var(--ink); padding: 8px 10px 6px;
+  }
+  td { border-bottom: 1px solid var(--hairline); padding: 8px 10px; vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; }
+  td .src { font-family: var(--mono); font-size: 11px; color: var(--ink-3); display: block; margin-top: 2px; }
+  table .suspended td { color: var(--ink-3); }
+  table .suspended td.num::after { content: " NaN"; font-style: italic; }
+
+  ol.pipeline { list-style: none; margin: 20px 0 0; padding: 0; counter-reset: step; }
+  ol.pipeline li {
+    counter-increment: step;
+    display: grid; grid-template-columns: 44px 1fr; gap: 16px;
+    padding: 14px 0; border-bottom: 1px solid var(--hairline);
+  }
+  ol.pipeline li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: var(--mono); font-size: 13px; color: var(--accent-ink);
+    padding-top: 2px;
+  }
+  ol.pipeline b { font-weight: 600; }
+  ol.pipeline p { margin: 2px 0 0; color: var(--ink-2); font-size: 14.5px; }
+
+  .eq {
+    font-family: var(--mono); font-size: 13.5px;
+    background: var(--surface); border-radius: 8px;
+    padding: 14px 18px; margin: 12px 0 6px; overflow-x: auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .eq .fn { color: var(--accent-ink); }
+
+  figure { margin: 28px 0; }
+  figure img { width: 100%; height: auto; border: 1px solid var(--hairline); border-radius: 8px; background: #fff; }
+  figcaption { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+  figcaption b { font-weight: 600; color: var(--ink); }
+
+  .card {
+    border: 1px solid var(--hairline); border-radius: 12px;
+    padding: 16px 20px; margin: 16px 0;
+    background: var(--surface);
+  }
+  .card h4 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+  .card p { margin: 0; font-size: 14px; color: var(--ink-2); }
+
+  .issue { border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; }
+  .issue h4 { color: var(--accent-ink); }
+
+  footer {
+    margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--ink);
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  @media print {
+    body { font-size: 11.5px; }
+    .page { padding: 0; max-width: none; }
+    section > h2 { break-after: avoid; }
+    figure { break-inside: avoid; }
+    .card { break-inside: avoid; }
+    h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="masthead">
+  <p class="kicker">NASA SPACE APPS 2026 — KALICI AY ÜSSÜ KONUMLARI VE MARS · YÖNTEM RAPORU</p>
+  <h1>Ay'dan Dünya'ya benzerlik: veri nasıl toplandı, işlendi ve puanlandı</h1>
+  <p class="standfirst">Bir Dünya sahası Ay'ı her açıdan kopyalayamaz. Bu nedenle 40 Dünya sahasını 5 Ay Güney Kutbu referans bölgesine ekseni eksenine, her sayının kaynağını ve hata payını taşıyarak karşılaştırdık. Bu rapor o hattın bütününü anlatır: toplama, işleme, algoritmalar ve çözdüğümüz sorunlar.</p>
+  <div class="meta-line">
+    <span>5 Ay referans bölgesi</span>
+    <span>40 Dünya sahası (14 Türkiye · 10 bilinen analog · 16 küresel)</span>
+    <span>3 sayısal eksen</span>
+    <span>51 test · sıfır mock veri</span>
+  </div>
+</header>
+
+<section id="toplama">
+  <h2>1 · Veri nasıl toplandı</h2>
+  <p class="lede">Her özellik için her iki cisme de aynı tanımı uygulayan, kamuya açık, doğrulanmış yörünge ürünleri kullandık. Tüm ham dosyalar <span style="font-family:var(--mono);font-size:13px">data/raw/</span> altında, repoya girmeden tutulur.</p>
+
+  <table>
+    <thead>
+      <tr><th>Özellik</th><th>Ay ürünü</th><th>Dünya ürünü</th><th class="num">Çözünürlük</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Eğim, pürüzlülük, rölyef</td>
+        <td>LRO LOLA PGDA DEM + hata haritaları<span class="src">slope_mean · slope_p90 · roughness · relief</span></td>
+        <td>Copernicus GLO-30 / NASADEM (yedek)<span class="src">aynı dördü, aynı tanım</span></td>
+        <td class="num">5 m · 30 m</td>
+      </tr>
+      <tr>
+        <td>Yüzey albedosu</td>
+        <td>LOLA 1064 nm, ×0.38 geniş bant eşdeğeri<span class="src">albedo</span></td>
+        <td>MODIS MCD43A3.061<span class="src">albedo</span></td>
+        <td class="num">1000 m · 500 m</td>
+      </tr>
+      <tr class="suspended">
+        <td>Sıcaklık genliği, termal atalet</td>
+        <td>LRO Diviner PCP<span class="src">temp_amplitude · thermal_inertia</span></td>
+        <td>MODIS MOD11A2.061 yıllık ort. ΔT<span class="src">aynı kolonlar</span></td>
+        <td class="num">240 m · 1000 m</td>
+      </tr>
+      <tr>
+        <td>Bağlam (skorsuz)</td>
+        <td>LOLA shaded-relief tuvali<span class="src">moon_atlas/ 15 png</span></td>
+        <td>Sentinel-2 L2A · ESA WorldCover<span class="src">earth_atlas/ 40 webp</span></td>
+        <td class="num">5 m · 10 m</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="prov">
+    <span>Kaynaklar NASA CMR (cmr.earthdata.nasa.gov) üzerinden sorgulandı; ürün adları ve sürümleri parquet künyelerinde _src kolonunda taşınır.</span>
+  </div>
+
+  <p>Termal eksen bilinçli olarak askıda: Ay ve Dünya'da "bir günlük döngü" tanımı eşdeğer değil (240 saatlik kutup gecesi karşısında MODIS'in günlük ΔT'si kıyaslanamaz). Veriyi uydurmak yerine kolonları NaN bıraktık; sıcaklık hikâyesi 8 boyutlu karnede nitel olarak yaşıyor. Doğrulanmış hiçbir sayı bu karardan önce uydurulmadı.</p>
+</section>
+
+<section id="isleme">
+  <h2>2 · Veri nasıl işlendi</h2>
+  <p class="lede">Ham DEM'den karşılaştırılabilir parquet tablosuna giden yol altı adım; her adımın çıktısı bir sonrakinin girdisi.</p>
+
+  <ol class="pipeline">
+    <li><div><b>İndirme ve kaynak kilidi</b><p>Her ürünün adı, sürümü ve çözünürlüğü indirme anında kayda geçer. Karakteristik adı ezbere yazılmış bir URL yok; her _src alanı CMR kaydıyla eşleşir.</p></div></li>
+    <li><div><b>Metrik CRS'e yeniden projeksiyon</b><p>Eğim ve mesafe kutup stereografik (Ay) ve metrik (Dünya) projeksiyonda hesaplanır; derece cinsinden dikdörtgen ızgara üzerinde eğim hesaplamak bilimsel olarak yanlıştır, bunu daha baştan keseriz.</p></div></li>
+    <li><div><b>Saha yarıçapı toplulaştırma (r = 1000 m)</b><p>Her site için ortalama ve P90 eğim, trendden arındırılmış yüksekliğin standart sapması (pürüzlülük) ve maksimum−minimum yükselti (rölyef) yarıçap içinde hesaplanır. Farklı çözünürlükler aynı tanım altında aynı çemberde karşılaşır.</p></div></li>
+    <li><div><b>Veri sözleşmesi</b><p>Tek parquet dosyası per cismi: kimlik kolonları (site_id, role, lat/lon, radius_m), özellik kolonları ve her özellik için üç künye kolonu: _sd (1σ belirsizlik), _src (ürün + sürüm), _res_m (yerel çözünürlük). Kullanılamayan değer 0 değil NaN'dır.</p></div></li>
+    <li><div><b>Sağlık kontrolleri</b><p>Her çıktı betik kapısından geçer: validate_contract --fail-on-mock sentetik/yer tutucu değer için hatayı yükseltir; min/maks/birim ve görsel kontrol her özelliğe uygulanır. 51 pytest testi yöntemi sabitler.</p></div></li>
+    <li><div><b>Web'e aktarım</b><p>Parquet, Monte Carlo çizimleriyle birlikte statik JSON'a (962 KB) derlenir; React gözlemevi önceden hesaplanmış tabloları okur, tarayıcıda sıralama ve özel ağırlık hesabı aynı formüllerle tekrar eder.</p></div></li>
+  </ol>
+</section>
+
+<section id="algoritmalar">
+  <h2>3 · Algoritmalar</h2>
+  <p class="lede">Dört bileşen: eksen başına benzerlik, belirsizlik yayılımı, görev profilleri ve kapama kümeleri.</p>
+
+  <h3>Eksen başına Z-skoru benzerliği</h3>
+  <p>Her aday saha, her eksen için referansla özellik uzayında uzaklık hesaplar. Düşük uzaklık, yüksek benzerlik demektir:</p>
+  <div class="eq">D<sub>a</sub>(c, r) = √[ (1/|F<sub>a</sub>|) Σ<sub>f∈F<sub>a</sub></sub> ( (x<sub>c,f</sub> − x<sub>r,f</sub>) / σ<sub>f</sub> )<sup>2</sup> ] &nbsp;&nbsp;→&nbsp;&nbsp; S<sub>a</sub> = <span class="fn">exp(−D<sub>a</sub>)</span> ∈ (0, 1]</div>
+  <div class="prov"><span class="tag">src·scoring/similarity.py::axis_scores</span><span>σ_f havuz genişliğinden gelir; S bir olasılık değil, 0–1 aralığında havuza bağımlı sıralama indeksidir ve böylece raporlanır.</span></div>
+
+  <h3>Monte Carlo belirsizlik yayılımı</h3>
+  <p>Aday ve referansın _sd değerleri biliniyorsa, her ikisine bağımsız Gauss gürültüsü çekilir (n_boot = 200, seed = 0 + blake2b(axis, site_id) — aynı komut her zaman aynı aralığı üretir). q05–q95 yüzdelikleri, raporda köşeli parantezle gösterilen aralıktır. Belirsizlik bilinmeyen bir özellik asla 0 varsayılmaz; aralık NaN bırakılır, nokta skor korunur.</p>
+  <div class="prov"><span class="tag">src·scoring/similarity.py::combine_axes_with_uncertainty</span><span class="tag">n_boot=200</span><span class="tag">seed=0</span></div>
+
+  <h3>Görev profilleri: ağırlıklı birleşim</h3>
+  <p>Eksenden toplam puana geçiş, normalize edilmiş ağırlıklı ortalamayla yapılır. Bir eksen NaN ise atılır ve kalan ağırlıklar yeniden normalize edilir — aritmetik hile yok, kayıp veri açıkça dışlanır. Üç hazır profil, gezgin aracın gerçek donanım testlerine karşılık gelir:</p>
+  <table>
+    <thead><tr><th>Profil</th><th class="num">Mobilite : Yüzey</th><th>Senaryo</th></tr></thead>
+    <tbody>
+      <tr><td>Dengeli rover testi</td><td class="num">1 : 1</td><td>Sürüş yeteneği ve yüzey parlaklığı dengeli</td></tr>
+      <tr><td>Tırmanma ve tekerlek testi</td><td class="num">2 : 1</td><td>Eğim ve pürüzlülük tekerlek tutuşu için öne çıkar</td></tr>
+      <tr><td>Optik kamera ve güneş paneli testi</td><td class="num">1 : 2</td><td>Albedo, kamera kontrastı ve panellere yansıyan ışığı belirler</td></tr>
+    </tbody>
+  </table>
+  <div class="prov"><span class="tag">src·scoring/similarity.py::combine_axes</span><span class="tag">src·scoring/config.py::MISSION_PRESETS</span><span>Kullanıcı kendi ağırlığını kaydırıcılarla da girebilir; web arayüzü aynı formülü tarayıcıda yeniden hesaplar.</span></div>
+
+  <h3>Sahalar: minimum saha testi portföyü</h3>
+  <p>Tek bir saha tüm eksenleri kapatamaz. <span style="font-family:var(--mono);font-size:13px">select_portfolio</span> açgözlü küme kapama ile, eksen başına skor eşiğini geçen sahaları seçer; üç eksen için bu seçim minimum saha sayısını kesin verir. Hangi eksenlerin kapalı kaldığı çıktı olarak raporlanır — başarısızlık gizlenmez.</p>
+  <div class="prov"><span class="tag">src·scoring/portfolio.py::select_portfolio</span></div>
+
+  <h3>Kör doğrulama</h3>
+  <p>Skorlama motoru saha rollerini hiç görmez; bilinen analoglar (Atacama, Etna/Mauna Loa, Haughton vb.) sıralamadan sonra listelenir ve her eksen için ilk-k aralığına girme oranı ölçülür. Beklentiler, sıralamalara bakılmadan önce kanıtlı site−eksen çiftleri olarak ayrı bir belgeye kaydedilmiştir — doğrulama bir iddia listesi değil, önceden tescilli hipotez testidir.</p>
+  <div class="prov"><span class="tag">src·scoring/validation.py::run_blind_validation</span><span class="tag">docs/validation_expectations.md</span></div>
+</section>
+
+<section id="sorunlar">
+  <h2>4 · Sorunlar ve nasıl çözdük</h2>
+  <p class="lede">Yöntemin tamamı tek oturumda doğmadı; canlı demo, kapı testleri ve kod incelemesi her düzeltmeyi yakaladı. En bilgilendirici altı örnek:</p>
+
+  <div class="card issue"><h4>Çözünürlük uyuşmazlığı: LOLA 5 m vs GLO-30 30 m</h4><p>Coarse veri, ince sahayı çözüyormuş gibi sunulamaz. Çözüm: her iki cismi aynı r = 1000 m çemberinde toplulaştırmak, yerel çözünürlüğü _res_m ile beyan etmek ve karma piksel denetimi (mixed_pixel_audit) ile 30 m pikselin 1 km çemberdeki payını sayısal olarak raporlamak.</p></div>
+
+  <div class="card issue"><h4>Termal döngü eşdeğersizliği (Karar #30)</h4><p>Ay 240 saatlik kutup gecesi, MODIS günlük ΔT veriyor. Sayıyı uydurmak yerine eksen askıya alındı: kolonlar NaN, aralık yok, hikâye karnede nitel. Ağırlık yeniden normalizasyonu bu dışlanmayı puanlara zarar vermeden taşıyor.</p></div>
+
+  <div class="card issue"><h4>Dar bant vs geniş bant albedo</h4><p>LOLA 1064 nm tek dar bant, MODIS geniş bant. ×0.38 dönüşüm katsayısı belgelendi ve duyarlılık analizi (albedo_sensitivity) en iyi/orta/kötü senaryoların sıralamayı nasıl değiştirdiğini ayrı bir tabloyla gösterdi — dönüşüm sihir değil, beyan edilmiş bir yaklaşım.</p></div>
+
+  <div class="card issue"><h4>"Radar kalibrasyonu" adı hatalıydı</h4><p>Yüzey eksenimizin içeriği albedo; "yeraltı radar kalibrasyonu" demek teknik bir jüriye açık bir saldırı yüzeyiydi. Profil, rover'ın gerçek donanım testleriyle yeniden adlandırıldı (Optik kamera ve güneş paneli testi) — ağırlıklar ve tüm skorlar değişmedi. Aynı inceleme, termal askıda iken buz/ISRU profilinin optik profilin birebir kopyası olduğunu ortaya çıkardı; yinelenen seçenek kaldırıldı, skor değişikliği sıfır.</p></div>
+
+  <div class="card issue"><h4>Canlı demo'da boş havuz hatası</h4><p>"Optik kamera testi" seçilince 0/40 saha: React arayüz JSON'daki önceden hesaplanmış tabloyu görev anahtarıyla arıyordu, anahtar yeniden adlandırılmıştı ama veri değil. Çözüm: JSON yeniden üretildi, eski/yeni diff'inde skor satırlarının birebir korunduğu doğrulandı, derleme tazelendi. Hata canlı provada yakalandı — küçük ama örnek: veri ve arayüz sözleşmesi tek kapıdan geçmeli.</p></div>
+
+  <div class="card issue"><h4>Her sayı kaynağını taşır</h4><p>Provenance kapısı: _src'siz sayı rapora girmez, mock veri hatayı yükseltir, arayüzde tüm künye görünür. Grafik kütüphanesi isimleri (D3 radar) ve gerçek SAR literatürü ile "radar" kelimesi geçen başka hiçbir yer bu kapının dışında bırakılmadı.</p></div>
+</section>
+
+<section id="sonuclar">
+  <h2>5 · Yöntemin çıktısı</h2>
+  <p class="lede">Aynı boru hattının ürettiği beş temel figür. Tümü <span style="font-family:var(--mono);font-size:13px">data/processed/features_*.parquet</span> üzerinden doğrulanmış veriyle çizildi.</p>
+
+  <figure>
+    <img src="figures/fig01_shackleton_top15_axes.png" alt="Shackleton için ilk 15 Dünya sahası, eksen ayrımıyla">
+    <figcaption><b>Şekil 1.</b> Shackleton Krateri Kenarı için ilk 15 Dünya sahası: dengeli toplam puan, Monte Carlo %5–%95 aralıkları ve Mobilite/Yüzey eksen ayrımı. #1 Karapınar Meke 0.528 [0.41–0.57]; #2 McMurdo aralığı [0.09–0.51] ile ölçüm hatasının sahaları nasıl ayırdığını gösterir.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/fig02_mission_reweighting.png" alt="Görev ağırlığı değiştikçe sıralama değişimi">
+    <figcaption><b>Şekil 2.</b> Profiller arası sıralama kaymaları: Hasandağı dengede #3, mobilite ağırlıklı profilde #1 (0.446); Etna #26 → #17. Figürde profillerin o dönemki adları (Rover Mobility, Radar Calibration) yer alır; ağırlıklar bugünkü Tırmanma ve tekerlek (2:1) ve Optik kamera (1:2) profilleriyle birebir aynıdır — yalnızca ad değişti.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/fig03_moon_regions_heatmap.png" alt="5 Ay bölgesi ısı haritası">
+    <figcaption><b>Şekil 3.</b> Beş Ay Güney Kutbu referans bölgesi × ilk aday ve doğrulama sahaları: hangi saha hangi Ay bölgesine hangi eksende benziyor, tek bakışta.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/fig04_physical_space_validation.png" alt="Fiziksel uzay ve kör doğrulama tanısı">
+    <figcaption><b>Şekil 4.</b> Fiziksel uzay (slope_mean vs albedo, roller renkle) ve önceden tescilli rol-kör sıralama tanısı: bilinen analoglar skorlamaya rollerini göstermeden girdi, kurtarma oranı sonradan ölçüldü.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/fig05_orbital_evidence_gallery.png" alt="Yörünge kanıt galerisi">
+    <figcaption><b>Şekil 5.</b> Gerçek yörünge kanıtı: 5 m/px LOLA shaded-relief/hazard tuvali (Ay) ve 10 m/px Sentinel-2 L2A görüntüleri (Dünya), çekim künyeleriyle. Uygulamada her sahanın kartında tıklanabilir hâlde durur.</figcaption>
+  </figure>
+
+  <div class="card"><h4>Tek paragrafta özet</h4><p>Beş Ay Güney Kutbu bölgesini referans alan, üç sayısal eksende (topografya, albedo, askıda termal) 40 Dünya sahasını Monte Carlo hata aralıklarıyla sıralayan, kör doğrulama ve küme kapama portföyüyle saha öneren, her sayısının kaynağını ve çözünürlüğünü beyan eden bir karar destek sistemi. Mars genişlemesi ve SAR tabanlı buz yolu, v2 karnesinde işaretli; yöntem aynen taşınır.</p></div>
+</section>
+
+<footer>
+  <span>Yöntem raporu v1 · 15 Kasım 2026</span>
+  <span>Kod: 54affd5 · 51/51 test · validate_contract --fail-on-mock</span>
+  <span>Veri: features_moon.parquet · features_earth.parquet</span>
+</footer>
+
+</div>
+</body>
+</html>
