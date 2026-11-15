@@ -9,6 +9,18 @@ lesser-studied places are candidates, never
 confirmed analogues. Deliverables: interactive map app, short report, pitch.
 Full team rules: see **[AGENTS.md](AGENTS.md)** (data contract in section 5).
 
+## Use of AI tools (SI acknowledgment)
+
+AI coding assistants were used to accelerate writing and refactoring code,
+documentation and text translation, under the direction of the team. The
+research idea, methodology, site selection, scoring decisions and validation
+were designed and verified by the team. Every number in this repository comes
+from documented orbital data products (`*_src` columns); no AI-generated data,
+coordinates or citations are used, and no AI-generated images, video or audio
+appear in the project. All generated code was reviewed and passes the
+data-contract validation (`scripts/validate_contract.py --fail-on-mock`) and
+`pytest`.
+
 ## Setup
 
 ```bash
