@@ -1,0 +1,423 @@
+  <!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ay ↔ Dünya Benzerlik Yöntemi — Yöntem Raporu</title>
+<style>
+  :root {
+    --paper: #faf9f6;
+    --surface: #f1efea;
+    --ink: #22252a;
+    --ink-2: #565b64;
+    --ink-3: #8a8f98;
+    --hairline: rgba(34, 37, 42, 0.10);
+    --accent: #2b5aa6;
+    --accent-ink: #1e4787;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: "Segoe UI", system-ui, sans-serif;
+    --mono: Consolas, "Cascadia Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  .page { max-width: 960px; margin: 0 auto; padding: 48px 32px 64px; }
+
+  header.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 24px; margin-bottom: 32px; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 400;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .standfirst { font-size: 17px; color: var(--ink-2); margin: 12px 0 0; max-width: 680px; }
+  .meta-line {
+    display: flex; flex-wrap: wrap; gap: 8px 24px;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+    margin-top: 20px;
+  }
+
+  section { margin: 48px 0 0; }
+  header.masthead + section > h2 { border-top: none; padding-top: 0; }
+  section > h2 {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 400;
+    margin: 0 0 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ink);
+  }
+  section > .lede { color: var(--ink-2); margin: 0 0 20px; max-width: 720px; }
+
+  h3 { font-size: 16px; font-weight: 600; margin: 28px 0 8px; }
+
+  p { margin: 0 0 14px; }
+
+  /* Provenance strip: the signature. Every number carries a source tag. */
+  .prov {
+    display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
+    margin: -6px 0 18px; padding: 8px 12px;
+    background: var(--surface);
+    border-radius: 8px;
+  }
+  .prov, .prov * { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  .prov .tag::before { content: "src·"; color: var(--ink-3); }
+  .prov .tag { white-space: nowrap; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 8px; font-size: 13.5px; }
+  th {
+    text-align: left; font-weight: 600; font-size: 12px; color: var(--ink-2);
+    border-bottom: 1px solid var(--ink); padding: 8px 10px 6px;
+  }
+  td { border-bottom: 1px solid var(--hairline); padding: 8px 10px; vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; }
+  td .src { font-family: var(--mono); font-size: 11px; color: var(--ink-3); display: block; margin-top: 2px; }
+  table .suspended td { color: var(--ink-3); }
+  table .suspended td.num::after { content: " NaN"; font-style: italic; }
+
+  ol.pipeline { list-style: none; margin: 20px 0 0; padding: 0; counter-reset: step; }
+  ol.pipeline li {
+    counter-increment: step;
+    display: grid; grid-template-columns: 44px 1fr; gap: 16px;
+    padding: 14px 0; border-bottom: 1px solid var(--hairline);
+  }
+  ol.pipeline li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: var(--mono); font-size: 13px; color: var(--accent-ink);
+    padding-top: 2px;
+  }
+  ol.pipeline b { font-weight: 600; }
+  ol.pipeline p { margin: 2px 0 0; color: var(--ink-2); font-size: 14.5px; }
+
+  .eq {
+    font-family: var(--mono); font-size: 13.5px;
+    background: var(--surface); border-radius: 8px;
+    padding: 14px 18px; margin: 12px 0 6px; overflow-x: auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .eq .fn { color: var(--accent-ink); }
+
+  figure { margin: 28px 0; }
+  figure img { width: 100%; height: auto; border: 1px solid var(--hairline); border-radius: 8px; background: #fff; }
+  figcaption { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+  figcaption b { font-weight: 600; color: var(--ink); }
+
+  .card {
+    border: 1px solid var(--hairline); border-radius: 12px;
+    padding: 16px 20px; margin: 16px 0;
+    background: var(--surface);
+  }
+  .card h4 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+  .card p { margin: 0; font-size: 14px; color: var(--ink-2); }
+
+  .issue { border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; }
+  .issue h4 { color: var(--accent-ink); }
+
+  footer {
+    margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--ink);
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  @media print {
+    body { font-size: 11.5px; }
+    .page { padding: 0; max-width: none; }
+    section > h2 { break-after: avoid; }
+    figure { break-inside: avoid; }
+    .card { break-inside: avoid; }
+    h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="masthead">
+  <p class="kicker">NASA SPACE APPS 2026 · YÖNTEM RAPORU</p>
+  <h1>Ay'dan Dünya'ya benzerlik: veri nasıl toplandı, işlendi ve puanlandı</h1>
+  <p class="standfirst">Dünya'daki hiçbir saha Ay'ı her açıdan kopyalayamaz. Bu yüzden 40 Dünya sahasını, Ay Güney Kutbu'ndaki 5 referans bölgeyle ölçüt ölçüt karşılaştırdık ve her puana hata payını ekledik. Bu rapor verinin nereden geldiğini, nasıl işlendiğini ve puanların nasıl hesaplandığını anlatır.</p>
+</header>
+
+<section id="toplama">
+  <h2>1 · Veri nereden geldi</h2>
+  <p class="lede">Tüm veriler, NASA'nın ve ortak uzay ajansı ESA'nın herkese açık uydu ürünlerinden alındı. Eğim, pürüzlülük ve yükselti farkını Ay'da ve Dünya'da aynı yöntemle hesapladık. Albedo'da küçük bir dönüşüm gerekti; sıcaklığı ise bu sürümde puana katmadık (nedenleri aşağıda).</p>
+
+  <table>
+    <thead>
+      <tr><th>Ölçüt (uygulamadaki ad)</th><th>Ay verisi</th><th>Dünya verisi</th><th class="num">Çözünürlük<br>Ay · Dünya</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ortalama eğim<br>Dik eğim (p90)<br>Yüzey pürüzlülüğü<br>Yükselti farkı</td>
+        <td>LRO LOLA yükseklik haritası, hata haritalarıyla birlikte<span class="src">NASA · GSFC PGDA, Ürün 78</span></td>
+        <td>Copernicus GLO-30 yükseklik modeli; yüksek dağlarda eksik kalan yerler için NASADEM<span class="src">ESA · NASA</span></td>
+        <td class="num">5 m · 30 m</td>
+      </tr>
+      <tr>
+        <td>Geniş bant albedo<br>(yüzey parlaklığı)</td>
+        <td>LRO LOLA yansıtıcılık haritası (1064 nm), ×0.38 ile geniş banda çevrildi<span class="src">NASA · PDS</span></td>
+        <td>MODIS albedo ürünü (MCD43A3)<span class="src">NASA · MODIS</span></td>
+        <td class="num">1000 m · 500 m</td>
+      </tr>
+      <tr class="suspended">
+        <td>Sıcaklık farkı<br>Isıl eylemsizlik<br>(bu sürümde puana katılmadı)</td>
+        <td>LRO Diviner kutup sıcaklık haritaları<span class="src">NASA · PDS</span></td>
+        <td>MODIS yüzey sıcaklığı (MOD11A2)<span class="src">NASA · MODIS</span></td>
+        <td class="num">240 m · 1000 m</td>
+      </tr>
+      <tr>
+        <td>Görsel bağlam<br>(puana girmez)</td>
+        <td>LOLA kabartma ve eğim sınıfı görüntüleri<span class="src">NASA · LRO</span></td>
+        <td>Sentinel-2 L2A uydu görüntüleri ve WorldCover arazi örtüsü<span class="src">ESA · Copernicus</span></td>
+        <td class="num">5 m · 10 m</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="prov">
+    <span>Her sayı, geldiği ürünün adı ve sürümüyle birlikte tabloda saklanır (_src sütunu).</span>
+  </div>
+
+  <h3>Bu ölçütler ne anlama geliyor?</h3>
+  <table>
+    <thead><tr><th>Ölçüt</th><th>Ne ölçüyor?</th></tr></thead>
+    <tbody>
+      <tr><td>Ortalama eğim (°)</td><td>Sahanın ortalama ne kadar eğimli olduğu. Araç sürüşünü doğrudan etkiler.</td></tr>
+      <tr><td>Dik eğim (p90) (°)</td><td>Sahanın en dik kesimlerinin eğimi: alanın %90'ı bu değerden daha yatıktır.</td></tr>
+      <tr><td>Yüzey pürüzlülüğü (m)</td><td>Zeminin genel eğimi çıkarıldıktan sonra yüksekliğin ne kadar dalgalandığı. Taşlı ve çukurlu zeminde yüksektir.</td></tr>
+      <tr><td>Yükselti farkı (m)</td><td>Saha içindeki en yüksek ve en alçak nokta arasındaki fark.</td></tr>
+      <tr><td>Geniş bant albedo (0–1)</td><td>Yüzeyin üstüne düşen güneş ışığının ne kadarını geri yansıttığı. 0 tamamen koyu, 1 tamamen parlak demektir.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Albedo: Ay ve Dünya verisi nasıl eşlendi?</h3>
+  <p>Ay verisi tek bir dalga boyunda (1064 nm lazer) ölçülmüş yansıtıcılıktır. Dünya'da kullandığımız MODIS ise güneş ışığının tamamını kapsayan geniş bant albedosunu verir. İkisini karşılaştırabilmek için Ay değerini 0.38 ile çarparak geniş banda çevirdik. Bu kesin bir ölçüm değil, bir yaklaşımdır. Bu yüzden katsayıyı makul bir aralıkta (0.34–0.42) değiştirip sıralamanın bozulup bozulmadığına baktık; sahaların sırası büyük ölçüde korundu (sıra korelasyonu 0.87–0.94).</p>
+
+  <div class="card">
+    <h4>Sıcaklık neden puana katılmadı?</h4>
+    <p>Ay'da bir gün, Dünya'nın yaklaşık 29.5 günü kadar sürer; güney kutbunda güneş ufka çok yakın döner ve bazı kraterlerin dibi hiç ışık görmez. MODIS ise Dünya'da 24 saatlik gündüz–gece sıcaklık farkını ölçer. İki sayı aynı şeyi ölçmediği için yan yana koymak mühendisleri yanıltırdı. Bu yüzden sıcaklık sütunlarını boş bıraktık, değer uydurmadık. Sıcaklığın etkisini uygulamadaki 8 boyutlu karnede (Bölüm 6) sayısal olmayan biçimde anlattık. Sonraki sürümde Diviner'ın gün boyu ölçümleriyle eşdeğer bir tanım kurmayı planlıyoruz.</p>
+  </div>
+</section>
+
+<section id="isleme">
+  <h2>2 · Veri nasıl işlendi</h2>
+  <p class="lede">Ham uydu verisinden karşılaştırılabilir tabloya beş adımda geldik.</p>
+
+  <ol class="pipeline">
+    <li><div><b>İndirme ve kayıt</b><p>Her ürünün adı ve sürümü indirildiği anda kaydedilir ve tablodaki her sayının yanında saklanır. Böylece her değerin hangi uydu ürününden geldiği izlenebilir.</p></div></li>
+    <li><div><b>Her sahayı aynı boyutta kesme</b><p>Her saha için merkez noktasından 1 km yarıçaplı (2 km çaplı) bir daire alındı. Ay verisi 5 m, Dünya verisi 30 m çözünürlükte olduğu için iki tarafı aynı daire içinde karşılaştırdık ve her sayının yanında verinin gerçek çözünürlüğünü belirttik (_res_m). Su veya bitki karışmış piksellere sahip Dünya sahalarını ayrıca işaretledik.</p></div></li>
+    <li><div><b>Metre cinsinden hesaplama</b><p>Eğim ve mesafeler, harita düzleştirilip metreye çevrildikten sonra hesaplandı (Ay için kutup, Dünya için yerel harita projeksiyonu). Derece cinsinden haritada eğim hesaplamak yanlış sonuç verir; bunu baştan engelledik.</p></div></li>
+    <li><div><b>Hata payı ekleme</b><p>Her ölçüme, ürünün kendi belirsizliği eklendi (_sd). Bu belirsizlik sonradan puanlara taşınır.</p></div></li>
+    <li><div><b>Otomatik kontrol</b><p>Her tablo, birim ve değer aralıklarını denetleyen bir kontrol betiğinden geçer; gerçek olmayan (sentetik veya yer tutucu) değer bulursa hata verir. Eksik veri 0 olarak değil, boş (NaN) bırakılır.</p></div></li>
+  </ol>
+</section>
+
+<section id="algoritmalar">
+  <h2>3 · Puanlar nasıl hesaplandı</h2>
+  <p class="lede">Üç basit adım: benzerlik puanı, hata aralığı ve görev ağırlığı. Sonunda bilinen analoglarla yaptığımız kontrolü anlatıyoruz.</p>
+
+  <h3>Benzerlik puanı</h3>
+  <p>Her Dünya sahasını, seçilen Ay bölgesiyle ölçüt ölçüt karşılaştırıyoruz. Ölçütler iki eksende toplanır: <b>Mobilite</b> (ortalama eğim, dik eğim, pürüzlülük, yükselti farkı) ve <b>Yüzey</b> (albedo). Birimler farklı olduğu için (derece, metre) her farkı, 40 Dünya sahası ve seçili Ay bölgesinden oluşan havuzun yayılımına böleriz. Ortalama fark bize bir "uzaklık" (D) verir ve puan bundan hesaplanır:</p>
+  <div class="eq">D = √( ortalama[ ((aday − referans) / yayılım)<sup>2</sup> ] ) &nbsp;&nbsp;→&nbsp;&nbsp; Puan = <span class="fn">e<sup>−D</sup></span></div>
+  <table>
+    <thead><tr><th>Uzaklık (D)</th><th class="num">Puan</th><th>Anlamı</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td class="num">1.00</td><td>Ölçütlerin hepsinde aynı</td></tr>
+      <tr><td>1</td><td class="num">0.37</td><td>Ortalama bir yayılım kadar farklı</td></tr>
+      <tr><td>2</td><td class="num">0.14</td><td>Belirgin biçimde farklı</td></tr>
+    </tbody>
+  </table>
+  <div class="prov"><span class="tag">scoring/similarity.py::axis_scores</span><span>Puan bir olasılık değildir. 40 sahayı birbirine göre sıralamaya yarayan bir benzerlik göstergesidir; yalnızca birbirleriyle karşılaştırılmalıdır.</span></div>
+
+  <h3>Hata aralığı</h3>
+  <p>Her ölçümün küçük bir belirsizliği vardır. Bunun puanı ne kadar oynattığını görmek için hesabı 200 kez tekrarlıyoruz: her turda ölçümleri hata payı kadar rastgele kaydırıyoruz. Çıkan puanların %5 ile %95 arasındaki bandı, raporda köşeli parantezle gösterilen hata aralığıdır. Dar aralık, sonucun ölçüm hatasına dayanıklı olduğunu; geniş aralık, puana temkinli yaklaşılması gerektiğini gösterir. Belirsizliği bilinmeyen bir değer asla 0 sayılmaz; o durumda aralık boş bırakılır. Rastgelelik sabit tohumla üretildiği için aynı komut her zaman aynı sonucu verir.</p>
+  <div class="prov"><span class="tag">scoring/similarity.py::combine_axes_with_uncertainty</span><span class="tag">n_boot=200</span><span class="tag">seed=0</span></div>
+
+  <h3>Görev profilleri</h3>
+  <p>Mobilite ve Yüzey puanları, yapılacak teste göre ağırlıklandırılarak tek genel puana birleşir. Bir eksen hesaplanamıyorsa (Termal gibi) o eksen dışarıda bırakılır ve kalan ağırlıklar yeniden ölçeklenir; yani eksik veri puana gizlice karışmaz. Kullanıcı kendi ağırlığını kaydırıcıyla da girebilir.</p>
+  <table>
+    <thead><tr><th>Profil</th><th class="num">Mobilite : Yüzey</th><th>Ne için?</th></tr></thead>
+    <tbody>
+      <tr><td>Dengeli rover testi</td><td class="num">1 : 1</td><td>Sürüş yeteneği ve yüzey parlaklığı eşit önemde</td></tr>
+      <tr><td>Tırmanma ve tekerlek testi</td><td class="num">2 : 1</td><td>Eğim ve pürüzlülük, tekerlek tutuşu için öne çıkar</td></tr>
+      <tr><td>Optik kamera ve güneş paneli testi</td><td class="num">1 : 2</td><td>Albedo, kamera kontrastını ve panellere yansıyan ışığı belirler</td></tr>
+    </tbody>
+  </table>
+  <div class="prov"><span class="tag">scoring/config.py::MISSION_PRESETS</span></div>
+
+  <h3>Bilinen analoglarla kontrol (betimsel sıra tanısı)</h3>
+  <p>Literatürde bilinen 10 analog sahayı (Etna, Atacama, Haughton vb.) puanlamada özel işlem görmeden diğer sahalarla birlikte sıraladık ve sonucu, sıralamaya bakmadan önce kaynaklara dayanarak yazdığımız beklentilerle karşılaştırdık. Bu sahalar da standartlaştırma havuzunun içinde olduğu için bunu bağımsız bir sınav olarak sunmuyoruz; sonuçları yorumlamamıza yardımcı olan bir tanı olarak kullanıyoruz. Örneğin dik Shackleton kenarında Atacama mobilitede #28, Haughton #27'dedir. Daha yatık Faustini kenarı seçilince Haughton #6'ya, Atacama #8'e yükselir. Bu, yöntemin referansın arazi yapısına duyarlı olduğunu gösterir.</p>
+  <div class="prov"><span class="tag">scoring/validation.py</span><span class="tag">docs/validation_expectations.md</span></div>
+</section>
+
+<section id="bulgular">
+  <h2>4 · Neden bu sonuçlar çıktı?</h2>
+  <p class="lede">Puanların nereden geldiğini iki örnekle açıklıyoruz: dik bir referans (Shackleton kenarı) ve yatık bir referans (Faustini kenarı). Aynı yöntem, referansın arazisine göre farklı sahaları öne çıkarıyor.</p>
+
+  <h3>Shackleton kenarı: dik bir referans</h3>
+  <table>
+    <thead>
+      <tr><th>Saha</th><th class="num">Ort. eğim</th><th class="num">Dik eğim (p90)</th><th class="num">Yükselti farkı</th><th class="num">Albedo</th><th class="num">Mobilite sırası</th><th class="num">Yüzey sırası</th><th class="num">Genel puan (sıra)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><b>Shackleton kenarı (Ay)</b></td><td class="num">18.50°</td><td class="num">30.79°</td><td class="num">501 m</td><td class="num">0.147</td><td class="num">referans</td><td class="num">referans</td><td class="num">referans</td></tr>
+      <tr><td>Karapınar Meke</td><td class="num">9.64°</td><td class="num">23.36°</td><td class="num">223 m</td><td class="num">0.141</td><td class="num">#11</td><td class="num">#1</td><td class="num">0.528 (#1)</td></tr>
+      <tr><td>Hasandağı Keçikaleçik</td><td class="num">15.56°</td><td class="num">30.42°</td><td class="num">449 m</td><td class="num">0.170</td><td class="num">#1</td><td class="num">#12</td><td class="num">0.502 (#3)</td></tr>
+    </tbody>
+  </table>
+  <p>Karapınar Meke genel puanda birinci, çünkü albedosu Shackleton'la neredeyse aynı (0.141 ve 0.147). Arazisi ise yaklaşık yarı yarıya daha yatık (ortalama eğim 9.6°, Shackleton'da 18.5°). Genel puan iki eksenin ortalamasıdır: Mobilite 0.153, Yüzey 0.903, ortalama (0.153 + 0.903) / 2 = 0.528. Yani Meke "Shackleton'a en çok benzeyen yer" değil, "yüzey parlaklığı en yakın yer"dir.</p>
+  <p>Hasandağı Keçikaleçik ise arazide en yakın sahadır (ortalama eğim 15.6°, yükselti farkı 449 m; Mobilite #1), ama albedosu daha parlak olduğu için (0.170) Yüzey'de #12'de kalır. Tekerlek ve tırmanma testi için Hasandağı, kamera ve güneş paneli testi için Meke daha uygundur. Profilleri ayırmamızın nedeni budur.</p>
+
+  <h3>Faustini kenarı: yatık bir referans</h3>
+  <table>
+    <thead>
+      <tr><th>Saha</th><th class="num">Ort. eğim</th><th class="num">Dik eğim (p90)</th><th class="num">Yükselti farkı</th><th class="num">Albedo</th><th class="num">Mobilite sırası</th><th class="num">Yüzey sırası</th><th class="num">Genel puan (sıra)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><b>Faustini kenarı (Ay)</b></td><td class="num">5.20°</td><td class="num">8.68°</td><td class="num">145 m</td><td class="num">0.136</td><td class="num">referans</td><td class="num">referans</td><td class="num">referans</td></tr>
+      <tr><td>Salda Gölü terası</td><td class="num">4.58°</td><td class="num">11.46°</td><td class="num">121 m</td><td class="num">0.127</td><td class="num">#1</td><td class="num">#4</td><td class="num">0.847 (#1)</td></tr>
+      <tr><td>Karacadağ zirve platosu</td><td class="num">7.38°</td><td class="num">14.18°</td><td class="num">168 m</td><td class="num">0.129</td><td class="num">#11</td><td class="num">#3</td><td class="num">0.761 (#2)</td></tr>
+    </tbody>
+  </table>
+  <p>Faustini kenarı çok daha yatık (5.2°). Bu yüzden dik volkan yamaçları geride kalır; Salda Gölü terası (4.6°) ve Karacadağ zirve platosu (7.4°) öne çıkar. Aynı referansta bilinen analoglardan Haughton mobilitede #6'ya, Atacama #8'e yükselir; Shackleton'da #27 ve #28'dedirler. Bu bir tutarsızlık değil: yöntem, referansın arazi yapısına göre farklı sahaları seçer.</p>
+
+  <div class="card">
+    <h4>Bu sonuçlardan ne çıkarabiliriz, ne çıkaramayız?</h4>
+    <p><b>Çıkarabiliriz:</b> ölçtüğümüz özelliklerde (eğim, pürüzlülük, yükselti farkı, albedo) hangi sahaların hangi Ay bölgesine daha yakın olduğunu ve bu yakınlığın hangi eksenden geldiğini.<br>
+    <b>Çıkaramayız:</b> aynı jeolojik süreci. Karapınar Meke bir volkanik patlama (maar) krateri, Shackleton bir çarpma krateri. Salda ise karbonatlı bir göl ve pikselleri su ve bitki karışımı olarak işaretli. Sayısal yakınlık "bu saha Ay'ın aynısıdır" demek değildir; hangi testin hangi sahada denenebileceği için bir ön elemedir.<br>
+    <b>Havuz çekincesi:</b> 40 saha elle seçildi ve puanlar bu havuza göre standartlaştırıldı. Farklı bir saha havuzuyla sıralar değişebilir.</p>
+  </div>
+</section>
+
+<section id="tr_sahalari">
+  <h2>5 · Neden büyük bir mühendislik ve maliyet sorununu çözüyor?</h2>
+  <p class="lede">Uzay donanımlarının Ay ortamına gönderilmeden önce Dünya'da test edilmesi zorunludur; ancak literatürde yerleşik saha testleri çoğunlukla yurt dışı lokasyonlarda yürütülür. Üstelik "genel analog" etiketiyle seçilen bir saha, test edilmek istenen gerçek alt sistemi zorlamayabilir.</p>
+
+  <p>Bu proje iki somut boşluğu doldurur: <b>(1)</b> yurt dışı kampanya maliyetine girmeden önce Türkiye içindeki jeolojik ve topografik sahaları uluslararası adaylarla <b>aynı metrik ve aynı uydu terazisinde</b> kıyaslar; <b>(2)</b> "tek mükemmel yer" aramak yerine hangi alt sistemin Türkiye'deki hangi sahada, hangisinin ise laboratuvarda doğrulanması gerektiğini ayırır. Somut örnek: düz bir çöl tabanında tekerlek tırmanma sınırları sınanamazken, çok koyu bir volkanik akıntıda optik navigasyon kamerasının pozlama dengesi Ay kutup regolitine benzemez. Böylece Türkiye'deki üniversite takımları, araştırma enstitüleri ve uzay sanayii ekipleri için kanıta dayalı bir ulusal test yatağı envanteri oluşur.</p>
+
+  <div class="prov"><span class="tag">comparisons[moon_shackleton_rim | moon_faustini_rim][default]</span><span class="tag">comparisons[...][rover_mobility | optical_survey]</span><span>14/30 aday saha Anadolu'dan · tüm puanlar doğrulanmış JSON tablosundan</span></div>
+
+  <h3>Türkiye'deki 14 aday sahanın nicel profili</h3>
+  <p>Havuzdaki 30 aday sahanın 14'ü Anadolu'nun farklı volkanik, ignimbritik ve evaporitik bölgelerinden seçildi. Aşağıdaki tablo, bu 14 sahanın Shackleton Krateri Kenarı (dik referans: 18.50° ortalama eğim, 0.147 albedo) ve Faustini Kenarı (yatık referans: 5.20° ortalama eğim, 0.136 albedo) karşısındaki skorlarını ve uygun test rollerini özetler.</p>
+
+  <table>
+    <thead>
+      <tr><th>Türkiye aday sahası</th><th>Litoloji</th><th class="num">Ort. eğim</th><th class="num">Albedo</th><th class="num">Shack.<br>Mob · Yüz</th><th class="num">Shack.<br>Genel (sıra)</th><th class="num">Faustini<br>Genel (sıra)</th><th>Öne çıkan test rolü</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Karapınar Meke Maarı (Konya)</td><td>Bazalt</td><td class="num">9.64°</td><td class="num">0.141</td><td class="num">#11 · #1</td><td class="num">0.528 (#1)</td><td class="num">0.646 (#7)</td><td>Optik/güneş paneli #1 (0.653)</td></tr>
+      <tr><td>Hasandağı Keçikaleçik (Aksaray)</td><td>Bazalt</td><td class="num">15.56°</td><td class="num">0.170</td><td class="num">#1 · #12</td><td class="num">0.502 (#3)</td><td class="num">0.348 (#33)</td><td>Tırmanma ve tekerlek #1 (0.446)</td></tr>
+      <tr><td>Ağrı Dağı Doğubayazıt (Ağrı)</td><td>Bazalt</td><td class="num">9.56°</td><td class="num">0.156</td><td class="num">#12 · #4</td><td class="num">0.499 (#4)</td><td class="num">0.546 (#13)</td><td>Optik/güneş paneli #3 (0.616)</td></tr>
+      <tr><td>Erciyes Koçdağ (Kayseri)</td><td>Bazalt</td><td class="num">15.29°</td><td class="num">0.166</td><td class="num">#6 · #8</td><td class="num">0.495 (#5)</td><td class="num">0.405 (#29)</td><td>Tırmanma ve tekerlek #2 (0.419)</td></tr>
+      <tr><td>Kula Divlit (Manisa)</td><td>Bazalt</td><td class="num">8.52°</td><td class="num">0.155</td><td class="num">#20 · #3</td><td class="num">0.480 (#6)</td><td class="num">0.658 (#6)</td><td>Optik/güneş paneli #4 (0.609)</td></tr>
+      <tr><td>Nemrut Kalderası (Bitlis)</td><td>Volkanik tüf</td><td class="num">12.18°</td><td class="num">0.167</td><td class="num">#9 · #9</td><td class="num">0.453 (#8)</td><td class="num">0.435 (#26)</td><td>Dengeli orta-dik arazi</td></tr>
+      <tr><td>Karacadağ Kollubaba Platosu (Şanlıurfa)</td><td>Bazalt</td><td class="num">7.38°</td><td class="num">0.129</td><td class="num">#18 · #7</td><td class="num">0.419 (#10)</td><td class="num">0.761 (#2)</td><td>Yatık iniş / Faustini #2</td></tr>
+      <tr><td>Salda Gölü Terası (Burdur)</td><td>Evaporit</td><td class="num">4.58°</td><td class="num">0.127</td><td class="num">#25 · #10</td><td class="num">0.388 (#13)</td><td class="num">0.847 (#1)</td><td>Faustini #1 (karışık piksel notlu)</td></tr>
+      <tr><td>Karacadağ Ovabağ (Diyarbakır)</td><td>Bazalt</td><td class="num">2.83°</td><td class="num">0.172</td><td class="num">#30 · #13</td><td class="num">0.349 (#15)</td><td class="num">0.609 (#11)</td><td>Düşük eğimli bazalt düzlük</td></tr>
+      <tr><td>Tendürek Kalkanı (Ağrı–Van)</td><td>Bazalt</td><td class="num">7.11°</td><td class="num">0.117</td><td class="num">#21 · #17</td><td class="num">0.337 (#17)</td><td class="num">0.719 (#4)</td><td>Yatık bazalt kalkan platosu</td></tr>
+      <tr><td>Acıgöl Güneydağ (Nevşehir)</td><td>Volkanik tüf</td><td class="num">3.22°</td><td class="num">0.175</td><td class="num">#26 · #15</td><td class="num">0.337 (#18)</td><td class="num">0.643 (#8)</td><td>Hafif eğimli tefra halkası</td></tr>
+      <tr><td>Süphan Güney Eteği (Bitlis)</td><td>Bazalt</td><td class="num">9.52°</td><td class="num">0.198</td><td class="num">#13 · #23</td><td class="num">0.273 (#23)</td><td class="num">0.398 (#30)</td><td>Karışık piksel sınırlı aday</td></tr>
+      <tr><td>Kapadokya Kavakköy (Nevşehir)</td><td>Volkanik tüf</td><td class="num">11.51°</td><td class="num">0.211</td><td class="num">#10 · #29</td><td class="num">0.262 (#25)</td><td class="num">0.289 (#37)</td><td>de Gerlache mobilite #1 (0.68)</td></tr>
+      <tr><td>Tuz Gölü Güney (Aksaray)</td><td>Evaporit</td><td class="num">0.35°</td><td class="num">0.206</td><td class="num">#40 · #27</td><td class="num">0.198 (#31)</td><td class="num">0.367 (#32)</td><td>Düz tuz tabanı (su karışımı notlu)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <h4>Tablodan ne okunmalı?</h4>
+    <p>Aynı saha iki referansta farklı rollere girer: Meke dik Shackleton'da optik testin birincisiyken (albedo benzerliği), Kapadokya Kavakköy ve Salda yatık Faustini/de Gerlache tarafında mobilite ve genel benzerlik öne çıkar. Bunun anlamı şudur: Türkiye'de tek bir "en iyi analog" değil, <b>teste göre değişen bir test yatağı seti</b> vardır. Görev profilleri değiştiğinde sıralamanın nasıl kaydığı Bölüm 7'deki Şekil 3'te gösterilmiştir. "Karışık piksel notlu" sahaların 1 km'lik dairesinde su veya bitki pikselleri karışmıştır; bu sahaların albedo değeri temkinli okunmalıdır (Bölüm 6'daki çözünürlük sınırı).</p>
+  </div>
+</section>
+
+<section id="sorunlar">
+  <h2>6 · Sonuçları yorumlarken bilinmesi gerekenler</h2>
+  <p class="lede">Önce 8 boyutlu karneyi, sonra dört sınırı ve her biri için aldığımız önlemi anlatıyoruz.</p>
+
+  <h3>8 boyutlu karne</h3>
+  <p>Bir Dünya sahası Ay'a pek çok açıdan benzeyebilir (arazi, sıcaklık, buz, toz, yeraltı gibi). Biz bunları 8 boyutta topladık ve hangisini puanladığımızı, hangisini yalnızca yazılı anlattığımızı açıkça gösteriyoruz. Terimler: <b>boyut</b> bu 8 açıdır; <b>eksen</b> puanlanan gruplardır (Mobilite, Yüzey, Termal); <b>ölçüt</b> tek tek ölçümlerdir (ortalama eğim, albedo gibi).</p>
+  <table>
+    <thead><tr><th>#</th><th>Boyut</th><th>Bu sürümde</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Arazi şekli (eğim, pürüzlülük)</td><td>Sayısal puan var (Mobilite)</td></tr>
+      <tr><td class="num">2</td><td>Yüzey parlaklığı</td><td>Sayısal puan var (Yüzey)</td></tr>
+      <tr class="suspended"><td class="num">3</td><td>Sıcaklık ve ısıl eylemsizlik</td><td>Hesaplanmadı: Ay ve Dünya verisi uyumsuz</td></tr>
+      <tr><td class="num">4</td><td>Kayaç türü (bazalt, evaporit vb.)</td><td>Yalnızca etiket, puana girmez</td></tr>
+      <tr><td class="num">5</td><td>Su buzu ve donmuş zemin</td><td>Yalnızca not, puana girmez</td></tr>
+      <tr><td class="num">6</td><td>Lav tüpleri ve yeraltı boşlukları</td><td>Yalnızca not; radar verisiyle sonraki sürümde</td></tr>
+      <tr><td class="num">7</td><td>Toz, rüzgâr ve elektrostatik toz</td><td>Laboratuvarda sınanabilir</td></tr>
+      <tr><td class="num">8</td><td>Yerçekimi, vakum, radyasyon, 29.5 günlük döngü</td><td>Dünya'da üretilemez; laboratuvar veya simülasyon</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Dört sınır</h3>
+
+  <div class="card issue"><h4>En yüksek puan bile düşük</h4><p>Shackleton için en yüksek genel puan 0.53'tür; Mobilite'de en iyi saha bile yalnızca 0.335 alır. Yani hiçbir Dünya sahası Ay'ı tüm ölçütlerde taklit etmiyor. Genel puan iki eksenin ortalamasıdır: iki derste 90 ve 15 alan öğrencinin ortalaması 52'dir ve bu ortalama gerçeği anlatmaz. Karapınar Meke de böyledir: Yüzey 0.903, Mobilite 0.153, ortalama 0.528. Bu yüzden tek bir "en iyi analog" yerine eksen eksen sonuç gösteriyoruz.</p></div>
+
+  <div class="card issue"><h4>Yüzey ekseni tek ölçüte dayanıyor</h4><p>Mobilite dört ölçütten oluşur; biri yanılsa diğerleri dengeler. Yüzey ekseninde ise yalnızca albedo var ve Ay albedosu bir dönüşümle (×0.38) elde edildi. Katsayı 0.34–0.42 arasında değiştiğinde Shackleton'ın albedosu yaklaşık 0.13–0.16 arasında oynar. Bu aralığa giren pek çok Dünya sahası olduğu için (ör. Karapınar Meke 0.141, Kula Divlit 0.155) Yüzey'de en üstteki sahalar küçük albedo farklarıyla ayrılır. Sıralamanın büyük ölçüde korunduğunu test ettik (sıra korelasyonu 0.87–0.94), ama birebir aynı kalmıyor. Bu yüzden Yüzey puanlarını Mobilite kadar kesin saymıyoruz: belirgin koyu sahaların (ör. Etna, albedo 0.047) elenmesi sağlam, en üstteki birkaç sahanın kendi aralarındaki sırası değil.</p></div>
+
+  <div class="card issue"><h4>Çözünürlük farkı</h4><p>Ay verisi 5 m, Dünya verisi 30 m çözünürlükte. Kaba veri ince detayı çözüyormuş gibi sunulamaz; bu yüzden iki tarafı aynı 1 km'lik dairede topladık, her sayının yanında gerçek çözünürlüğünü gösterdik ve su veya bitki karışmış pikselleri işaretledik.</p></div>
+
+  <div class="card issue"><h4>Dünya'nın aşamayacağı sınırlar</h4><p>Ay'ın altıda bir yerçekimini, vakumunu, radyasyonunu ve 29.5 günlük gün döngüsünü hiçbir Dünya sahası doğal olarak üretemez. Bu koşullar yalnızca laboratuvarda veya simülasyonda sınanabilir; sonuçlarımız yalnızca arazi ve yüzey benzerliği için bir ön elemedir.</p></div>
+</section>
+
+<section id="sonuclar">
+  <h2>7 · Yöntemin çıktısı</h2>
+  <p class="lede">Aynı işlem hattının ürettiği altı temel figür. Tümü <span style="font-family:var(--mono);font-size:13px">data/processed/features_*.parquet</span> dosyalarındaki gerçek uydu verisinden, uygulamayla birebir aynı doğrulanmış tablodan çizildi.</p>
+
+  <figure>
+    <img src="figures/sunum/figA_top10_shackleton.png" alt="Shackleton için ilk 10 Dünya sahası">
+    <figcaption><b>Şekil 1.</b> Shackleton Krateri Kenarı için ilk 10 Dünya sahası (Dengeli profil): genel puan ve Monte Carlo %90 aralığı (n=200). #1 Karapınar Meke 0.528 [0.41–0.57] — sıralamayı albedo benzerliği taşır (mobilitede #11). #2 McMurdo'nun aralığı çok geniş [0.09–0.51], çünkü albedo ölçümü belirsiz.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/sunum/figB_eksen_ayrimi.png" alt="Puanın Mobilite ve Yüzey bileşenleri">
+    <figcaption><b>Şekil 2.</b> Neden #1? Puanın iki bileşeni: Karapınar Meke'yi Yüzey ekseni (0.90, #1) taşıyor; Mobilite'de #11. Puan bir sıralama indeksidir, güvence değil — bu durum tablo ve uygulamada da açıkça bildirilir.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/sunum/figC_gorev_profilleri.png" alt="Görev profiline göre sıralama değişimi">
+    <figcaption><b>Şekil 3.</b> Görev profili değişince sıralama değişir: aynı veri, aynı sahalar; yalnızca eksen ağırlıkları değişti. Hasandağı Tırmanma profilinde #3 → #1, Optik profilde #6; Meke #1 → #3 → #1; Etna #26 → #17 → #32. Hangi alt sistemin nerede sınanacağı teste bağlıdır.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/sunum/figD_faustini_degisimi.png" alt="Referans geometrisine duyarlılık">
+    <figcaption><b>Şekil 4.</b> Referans geometrisine duyarlılık: dik krater kenarı (Shackleton) mobilitede #22–#28'e ittiği bilinen analoglar (Svalbard, Mauna Loa, Haughton, Atacama), yatık referans (Faustini) seçilince #3–#8'e yükselir. Yöntemin arazinin yapısına duyarlı olduğunu gösteren en güçlü kanıt; tek dik referansla "analog geri bulma" iddiası bilinçli olarak yapılmaz.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/sunum/figE_fiziksel_uzay.png" alt="40 saha, tek fiziksel uzay">
+    <figcaption><b>Şekil 5.</b> 40 saha, tek fiziksel uzayda (ortalama eğim × albedo). Ay referans bölgeleri (mavi eşkenar dörtgen) karanlık albedoda toplanır; adayların çoğu daha parlak ve daha az eğimli. Etna eğimde Shackleton'a yakındır (22.7° ve 18.5°) ama koyu bazaltı (albedo 0.047) Ay kutbunun parlak tozundan (0.147) ayrılır.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures/sunum/figF_albedo_duyarlilik.png" alt="Albedo çarpanına duyarlılık">
+    <figcaption><b>Şekil 6.</b> Albedo çarpanına duyarlılık: referans çarpan ×0.38'i ±%10 kaydırınca sıralama korunur (5 Ay bölgesinin tümünde sıra korelasyonu ρ ≥ 0.87; merkezde 1.00). Çarpanın uçlarında (×0.30 ve ×0.46) #1 olan saha değişir — Deccan, Lunar Crater, Meke, Erciyes, Hasandağı — ve bu durum raporlanır. ×0.38 katsayısının tek sayıya asılı olmadığını gösteren sağlamlık kanıtı.</figcaption>
+  </figure>
+
+  <div class="card"><h4>Tek paragrafta özet</h4><p>Ay Güney Kutbu'ndaki 5 referans bölgeye, 40 Dünya sahasının eğim, pürüzlülük, yükselti farkı ve albedo bakımından ne kadar benzediğini iki eksende (Mobilite, Yüzey) puanlayan; her puana hata aralığı ekleyen ve sıralamayı yapılacak teste göre değiştirebilen bir karar destek sistemi.</p></div>
+</section>
+
+<footer>
+  <span>Yöntem raporu v1 · 15 Kasım 2026</span>
+  <span>Kod sürümü: 54affd5</span>
+  <span>Veri: features_moon.parquet · features_earth.parquet</span>
+</footer>
+
+</div>
+</body>
+</html>
