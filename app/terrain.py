@@ -76,6 +76,27 @@ def _stub_dem(row: pd.Series) -> np.ndarray:
     return z.astype(float)
 
 
+# Native pixel scale of the verified orbital grids (documented in the module
+# docstring): LOLA 5 m/px for Moon, Copernicus GLO-30 / NASADEM 30 m/px for Earth.
+PIXEL_SCALE_M = {"moon": 5.0, "earth": 30.0}
+
+
+def get_tile_data(row: pd.Series) -> tuple[np.ndarray, bool, float]:
+    """Return (elevation grid, is_stub, tile half-width in metres) for one site.
+
+    Compatibility wrapper over :func:`get_tile` that also reports the tile's
+    half-width, derived from the grid shape and the dataset's native pixel
+    scale (or the analysis radius for stub grids).
+    """
+    z, is_stub = get_tile(row)
+    if is_stub:
+        half_width_m = float(row.get("radius_m", 1000.0) or 1000.0)
+    else:
+        px = PIXEL_SCALE_M.get(str(row.get("body", "earth")), 30.0)
+        half_width_m = z.shape[0] * px / 2.0
+    return z, is_stub, half_width_m
+
+
 def hillshade(z: np.ndarray, radius_m: float) -> np.ndarray:
     """Grayscale hillshade (0–1) with a NW light source at 45° elevation."""
     cell = (2.0 * radius_m) / (z.shape[1] - 1)

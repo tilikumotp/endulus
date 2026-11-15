@@ -96,17 +96,20 @@ def test_streamlit_app_smoke_tr_and_en() -> None:
         for el in at.dataframe
         if len(el.value) == 10 and any("DOI" in str(c) for c in el.value.columns)
     )
-    mob_col = next(
+    # p4 v1 diagnostic renders ranks as one cell: "Mobility #3/40 · Surface #5/40 · ..."
+    # The first "#N/40" occurrence is the Mobility rank; monotonicity check is unchanged.
+    rank_col = next(
         c
         for c in diag_df.columns
-        if pd.api.types.is_integer_dtype(diag_df[c]) and "Mobil" in str(c)
+        if diag_df[c].astype(str).str.contains(r"#\d+/\d+", regex=True).all()
     )
-    ranks = diag_df[mob_col].tolist()
+    ranks = (
+        diag_df[rank_col].astype(str).str.extract(r"#(\d+)")[0].astype(int).tolist()
+    )
     assert ranks == sorted(ranks)
 
-    # Verify map toggle works cleanly
-    at.checkbox(key="map_show_all_val").set_value(False).run()
-    assert not at.exception
+    # (map toggle check removed: p4 v1 renders validation sites unconditionally,
+    # the keyed checkbox no longer exists in the app)
 
     # Verify 8-dimension challenge scorecard, 40-site bibliography & plotly figures render
     assert any(len(el.value) == 8 for el in at.dataframe)
