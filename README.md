@@ -4,7 +4,8 @@ No place on Earth analogues a Moon base or Mars site in every respect. We score
 Earth sites **per axis** (mobility, thermal, surface), attach uncertainty to
 every score, show *where the analogy breaks down*, and recommend a minimal
 portfolio of Earth test sites. Known analogues (Atacama, Etna/Mauna Loa,
-Haughton) validate the method; lesser-studied places are candidates, never
+Haughton) provide a descriptive rank diagnostic, not a holdout validation;
+lesser-studied places are candidates, never
 confirmed analogues. Deliverables: interactive map app, short report, pitch.
 Full team rules: see **[AGENTS.md](AGENTS.md)** (data contract in section 5).
 

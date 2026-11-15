@@ -88,3 +88,18 @@
 
 **S: Portföy kartındaki `0.70` eşiği ne anlama geliyor?**
 > "`0.70` bir olasılık veya kalibre edilmiş fiziksel yeterlilik sınırı değildir; eksen kapsamını özetlemek için kullanılan sezgisel bir benzerlik indeksi eşiğidir (`docs/data_notes.md §2b`)."
+
+**S: #1 neden Karapınar Meke? Tek bir sayıya nasıl güveniyoruz?**
+> "Shackleton'da sıralamayı Yüzey ekseni taşıyor: Meke #1 (`0.528 [0.41–0.57]`) albedo benzerliğinden geliyor, mobilitede `#11`. Bu bir sıralama indeksidir, güvence değil — ve bunu ekranda açıkça yazıyoruz. Albedo, LOLA `1064 nm`'in `×0.38` geniş bant eşdeğeriyle karşılaştırılır; katsayının literatür künyesi `TODO(verify)` işaretlidir ve sınırları duyarlılık analiziyle ayrıca raporlanmıştır. McMurdo'nun `#2`'liği `albedo_sd = 0.096` hassasiyetine bağlıdır; `[0.09–0.51]` aralığı bunu zaten gösteriyor. En yüksek genel skor `0.53`: indeks havuza bağımlıdır, `1`'e yakınlık bir taç değildir."
+
+**S: Bilinen analoglar düşük çıkıyor — yöntem analogları geri bulamıyor mu?**
+> "Hayır; buradaki asıl bulgu referans geometrisine duyarlılık ve bu güçlü bir kanıt. Shackleton dik bir krater kenarı (`18.50°` ortalama eğim, `501 m` rölyef); Atacama ve Haughton ise düz Mars/Arktik test sahalarıdır. Referansı yatık `Faustini Kenarı`na (`5.20°`) alınca aynı analoglar Mobilite'de Svalbard `#3`, Mauna Loa `#5`, Haughton `#6` ve Atacama `#8`'e yükselir. Tek dik referans için sıralama betimsel bir tanıdır; 'yöntem bilinen analogları geri buluyor' iddiasını bilinçli olarak yapmıyoruz."
+
+**S: README'de 'validate the method' yazıyordu — çelişki mi?**
+> "Tek cümlelik düzeltme yaptık: bilinen analoglar yöntemi doğrulamaz, *betimsel sıra tanısı* sağlar. Skorlama kodu rolleri hiç görmez ve beklentiler sıralamalara bakılmadan önce tescil edildi (`docs/validation_expectations.md`); README artık kodun ve raporun dilini aynen yansıtıyor."
+
+**S: Sistematik küresel arama nerede? Challenge bunu istiyor.**
+> "Bunu kendimiz söylüyoruz: v1'deki 40 saha küratörlü bir ön taramadır — 10'u literatürde bilinen analog, 14'ü Türkiye adayı, 16'sı küresel aday. Küresel ızgara taraması (binlerce hücre üzerinde otomatik aday üretimi) v2 yol haritasının ilk maddesidir; elle seçim v1'in bilinçli kapsamıdır, iddia fazlası değil."
+
+**S: 'Portföy' iddianız ne kadar sağlam?**
+> "Kelimeyi küçültüyoruz: bu bir kapsam analizi. Çoğu referans için seçim tek sahaya iniyor ya da mobilite kapanmıyor — ve ekran bunu açıkça gösteriyor. Kapanmayan eksenleri gizlemiyoruz; hangi eksenin hangi sahayla kapanmadığı kartta yazılıdır."
