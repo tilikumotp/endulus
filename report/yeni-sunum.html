@@ -307,14 +307,14 @@
 
 <section id="tr_sahalari">
   <h2>5 · Neden büyük bir mühendislik ve maliyet sorununu çözüyor?</h2>
-  <p class="lede">Uzay donanımlarının Ay ortamına gönderilmeden önce Dünya'da test edilmesi zorunludur; ancak literatürde yerleşik saha testleri çoğunlukla yurt dışı lokasyonlarda yürütülür. Üstelik "genel analog" etiketiyle seçilen bir saha, test edilmek istenen gerçek alt sistemi zorlamayabilir.</p>
+  <p class="lede">Uzay donanımlarının Ay ortamına gönderilmeden önce Dünya'da test edilmesi zorunludur; ancak literatürde yerleşik saha testleri çoğunlukla yurt dışı lokasyonlarda yürütülüyor. Bu testlerin Türkiye'de yapılsaydı ne olacağını matematiksel olarak analiz edebiliriz.</p>
 
-  <p>Bu proje iki somut boşluğu doldurur: <b>(1)</b> yurt dışı kampanya maliyetine girmeden önce Türkiye içindeki jeolojik ve topografik sahaları uluslararası adaylarla <b>aynı metrik ve aynı uydu terazisinde</b> kıyaslar; <b>(2)</b> "tek mükemmel yer" aramak yerine hangi alt sistemin Türkiye'deki hangi sahada, hangisinin ise laboratuvarda doğrulanması gerektiğini ayırır. Somut örnek: düz bir çöl tabanında tekerlek tırmanma sınırları sınanamazken, çok koyu bir volkanik akıntıda optik navigasyon kamerasının pozlama dengesi Ay kutup regolitine benzemez. Böylece Türkiye'deki üniversite takımları, araştırma enstitüleri ve uzay sanayii ekipleri için kanıta dayalı bir ulusal test yatağı envanteri oluşur.</p>
+  <p>Bu proje iki somut boşluğu doldurur: <b>(1)</b> yurt dışı kampanya maliyetine girmeden önce Türkiye içindeki jeolojik ve topografik sahaları uluslararası adaylarla <b>aynı metrik ve aynı uydu terazisinde</b> kıyaslar; <b>(2)</b> "tek mükemmel yer" aramak yerine hangi alt sistemin Türkiye'deki hangi sahada, hangisinin ise laboratuvarda doğrulanması gerektiğini ayırır. Somut örnek: düz bir çöl tabanında optik navigasyon kamera sınırları sınanamazken, çok koyu bir volkanik akıntıda optik navigasyon kamera, üzerinde çalıştığı zemine göre ayar yapar zemin yanlışsa test de yanlış olur.. Böylece Türkiye'deki üniversite takımları, araştırma enstitüleri ve uzay sanayii ekipleri için kanıta dayalı bir ulusal test projesi oluşur.</p>
 
-  <div class="prov"><span class="tag">comparisons[moon_shackleton_rim | moon_faustini_rim][default]</span><span class="tag">comparisons[...][rover_mobility | optical_survey]</span><span>14/30 aday saha Anadolu'dan · tüm puanlar doğrulanmış JSON tablosundan</span></div>
+  <div class="prov"><span class="tag">comparisons[moon_shackleton_rim | moon_faustini_rim][default]</span><span class="tag">comparisons[...][rover_mobility | optical_survey]</span><span>1</span></div>
 
   <h3>Türkiye'deki 14 aday sahanın nicel profili</h3>
-  <p>Havuzdaki 30 aday sahanın 14'ü Anadolu'nun farklı volkanik, ignimbritik ve evaporitik bölgelerinden seçildi. Aşağıdaki tablo, bu 14 sahanın Shackleton Krateri Kenarı (dik referans: 18.50° ortalama eğim, 0.147 albedo) ve Faustini Kenarı (yatık referans: 5.20° ortalama eğim, 0.136 albedo) karşısındaki skorlarını ve uygun test rollerini özetler.</p>
+  <p>Havuzdaki 30 aday sahanın 14'ü Anadolu'nun farklı volkanik, ignimbritik (Volkanik patlama sonucu oluşan, sıkışmış "kül akıntısı" kayaç) ve evaporitik (Buharlaşarak tuz/ mineral yatağı oluşturan suların bıraktığı çökelme.) bölgelerinden seçildi. Aşağıdaki tablo, bu 14 sahanın Shackleton Krateri Kenarı (dik referans: 18.50° ortalama eğim, 0.147 albedo) ve Faustini Kenarı (yatık referans: 5.20° ortalama eğim, 0.136 albedo) karşısındaki skorlarını ve uygun test rollerini özetler.</p>
 
   <table>
     <thead>
@@ -404,12 +404,8 @@
     <figcaption><b>Şekil 5.</b> 40 saha, tek fiziksel uzayda (ortalama eğim × albedo). Ay referans bölgeleri (mavi eşkenar dörtgen) karanlık albedoda toplanır; adayların çoğu daha parlak ve daha az eğimli. Etna eğimde Shackleton'a yakındır (22.7° ve 18.5°) ama koyu bazaltı (albedo 0.047) Ay kutbunun parlak tozundan (0.147) ayrılır.</figcaption>
   </figure>
 
-  <figure>
-    <img src="figures/sunum/figF_albedo_duyarlilik.png" alt="Albedo çarpanına duyarlılık">
-    <figcaption><b>Şekil 6.</b> Albedo çarpanına duyarlılık: referans çarpan ×0.38'i ±%10 kaydırınca sıralama korunur (5 Ay bölgesinin tümünde sıra korelasyonu ρ ≥ 0.87; merkezde 1.00). Çarpanın uçlarında (×0.30 ve ×0.46) #1 olan saha değişir — Deccan, Lunar Crater, Meke, Erciyes, Hasandağı — ve bu durum raporlanır. ×0.38 katsayısının tek sayıya asılı olmadığını gösteren sağlamlık kanıtı.</figcaption>
-  </figure>
 
-  <div class="card"><h4>Tek paragrafta özet</h4><p>Ay Güney Kutbu'ndaki 5 referans bölgeye, 40 Dünya sahasının eğim, pürüzlülük, yükselti farkı ve albedo bakımından ne kadar benzediğini iki eksende (Mobilite, Yüzey) puanlayan; her puana hata aralığı ekleyen ve sıralamayı yapılacak teste göre değiştirebilen bir karar destek sistemi.</p></div>
+  <div class="card"><h4>Tek paragrafta özet</h4><p>Ay Güney Kutbu'ndaki 5 referans bölgeye, 40 Dünya sahasının — 14'ü Türkiye adayı — eğim, pürüzlülük, yükselti farkı ve albedo bakımından ne kadar benzediğini iki eksende (Mobilite, Yüzey) puanlayan; her puana Monte Carlo hata aralığı ekleyen ve sıralamayı hem yapılacak teste (tırmanma, optik kamera) hem de seçilen Ay referansının arazi yapısına göre değiştirebilen bir karar destek sistemi. Amaç tek "mükemmel analog" bulmak değil: hangi alt sistemin Türkiye'deki hangi sahada, hangisinin ise laboratuvarda sınanacağını ayırmaktır. En yüksek puan 0.53'tür; bu bir sıralama indeksidir, güvence değil — ve sistem bunu açıkça bildirir.</p></div>
 </section>
 
 <footer>
