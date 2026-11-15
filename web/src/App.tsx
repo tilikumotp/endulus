@@ -82,7 +82,7 @@ export default function App() {
   const [dem, setDem] = useState<DemArchive | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [lang, setLang] = useState<Lang>("tr");
+  const [lang, setLang] = useState<Lang>("en");
   const [moonId, setMoonId] = useState<string>("moon_shackleton_rim");
   const [mission, setMission] = useState<MissionKey>("default");
   const [wMob, setWMob] = useState<number>(PRESET_WEIGHTS.default.wMob);

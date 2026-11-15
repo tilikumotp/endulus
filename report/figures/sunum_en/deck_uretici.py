@@ -82,7 +82,7 @@ def img(s, path, x, y, w, aspect):
 
 # ============================== SLIDE 1 · COVER =====================================
 s = slide()
-txt(s, 0.9, 1.55, 11.5, 0.4, [("NASA SPACE APPS CHALLENGE 2026 · GLOBAL JUDGING SUBMISSION", 12, INK3, False, "Consolas")])
+txt(s, 0.9, 1.55, 11.5, 0.4, [("NASA SPACE APPS CHALLENGE 2026 · TEAM ENDÜLÜS · GLOBAL JUDGING SUBMISSION", 12, INK3, False, "Consolas")])
 txt(s, 0.9, 2.05, 11.5, 1.5, [("Moon Analogue Scorer", 54, INK, True, "Georgia")])
 txt(s, 0.9, 3.45, 11.0, 0.5, [("Challenge: Permanent Moon Base Locations and Mars", 18, ACCENT, False, "Segoe UI")])
 txt(s, 0.9, 4.15, 10.6, 1.2, [(
@@ -180,7 +180,7 @@ s = slide()
 kicker(s, "TEAM AND LIMITS")
 title(s, "Four people, four open data streams - and the limits we state out loud")
 hairline(s)
-txt(s, 0.5, 1.62, 6.0, 0.4, [("TEAM", 13, ACCENT, True, "Consolas")])
+txt(s, 0.5, 1.62, 6.0, 0.4, [("TEAM ENDÜLÜS", 13, ACCENT, True, "Consolas")])
 members = [
     ("Serdar Otlutepe", "Lead / Approver - methodology, scoring, integration"),
     ("Berathan Menek", "Web design and testing - interactive map app"),
