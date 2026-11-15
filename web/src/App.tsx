@@ -110,6 +110,7 @@ export default function App() {
   const [exaggeration, setExaggeration] = useState<number>(2.0);
   const [colorMode3d, setColorMode3d] = useState<TerrainColorMode>("elevation");
   const [autoRotate3d, setAutoRotate3d] = useState<boolean>(false);
+  const [guideOpen, setGuideOpen] = useState<boolean>(true);
   const [moonAtlasLayer, setMoonAtlasLayer] = useState<MoonAtlasMode>("hillshade");
 
   const [bibSearch, setBibSearch] = useState<string>("");
@@ -1023,6 +1024,21 @@ export default function App() {
             {/* VIEW 1: REAL GIS MAP + SCORE BARS + CLEAN 2-TAB SUBSWITCH + BIDIRECTIONAL TABLE */}
             {workbenchTab === "overview" && (
               <div className="flex flex-col gap-5">
+                <details
+                  open={guideOpen}
+                  onToggle={(e) => setGuideOpen((e.target as HTMLDetailsElement).open)}
+                  className="rounded-xl border hairline bg-[#11141c] px-5 py-3"
+                >
+                  <summary className="cursor-pointer text-[13.5px] font-medium text-[#eef0f5] flex items-center gap-2 select-none">
+                    <Compass className="w-4 h-4 text-[#4c8bf5]" />
+                    {copy.guideTitle}
+                  </summary>
+                  <ol className="mt-2.5 space-y-1.5 text-[12.5px] text-[#a3a9b8] list-decimal list-inside">
+                    <li>{copy.guideStep1}</li>
+                    <li>{copy.guideStep2}</li>
+                    <li>{copy.guideStep3}</li>
+                  </ol>
+                </details>
                 <RealMapLeaflet
                   sites={filteredSitesForMap}
                   scoresById={scoresById}
@@ -1096,8 +1112,11 @@ export default function App() {
                             <th className="py-2 pr-3 font-normal text-right">
                               {lang === "tr" ? "Fark" : "Diff"}
                             </th>
-                            <th className="py-2 font-normal text-right">
+                            <th className="py-2 pr-3 font-normal text-right">
                               {lang === "tr" ? "Standart fark (z)" : "Std (z)"}
+                            </th>
+                            <th className="py-2 font-normal text-right">
+                              {copy.gapsShareCol}
                             </th>
                           </tr>
                         </thead>
@@ -1105,6 +1124,19 @@ export default function App() {
                           {selectedGaps.map((g) => {
                             const fn = FEATURE_NAMES[g.feature];
                             const absZ = Math.abs(g.z_diff ?? 0);
+                            // Contribution of this feature to its axis distance:
+                            // D = sqrt(mean(z_i^2)), so share_i = z_i^2 / sum_j z_j^2.
+                            const axisRows = selectedGaps.filter(
+                              (r) => r.axis === g.axis && r.z_diff !== null
+                            );
+                            const zSumSq = axisRows.reduce(
+                              (acc, r) => acc + (r.z_diff ?? 0) ** 2,
+                              0
+                            );
+                            const share =
+                              zSumSq > 0 && g.z_diff !== null
+                                ? ((g.z_diff ?? 0) ** 2 / zSumSq) * 100
+                                : null;
                             return (
                               <tr key={g.feature} className="border-b hairline last:border-b-0">
                                 <td className="py-2.5 pr-3 font-sans text-[#eef0f5]">
@@ -1123,7 +1155,7 @@ export default function App() {
                                   {g.diff !== null ? g.diff.toFixed(2) : "—"}
                                 </td>
                                 <td
-                                  className={`py-2.5 text-right ${
+                                  className={`py-2.5 pr-3 text-right ${
                                     absZ < 0.5
                                       ? "text-[#4cc38a]"
                                       : absZ > 1.3
@@ -1133,11 +1165,34 @@ export default function App() {
                                 >
                                   {g.z_diff !== null ? g.z_diff.toFixed(2) : "—"}
                                 </td>
+                                <td className="py-2.5 text-right">
+                                  {share !== null && (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <div className="w-16 h-1.5 rounded-full bg-[#1a1e28] overflow-hidden">
+                                        <div
+                                          className="h-full rounded-full bg-[#4c8bf5]"
+                                          style={{ width: `${Math.min(100, share)}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[#a3a9b8] text-[11.5px] w-9">
+                                        {share.toFixed(0)}%
+                                      </span>
+                                      <span className="text-[#7a8296] text-[10.5px] w-14 text-left font-sans">
+                                        {g.axis === "mobility"
+                                          ? lang === "tr" ? "Mobilite" : "Mobility"
+                                          : lang === "tr" ? "Yüzey" : "Surface"}
+                                      </span>
+                                    </div>
+                                  )}
+                                </td>
                               </tr>
                             );
                           })}
                         </tbody>
                       </table>
+                      <p className="text-[11.5px] text-[#7a8296] mt-2">
+                        {copy.gapsShareHint}
+                      </p>
                     </div>
                   </div>
                 </div>
