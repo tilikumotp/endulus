@@ -1,67 +1,90 @@
-# Sunum Rehberi — "Hocaya bunu ben sunacağım" (5-6 dakika)
+# Sunum Rehberi — "Hocaya / Jüriye Bunu Ben Sunacağım" (5–6 Dakika)
 
-> Bu metin konuşma diliyle yazılmıştır. Okuyarak da sunulabilir. Her adımda uygulamada neye tıklayacağın doğrudan sadeleştirilmiş siyah arayüze göre güncellenmiştir. Geniş sayısal tablolar `report/final_report_tr.md` içindedir.
+> Bu metin doğrudan konuşma diliyle yazılmıştır. Okuyarak da sunulabilir. Her adımda uygulamada (`streamlit run app/main.py`) neye tıklayacağın da yazıyor.
 
 ---
 
 ## 1. Giriş (30 saniye)
 
 **Söyle:**
-> "NASA'nın bize verdiği görev şuydu: Ay'a veya Mars'a üs kurmayı düşündüğümüz yerlere benzeyen Dünya sahalarını, açık uydu verisiyle bulmak. Çünkü astronotlar Ay'a çıkmadan önce ekipmanlarını Dünya'da benzer yerlerde test ediyor. Ama hangi Dünya yeri gerçekten benzer? Biz bunu kanıtlı ve sınırlarıyla cevaplayan bir sistem yaptık."
+> "NASA'nın bize verdiği görev şuydu: Ay'a veya Mars'a üs kurmayı düşündüğümüz bölgelere benzeyen Dünya sahalarını, açık uydu verisiyle bulmak ve karşılaştırmak. Çünkü astronotlar ve mühendisler Ay'a gitmeden önce rover'ları, radarları ve ekipmanları Dünya'daki benzer arazilerde test ediyor. Ama hiçbir Dünya sahası Ay'ı her yönüyle kopyalayamaz. Biz bu yüzden tek bir puan vermek yerine, sahaları eksen bazında, belirsizliğiyle ve analojinin kırıldığı sınırlarla birlikte analiz eden bir karar destek sistemi kurduk."
 
 ---
 
-## 2. Yaklaşım (1 dakika)
+## 2. Yaklaşım ve Karar #30 Şeffaflığı (1 dakika)
 
 **Söyle:**
-> "Önce görevin içindeki kritik cümleyi okuduk: 'Hiçbir Dünya yeri Ay'ı kusursuz yeniden üretemez.' Doğru — Dünya'da Ay'ın `1/6 g` yerçekimi, vakumu ve radyasyonu yok. O yüzden 'en benzer TEK yer' tuzağına düşmedik. Her sahayı ayrı eksenlerde ele aldık:
-> 1. **Arazi (Mobilite)** — eğim, pürüzlülük, yükselti farkı (`5 m/px` Ay LOLA DEM vs `30 m/px` Dünya Copernicus GLO-30) — **aktif**
-> 2. **Yüzey** — geniş bant albedo / parlaklık (`1000 m` LOLA vs `500 m` MODIS `MCD43A3`) — **aktif**
-> 3. **Sıcaklık (Termal)** — Ay güney kutbunda `29.5` günlük vakum döngüsü ile Dünya'nın `24` saatlik yıllık farkı eşdeğer tanımlı olmadığı için sahte skor üretmek yerine **bilinçli olarak askıda (`NaN`)** tuttuk.
+> "Görev metnindeki en kritik cümleden yola çıktık: *'Hiçbir Dünya yeri Ay'ı kusursuz yeniden üretemez.'* Dünya'da Ay'ın altıda bir yerçekimi, vakumu ve radyasyonu yok. Bu yüzden 40 Dünya sahasını 5 Ay Güney Kutbu referans bölgesine karşı üç temel eksende inceledik:
+> 1. **Mobilite (Aktif Sayısal Eksen)** — ortalama eğim, dik yamaç payı (`slope_p90`), yüzey pürüzlülüğü ve rölyef (Ay'da `5 m/px` LRO LOLA DEM, Dünya'da `30 m/px` Copernicus GLO-30 DEM).
+> 2. **Yüzey Parlaklığı (Aktif Sayısal Eksen)** — geniş bant güneş albedosu (`1000 m` LOLA `×0.38` geniş bant eşdeğeri vs `500 m` MODIS `MCD43A3.061`).
+> 3. **Termal Eksen (`Karar #30` ile v1'de Askıda / `NaN`)** — Resmî PDS3 `.lbl` etiketlerini denetlediğimizde, Ay LRO Diviner kutup yerel saat dilimi (`ltim`) ürünleri ile Dünya `MOD11A2.061` yıllık ortalama gündüz–gece sıcaklık farkının aynı fiziksel günlük döngü tanımına oturmadığını ve eş ölçekli küresel `thermal_inertia` ürünü bulunmadığını tespit ettik. Elma ile armutu çarpıştırıp yanıltıcı bir termal puan üretmek yerine, veri sözleşmesi kurallarımız gereği (`AGENTS.md §5`) Termal eksenini v1'de `NaN` olarak askıya aldık ve sayısal skorlamayı **2 aktif eksen (`Mobilite + Yüzey`)** üzerinden yürüttük.
 >
-> Her puana ölçüm hatasını da kattık; yani tek bir sayı değil, `200` çekilişli Monte Carlo `P5–P95` belirsizlik aralığını gösteriyoruz."
+> Her sayısal puana 200 çekilişli Monte Carlo belirsizlik aralığını (`q05–q95`, ekranda `expanded_interval` ile) ekledik."
 
-**Uygulamada:** Sol panel ve **Eksen Grafikleri** sekmesi gösterilir — Mobilite ve Yüzey çubukları net, arayüz tek saf siyah tema ve sıfır dikkat dağıtıcı süsleme.
+**Uygulamada:** Sol ayarlar panelini ve üstteki `Karar #30` bilgi bandını göster.
 
 ---
 
 ## 3. Canlı Demo (3 dakika)
 
-### Adım 1 — Ay Referansını seç
-**Uygulamada:** Sol panelden **"Shackleton Krateri Kenarı"** seç (`Site XX ROI` gibi karmaşık kodlar yerine doğrudan krater adları görünür).
+### Adım 1 — Ay Referansını Seç ve Haritayı Göster (`🗺️ Harita`)
+**Uygulamada:** Sol panelden **"Shackleton Krateri Kenarı"** seç ve `🗺️ Harita` sekmesini göster.
 
 **Söyle:**
-> "Referansımız NASA Artemis III aday bölgeleri arasından alınan 5 gerçek Ay Güney Kutbu bölgesi. Koordinatların tamamı NASA GSFC PGDA shapefile'larından alındı."
+> "Referanslarımız NASA'nın Artemis III iniş bölgesi adaylarından (`Shackleton Krateri Kenarı`, `Bağlantı Sırtı`, `de Gerlache`, `Shackleton Yakını Zirve`, `Faustini`). Haritada 40 Dünya sahasını görüyoruz: mavi halkalı noktalar literatürden bilinen doğrulama sahaları (`Etna`, `Atacama`, `Haughton`, `Meteor Crater` vb.), diğerleri ise 10'u Türkiye'den olmak üzere 30 aday saha. Hem doğrulama (`color_val`) hem aday (`color`) noktalarının rengi ve yarıçapı doğrudan seçili referans ve görev skorunu yansıtır."
 
-### Adım 2 — Görev Değişince Sıra Değişiyor (`Skor Tablosu`)
-**Uygulamada:** **Skor Tablosu** sekmesini aç. Dengeli modda en üst sırayı göster; ardından sol panelden **Rover Hareket Testi** seçip sıralamanın anında değiştiğini göster.
-
-**Söyle:**
-> "Dengeli ağırlıkta `40` Dünya sahası içinde ilk sırada **Karapınar Meke Krateri (`0.528`, P5–P95: `0.406–0.569`)** yer alır; ancak gücü esasen **Yüzey (`0.903`)** yakınlığından gelir, Mobilite (`0.153`) ortadadır. Sol menüden görevi **Rover Hareket Testi**'ne aldığımızda ise **`#1 Hasandağı Keçikaleçik (0.446)`** ilk sıraya yükselir — çünkü artık saha listesi test edeceğimiz ekipmanın ihtiyacına göre ağırlıklandırılıyor."
-
-### Adım 3 — Harita ve Gerçek 3D Arazi
-**Uygulamada:** Önce **Harita** sekmesine geç (mavi dış halka = 10 doğrulama sahası, kırmızı–yeşil dolgu = aktif skor), ardından **3D Arazi** sekmesini aç.
+### Adım 2 — Görsel Karşılaştırma ve 3B Arazi (`📊 Görsel Karşılaştırma & Eksenler` & `⛰️ 3D Arazi`)
+**Uygulamada:** Önce `📊 Görsel Karşılaştırma & Eksenler`, ardından `⛰️ 3D Arazi` sekmesine tıkla.
 
 **Söyle:**
-> "Haritada mavi dış halkalar literatürde zaten bilinen `10` doğrulama analogunu, diğer noktalar Türkiye'den `14` ve dünyadan `16` olmak üzere `30` aday test sahasını gösterir. **3D Arazi** sekmesinde ise yapay örnek yüzey değil, doğrudan taahhüt edilmiş gerçek **5 m/px LRO LOLA** Ay yükselti gridini ve **30 m/px Copernicus GLO-30** Dünya topografyasını (`~2.2 km` pencere) yan yana döndürüyoruz."
+> "İkinci sekmede 40 Dünya sahasını ve seçili Ay referansını (⭐ altın yıldız) doğrudan iki aktif eksenin fiziksel uzayında (`Ortalama Eğim` vs `Albedo`) görüyoruz; altında ise her sahanın `Mobilite`, `Yüzey` ve `Genel` indeks çubukları belirsizlik şeritleriyle (`expanded_interval`) yer alıyor.
+> `⛰️ 3D Arazi` sekmesinde ise çevrimdışı commit'lenmiş gerçek yörünge DEM paftalarını — solda `5 m/px` LRO LOLA Ay arazisini, sağda `30 m/px` Copernicus GLO-30 Dünya arazisini — `r = 1 km` analiz çemberiyle yan yana 3 boyutlu inceleyebiliyoruz."
 
-### Adım 4 — Analojinin Sınırları, Çevrimdışı Görseller ve Akademik Kaynakça
-**Uygulamada:** **Analojinin Sınırları** sekmesini aç; saha seçiciden **Karacadağ** veya **Karapınar Meke** seçip 8 boyutlu kapsam tablosunu, 3 panelli görseli, `z_diff` fark tablosunu ve en alttaki **Veri Kaynakları ve Akademik Kaynakça (Ay & Dünya)** açılır kutusunu göster.
-
-**Söyle:**
-> "Bu sekme iki işi birden yapar. Üstte `8 Boyutlu Kapsam Tablosu` hangi fiziki boyutun sahada sınanabildiğini (`Mobilite`, `Yüzey`), hangilerinin mutlaka laboratuvar/simülasyona kaldığını (`1/6 g`, vakum, radyasyon, elektrostatik toz) ayırır. Ortada internet kesilse bile açılan yerel `5 m` LOLA kabartma/eğim haritası ve `10 m` Sentinel-2 L2A görüntüsü ile altındaki özellik fark tablosu (`5 m` vs `30 m` çözünürlük etiketiyle) yer alır. En alttaki kaynakça panelinde ise Emirhan'ın Ay makale DOI'leri (`Barker 2021`, `Lucey 2014`, `Lemelin 2016`) ile Eray'ın `40` Dünya sahası kaynakçası şeffafça listelenir."
-
-### Adım 5 — Betimsel Sıra Tanısı (`Sıra Tanısı (Doğrulama)`)
-**Uygulamada:** **Sıra Tanısı (Doğrulama)** sekmesi — `Mobilite Sırası`na göre küçükten büyüğe sıralı 10 bilinen doğrulama sahası, E8 nitel buz envanteri ve tıklanabilir DOI tablosu.
+### Adım 3 — Skor Tablosu ve Kompakt Portföy Kartı (`📊 Skor Tablosu & Portföy`)
+**Uygulamada:** `📊 Skor Tablosu & Portföy` sekmesini aç; tabloyu ve hemen altındaki **Kompakt Çok-Sahalı Test Portföyü Kartı**'nı göster.
 
 **Söyle:**
-> "Burada Etna, Atacama, McMurdo, Haughton gibi bilinen `10` Dünya sahasını skorlayıcıya rol etiketi göstermeden puanladık ve önceden kayıtlı DOI beklentileriyle (`docs/validation_expectations.md`) karşılaştırdık. Shackleton gibi dik bir kraterde **Etna Mobilite'de `#3 / 40`** çıkar; ancak albedosu koyu (`0.047`) olduğu için parlak Shackleton (`0.147`) karşısında Yüzey'de geri düşer. Yatık **Faustini Kenarı** seçildiğinde ise Atacama ve Haughton gibi düz sahalar Mobilite'de üst sıralara çıkar. Önemli dürüstlük notu: tüm `40` saha Z-ölçeklemesine girdiği için bu tablo bağımsız holdout doğrulaması değil, **betimsel bir sıra tanısıdır**. Benzer biçimde Karacadağ gibi adayları da asla kesin analog ilan etmiyoruz, test adayı olarak sunuyoruz."
+> "Skor tablosunda askıdaki ölü `Termal` sütununu kaldırıp yalnızca `Genel (2 Aktif Eksen)`, `Mobilite` ve `Yüzey` sütunlarını gösteriyoruz. Shackleton Krateri Kenarı için dengeli ağırlıkta **Karapınar Meke Maarı (`0.53 [0.41–0.57]`, Yüzey `0.90`)**, **McMurdo Dry Valleys (`0.51`)** ve **Hasan Dağı Keçekalecik (`0.50`, Mobilite `0.335` ile 40 saha arasında 1. sırada)** öne çıkıyor.
+> Tablonun hemen altındaki **Kompakt Portföy Kartı (`select_portfolio`)** ise tek bir saha yerine, `0.70` sezgisel indeks eşiğinde kapsanan eksenleri (`Yüzey: Meke Maarı 0.90`) ve eşiği aşamayan ya da askıda kalan eksenleri (`Mobilite` için hedefli dik-yamaç testi, `Termal` ve vakum/yerçekimi için laboratuvar/simülasyon) açıkça ayırıyor."
+
+### Adım 4 — Betimsel Sıra Tanısı (`✅ Betimsel Sıra Tanısı`)
+**Uygulamada:** `✅ Betimsel Sıra Tanısı` sekmesine geç.
+
+**Söyle:**
+> "Literatürden bilinen 10 doğrulama sahasını skorlayıcıya rol etiketi vermeden aynı 40 sahalık havuz içinde sıraladık. Önemli bilimsel dürüstlük notumuz: 40 sahanın tamamı Z-ölçeklemesine katıldığı için bu tablo **bağımsız bir holdout testi veya ilk-5 geçer/kalır sınavı değildir; betimsel bir sıra tanısıdır**. `docs/validation_expectations.md` dosyasındaki ön-kayıtlı beklentiler ve doğrulanmış DOI/URL kaynaklarıyla yan yana baktığımızda, dik krater/volkan yamacı olan **Etna (`Mobilite #3/40`)**, **Lunar Crater Nevada (`Mobilite #7/40`, `Yüzey #11/40`)** ve **Meteor Crater (`Mobilite #8/40`)** sahalarının Shackleton krater duvarı karşısında Mobilite ekseninde üst sıralara yerleştiğini, düz çöl tabanı olan **Atacama Yungay (`Mobilite #28/40`)** sahasının ise beklendiği gibi dik krater kenarından ayrıştığını görüyoruz."
+
+### Adım 5 — Analojinin Sınırları ve 8 Boyutlu Karne (`⚠️ Analojinin Sınırları`)
+**Uygulamada:** `⚠️ Analojinin Sınırları` sekmesini aç; 8 Boyutlu Karne'yi ve yerel `LRO LOLA 5 m/px` ↔ `Sentinel-2 L2A 10 m/px` kanıt kartını göster.
+
+**Söyle:**
+> "Son sekmede Dünya'da sahadan asla test edilemeyecek fiziksel sınırları (`1/6 g` yerçekimi, vakum, radyasyon, `29.5` günlük Ay günü), teknik ölçek sınırlarımızı (`5 m/px` LOLA vs `30 m/px` GLO-30 DEM çözünürlük farkı ve `Karar #30` Termal askı durumu), **8 Boyutlu Görev Karnemizi** ve yerel olarak doğrulanmış `LRO LOLA 5 m/px` ile bulutsuz `Sentinel-2 L2A 10 m/px` (`scene_id`, çekim tarihi ve `%bulut` bilgili) görsel kanıt kartlarını sunuyoruz."
 
 ---
 
-## 4. Güvenilirlik Özeti & Olası Sorular (1 dakika)
+## 4. Güvenilirlik Özeti (1 dakika)
 
-* **Veriler gerçek mi?** `40` Dünya + `5` Ay sahasında `scripts/validate_all.py --fail-on-mock` çıktısı `0 MOCK, 0 hata, 0 uyarı`dır. Tüm NASA/ESA ürün kodları `*_src` ve `*_res_m` kolonlarıyla kayıtlıdır.
-* **Neden portföy kartını rapora aldık?** Çekirdek motor (`src/scoring/portfolio.py`) her Ay bölgesi için en küçük kapsayıcı saha grubunu hesaplar (sonuçlar `report/final_report_tr.md` §4.2'de tam tablolu); arayüz ise jüri demosu için yalınlaştırılıp `6` ana sekmeye odaklanmıştır.
-* **Termal neden askıda?** `Karar #30` (`docs/data_notes.md`): 29.5 günlük LRO Diviner döngüsüyle yıllık MODIS `MOD11A2` farkı eşdeğer olmadığı için bilerek `NaN` bırakılmıştır; tam gün eğrileri v2 yol haritasındadır.
-* **Mars neden v2'de?** Data sözleşmesi (`AGENTS.md` §5) ve `src/scoring/` cisim-bağımsızdır; v1'de derinlik ve yüksek çözünürlük kalitesi için Artemis III Ay Güney Kutbu seçilmiş, Mars MOLA/TES entegrasyonu v2'ye konmuştur.
+**Söyle:**
+> "Üç katmanlı bilimsel şeffaflık uyguladık:
+> 1. **Sıfır sentetik veri (`0 MOCK`):** Tüm özellikler ve görseller NASA LRO (LOLA, Diviner) ve ESA/NASA (Copernicus GLO-30, NASADEM, MODIS, Sentinel-2) arşivlerinden üretildi ve `validate_all.py --fail-on-mock` ile doğrulandı.
+> 2. **Bağımsız matematiksel çapraz kontrol:** 5 Ay referansı × 40 Dünya sahası × 3 eksen = 600 eksen skoru ve 200 görev ağırlıklı toplam skor, formülden bağımsız olarak çapraz hesaplandı (`sapma = 0`).
+> 3. **Dürüst sınırlar:** PDS `.lbl` etiketlerinden yakaladığımız Ay–Dünya sıcaklık tanımı farkını gizlemek yerine `Karar #30` ile açıkça belgeleyip Termal ekseni `NaN` olarak askıya aldık."
+
+---
+
+## 5. Kapanış (30 saniye)
+
+**Söyle:**
+> "Özetle: Tek bir Dünya sahası Ay'ı temsil edemez — ancak eksen bazlı skorlama, belirsizlik yayılımı ve kompakt portföy seçimi bir görev planlayıcısına *'hangi yeteneği hangi sahada test etmeliyim, hangisini laboratuvara bırakmalıyım?'* sorusunun kanıta dayalı cevabını verir. 5 Ay Güney Kutbu bölgesi, 40 Dünya sahası, 2 aktif sayısal eksen + şeffaf biçimde belgelenmiş sınırlar. Teşekkürler."
+
+---
+
+## Olası Jüri Soruları ve Hazır Cevaplar
+
+**S: Mars neden v1 arayüzünde yok?**
+> "Görev metni *'Ay VEYA Mars'* diyor. v1'de NASA Artemis III Güney Kutbu bölgelerine odaklanarak `5 m/px` LOLA DEM ve tam DOI doğrulamalı derin bir analiz kurduk. Veri sözleşmemiz (`AGENTS.md §5`) ve skorlama motorumuz gök cismi bağımsızdır; Mars MOLA/THEMIS entegrasyonu v2 yol haritasında hazırdır."
+
+**S: Termal eksen neden v1'de askıda (`NaN`)?**
+> "Resmî PDS3 `.lbl` etiketlerini kontrol ettiğimizde, Ay Güney Kutbu LRO Diviner `ltim` yerel saat dilimi ürünleri ile Dünya `MOD11A2.061` yıllık ortalama gündüz–gece yüzey sıcaklık farkının aynı günlük döngü tanımını paylaşmadığını gördük. `AGENTS.md §5` (*her özellik her gök cisminde aynı tanımla hesaplanmalıdır*) kuralımız gereği, farklı tanımlı iki sayıyı birbirinden çıkarıp yapay bir skor basmak yerine `Karar #30` ile Ay termal sütunlarını v1'de `NaN` yaptık ve 24 saatlik `ltim01..ltim96` serisini `docs/data_sources_moon.md` içinde belgeledik."
+
+**S: Portföy kartındaki `0.70` eşiği ne anlama geliyor?**
+> "`0.70` bir olasılık veya kalibre edilmiş fiziksel yeterlilik sınırı değildir; eksen kapsamını özetlemek için kullanılan sezgisel bir benzerlik indeksi eşiğidir (`docs/data_notes.md §2b`)."
