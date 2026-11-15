@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Compass,
   ExternalLink,
-  MapPin,
   Mountain,
   RotateCcw,
   Search,
@@ -27,7 +26,6 @@ import {
   ANALYSIS_FIGURES,
   CHALLENGE_STORY,
   FEATURE_NAMES,
-  FILTERS,
   LITHOLOGY_NAMES,
   MISSIONS,
   SOLUTION_EXAMPLES,
@@ -40,7 +38,6 @@ import type {
   AppDataPayload,
   DemArchive,
   EarthSite,
-  FilterKey,
   Lang,
   MissionKey,
   SiteScoreRow,
@@ -91,7 +88,6 @@ export default function App() {
   const [wMob, setWMob] = useState<number>(PRESET_WEIGHTS.default.wMob);
   const [wSurf, setWSurf] = useState<number>(PRESET_WEIGHTS.default.wSurf);
 
-  const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState<string>("");
   const [selectedEarthId, setSelectedEarthId] = useState<string>("earth_karapinar_meke");
   const [workbenchTab, setWorkbenchTab] = useState<WorkbenchTab>("overview");
@@ -202,13 +198,10 @@ export default function App() {
     return activeScores.filter((r) => {
       const s = sitesById[r.site_id];
       if (!s) return false;
-      if (filter === "tr" && !s.is_tr) return false;
-      if (filter === "validation" && s.role !== "validation") return false;
-      if (filter === "global" && (s.role === "validation" || s.is_tr)) return false;
       if (!q) return true;
       return `${s.site_id} ${s.name} ${s.short} ${s.lithology}`.toLowerCase().includes(q);
     });
-  }, [activeScores, sitesById, filter, search]);
+  }, [activeScores, sitesById, search]);
 
   // Full table bidirectional sorting across all key columns
   const tableRows = useMemo(() => {
@@ -326,7 +319,6 @@ export default function App() {
   };
 
   const jumpToExample = (action: ExampleJumpKey) => {
-    setFilter("all");
     setSearch("");
     if (action === "rover_hasandagi") {
       setMoonId("moon_shackleton_rim");
@@ -890,30 +882,6 @@ export default function App() {
                       : "When both weights are 0, scoring falls back to 50/50."}
                   </p>
                 )}
-              </div>
-            </div>
-
-            {/* 4. Site Filter Group */}
-            <div>
-              <div className="text-[11.5px] text-[#7a8296] px-1 mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#7a8296]" strokeWidth={1.5} />
-                <span>{copy.filterLabel}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                {(Object.keys(FILTERS) as FilterKey[]).map((fk) => (
-                  <button
-                    key={fk}
-                    type="button"
-                    onClick={() => setFilter(fk)}
-                    className={`h-8 px-2.5 rounded-lg text-left text-[12px] transition-colors duration-150 truncate ${
-                      fk === filter
-                        ? "active-highlight text-[#eef0f5] font-medium"
-                        : "text-[#a3a9b8] hover:text-[#eef0f5] hover:bg-[#11141c]"
-                    }`}
-                  >
-                    {FILTERS[fk][lang]}
-                  </button>
-                ))}
               </div>
             </div>
 

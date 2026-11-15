@@ -1,6 +1,5 @@
 export type Lang = "tr" | "en";
 export type MissionKey = "default" | "rover_mobility" | "optical_survey";
-export type FilterKey = "all" | "tr" | "validation" | "global";
 export type WorkbenchTab = "overview" | "terrain" | "validation" | "figures";
 
 export interface MoonRef {

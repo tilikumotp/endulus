@@ -1,4 +1,4 @@
-import type { FilterKey, Lang, MissionKey, WorkbenchTab } from "./types";
+import type { Lang, MissionKey, WorkbenchTab } from "./types";
 
 export const MISSIONS: Record<
   MissionKey,
@@ -31,13 +31,6 @@ export const MISSIONS: Record<
     note_en:
       "Surface brightness (albedo, 67%) carries 2x weight over slope: it drives nav-camera contrast/exposure and light reflected onto solar panels.",
   },
-};
-
-export const FILTERS: Record<FilterKey, { tr: string; en: string }> = {
-  all: { tr: "Tüm sahalar (40)", en: "All sites (40)" },
-  tr: { tr: "Türkiye adayları (14)", en: "Turkey candidates (14)" },
-  validation: { tr: "Bilinen analoglar (10)", en: "Known analogues (10)" },
-  global: { tr: "Küresel adaylar (16)", en: "Global candidates (16)" },
 };
 
 export const WORKBENCH_TABS: { id: WorkbenchTab; tr: string; en: string }[] = [
@@ -272,8 +265,7 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     heroPrimaryCta: "Gözlemevini aç",
     moonRegionLabel: "Ay referans krateri",
     missionLabel: "Görev profili ve özel ağırlık",
-    filterLabel: "Saha havuzu",
-    earthPickerLabel: "Hızlı Dünya sahası seçici (40)",
+    earthPickerLabel: "Saha seçici",
     searchPlaceholder: "Saha, ID veya litoloji ara",
     selectedEarthLabel: "Seçili Dünya sahası",
     mapZoomGlobal: "Küresel görünüm",
@@ -320,8 +312,7 @@ export const UI_COPY: Record<Lang, Record<string, string>> = {
     heroPrimaryCta: "Open observatory",
     moonRegionLabel: "Lunar reference crater",
     missionLabel: "Mission profile & custom weights",
-    filterLabel: "Site pool",
-    earthPickerLabel: "Quick Earth site selector (40)",
+    earthPickerLabel: "Site picker",
     searchPlaceholder: "Search site, ID or lithology",
     selectedEarthLabel: "Selected Earth site",
     mapZoomGlobal: "Global view",
