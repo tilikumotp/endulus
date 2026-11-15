@@ -214,4 +214,32 @@ src(fig, "Kaynak: features_earth.parquet · features_moon.parquet · r = 1000 m 
 fig.savefig(OUT / "figE_fiziksel_uzay.png")
 plt.close(fig)
 
+# -- F: Albedo sensitivity -----------------------------------------------------------
+sens = [r for r in DATA["albedo_sensitivity"] if r["ref_site_id"] == "moon_shackleton_rim"]
+sens.sort(key=lambda r: r["factor"])
+fig, ax = plt.subplots(figsize=(9, 5.4), dpi=200)
+fig.subplots_adjust(left=0.08, right=0.96, top=0.8, bottom=0.19)
+facs = [r["factor"] for r in sens]
+rhos = [r["spearman_rho_overall"] for r in sens]
+center = 0.38
+cols = [ACCENT if abs(f - center) < 1e-9 else GRAY for f in facs]
+x = range(len(facs))
+ax.bar(x, rhos, width=0.58, color=cols, zorder=3)
+for i, (rho, r) in enumerate(zip(rhos, sens)):
+    ax.text(i, rho + 0.025, f"{rho:.2f}", ha="center", fontsize=11, fontfamily="Consolas",
+            color=ACCENT if abs(facs[i] - center) < 1e-9 else INK2)
+    ax.text(i, -0.16, short_of(r["top1_site_id"]), ha="center", fontsize=9.5,
+            color=ACCENT if abs(facs[i] - center) < 1e-9 else INK2)
+ax.set_xticks(list(x), [f"×{f:.2f}" for f in facs], fontsize=11.5)
+ax.set_ylim(0, 1.12)
+ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+ax.grid(axis="y", zorder=0)
+ax.grid(axis="x", visible=False)
+ax.set_ylabel("Spearman ρ (genel sıra)", fontsize=10.5)
+header(fig, "Albedo çarpanına duyarlılık",
+       "Referans ×0.38 (mavi). Tüm 5 Ay bölgesinde ±%10 çarpan değişimi sıralamayı korur (ρ ≥ 0.87); uçlarda lider değişir — bunu raporluyoruz.")
+src(fig, "Kaynak: albedo_sensitivity · LOLA 1064 nm ×0.38 geniş bant eşdeğeri · bar altı: o çarpanda #1 olan saha")
+fig.savefig(OUT / "figF_albedo_duyarlilik.png")
+plt.close(fig)
+
 print("OK:", [p.name for p in sorted(OUT.glob("*.png"))])
