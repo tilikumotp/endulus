@@ -1,5 +1,5 @@
 # English versions of the jury charts, generated ONLY from the verified web data JSON.
-# Same generator logic as report/figures/sunum/uretici.py, English labels only.
+# Deck figures with English labels only.
 import json
 import pathlib
 

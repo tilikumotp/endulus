@@ -15,3 +15,7 @@ __pycache__/
 # React / Vite build artifacts
 web/node_modules/
 web/dist/
+web/tsconfig.tsbuildinfo
+
+# Python test caches
+.pytest_cache/

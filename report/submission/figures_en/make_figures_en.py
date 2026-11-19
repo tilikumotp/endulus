@@ -1,4 +1,4 @@
-# English copies of the jury charts (adapted from report/figures/sunum/uretici.py).
+# English copies of the deck charts.
 # Generated ONLY from the verified web data JSON (same tables the React app renders). No recomputation.
 import json
 import pathlib

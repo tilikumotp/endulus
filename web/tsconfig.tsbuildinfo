@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/i18n.ts","./src/main.tsx","./src/scoring.ts","./src/types.ts","./src/components/elevationprofilesvg.tsx","./src/components/lunarglyphcanvas.tsx","./src/components/radarcomparesvg.tsx","./src/components/realmapleaflet.tsx","./src/components/scorebarschart.tsx","./src/components/terrain3dcanvas.tsx"],"version":"5.9.3"}
